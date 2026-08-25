@@ -1,26 +1,100 @@
 {% extends "base.html" %}
-{% block title %}Servidores · Odette{% endblock %}
+{% block title %}Dashboard · Odette{% endblock %}
 {% block content %}
-<h1>Tus servidores</h1>
-<p class="muted">Solo aparecen servidores donde tienes permiso de administrar y donde esté Odette (fase 2 filtrará mejor).</p>
+<style>
+  .dash-head{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;margin-bottom:20px;
+  }
+  .dash-head h1{margin:0;font-size:1.35rem}
+  .dash-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .guild-list{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+    gap:12px;
+  }
+  .guild-card{
+    display:flex;align-items:center;gap:14px;
+    padding:14px 16px;border-radius:14px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    text-decoration:none;color:inherit;
+    transition:border-color .15s, background .15s, transform .12s;
+  }
+  .guild-card:hover{
+    border-color:rgba(175,215,230,.45);
+    background:rgba(175,215,230,.06);
+    transform:translateY(-1px);
+  }
+  .guild-card img,.guild-card .g-fallback{
+    width:48px;height:48px;border-radius:12px;object-fit:cover;flex-shrink:0;
+  }
+  .g-fallback{
+    display:grid;place-items:center;
+    background:linear-gradient(135deg,#2a3a4a,#1a2430);
+    font-size:1.2rem;
+  }
+  .guild-meta{min-width:0;flex:1}
+  .guild-meta .name{
+    font-weight:600;font-size:.95rem;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .guild-meta .id{
+    font-size:.75rem;opacity:.55;margin-top:2px;
+    font-family:ui-monospace,monospace;
+  }
+  .guild-arrow{opacity:.35;font-size:.9rem}
+  .empty-box{
+    padding:28px;text-align:center;border-radius:14px;
+    border:1px dashed rgba(255,255,255,.12);opacity:.75;
+  }
+  .count-pill{
+    font-size:.75rem;padding:3px 10px;border-radius:999px;
+    background:rgba(255,255,255,.06);opacity:.8;
+  }
+</style>
 
-{% if not guilds %}
-  <div class="alert">No se encontraron servidores. Asegúrate de autorizar el scope <code>guilds</code>.</div>
-{% else %}
+<div class="dash-head">
+  <div>
+    <h1>Servidores</h1>
+    <div class="meta" style="margin-top:4px">
+      {% if user %}Hola, <strong>{{ user.username }}</strong> · {% endif %}
+      <span class="count-pill">{{ guilds|length }} servidor{{ 'es' if guilds|length != 1 else '' }}</span>
+    </div>
+  </div>
+  <div class="dash-actions">
+    <button type="button" class="btn" onclick="location.reload()">🔄 Recargar página</button>
+    {% if is_owner %}
+      <a class="btn" href="/owner">👑 Owner</a>
+    {% endif %}
+    <a class="btn" href="/logout">Salir</a>
+  </div>
+</div>
+
+{% if guilds %}
   <div class="guild-list">
-    {% for g in guilds %}
-      <a class="guild" href="/guild/{{ g.id }}">
+    {% for g in guilds|sort(attribute='name') %}
+      <a class="guild-card" href="/guild/{{ g.id }}">
         {% if g.icon %}
-          <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=64" alt="" />
+          <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=96" alt="" />
         {% else %}
-          <div class="guild-ph">{{ g.name[:1] }}</div>
+          <div class="g-fallback">🦢</div>
         {% endif %}
-        <div>
-          <strong>{{ g.name }}</strong>
-          <span class="muted">ID: {{ g.id }}</span>
+        <div class="guild-meta">
+          <div class="name">{{ g.name }}</div>
+          <div class="id">{{ g.id }}</div>
         </div>
+        <span class="guild-arrow">→</span>
       </a>
     {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-box">
+    <p style="margin:0 0 8px">No hay servidores donde seas admin / gestiones el server.</p>
+    <p style="margin:0;font-size:.85rem;opacity:.7">Asegúrate de que Odette esté en el servidor y tú tengas permisos de Administrador o Gestionar servidor.</p>
+    <p style="margin:14px 0 0">
+      <button type="button" class="btn" onclick="location.reload()">🔄 Recargar página</button>
+    </p>
   </div>
 {% endif %}
 {% endblock %}
