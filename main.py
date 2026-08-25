@@ -2,14 +2,13 @@
 Odette Panel — fase 2
 - Login Discord OAuth2
 - Lista de servidores del usuario
-- Configuración por servidor (Anti-Raid, Verify, Logs, IA)
+- Configuración por servidor (todos los módulos)
 - Zona owner: premium local (JSON)
 
 Deploy Render:
   Build: pip install -r requirements.txt
   Start: uvicorn main:app --host 0.0.0.0 --port $PORT
 """
-
 from __future__ import annotations
 
 import json
@@ -19,14 +18,18 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import urlencode
+from collections import defaultdict
 
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse as _JSONResponse
+import hmac as _hmac
 
 load_dotenv()
 
@@ -50,8 +53,9 @@ app = FastAPI(
     title="Odette Panel",
     docs_url=None,
     redoc_url=None,
-    openapi_url=None,  # no exponer esquema de rutas
+    openapi_url=None,
 )
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
@@ -61,22 +65,15 @@ app.add_middleware(
     session_cookie="odette_session",
 )
 
-# --- Seguridad: cabeceras + rate limit simple en memoria ---
-from collections import defaultdict
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse as _JSONResponse
-import hmac as _hmac
-import hashlib as _hashlib
-
-_rate_buckets: dict = defaultdict(list)  # ip -> [timestamps]
+# --- Seguridad: cabeceras + rate limit ---
+_rate_buckets: dict = defaultdict(list)
 _RATE_WINDOW = 60.0
-_RATE_MAX = 90  # req/min por IP
+_RATE_MAX = 90
 _RATE_API_MAX = 30
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        # Rate limit básico
         client = request.client.host if request.client else "unknown"
         now = time.time()
         bucket = _rate_buckets[client]
@@ -85,7 +82,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if len(_rate_buckets[client]) >= limit:
             return _JSONResponse({"error": "Demasiadas peticiones"}, status_code=429)
         _rate_buckets[client].append(now)
-
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -104,7 +100,6 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 
 def _safe_token_eq(a: str, b: str) -> bool:
-    """Comparación en tiempo constante."""
     try:
         return _hmac.compare_digest((a or "").encode(), (b or "").encode())
     except Exception:
@@ -122,6 +117,8 @@ def _csrf_token(request: Request) -> str:
 def _check_csrf(request: Request, form_token: str) -> bool:
     expected = request.session.get("_csrf") or ""
     return _safe_token_eq(expected, (form_token or "").strip())
+
+
 _STATIC = BASE_DIR / "static"
 _STATIC.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
@@ -226,6 +223,28 @@ def _default_config() -> dict:
         "tickets": {"enabled": False},
         "starboard": {"enabled": False, "channel_id": "", "min_stars": 3},
         "nsfw": {"enabled": True},
+        "raidmode": {"enabled": False},
+        "antihoist": {"enabled": False},
+        "quarantine": {"enabled": False, "role_id": ""},
+        "reports": {"enabled": False, "channel_id": ""},
+        "suggest": {"enabled": False, "channel_id": ""},
+        "modnotes": {"enabled": False},
+        "watchlist": {"enabled": False},
+        "reaction_roles": {"enabled": False},
+        "invites": {"enabled": False},
+        "sticky": {"enabled": False},
+        "autoresponse": {"enabled": False},
+        "afk": {"enabled": True},
+        "snipe": {"enabled": True},
+        "tempvc": {"enabled": False},
+        "giveaways": {"enabled": True},
+        "reminders": {"enabled": True},
+        "economy": {"enabled": True},
+        "profiles": {"enabled": True},
+        "marriage": {"enabled": True},
+        "actions_sfw": {"enabled": True},
+        "music": {"enabled": True},
+        "fun": {"enabled": True},
     }
 
 
@@ -248,12 +267,11 @@ def get_guild_config(guild_id: str) -> dict:
     cfg = all_cfg.get(str(guild_id))
     if not cfg:
         return _default_config()
-    # Asegurar que existan todas las claves
     base = _default_config()
     for key in base:
         if key not in cfg:
             cfg[key] = base[key]
-        else:
+        elif isinstance(base[key], dict) and isinstance(cfg.get(key), dict):
             for sub in base[key]:
                 if sub not in cfg[key]:
                     cfg[key][sub] = base[key][sub]
@@ -373,7 +391,6 @@ async def callback(request: Request, code: str = "", state: str = "", error: str
         "username": user.get("global_name") or user.get("username"),
         "avatar": user.get("avatar"),
     }
-    # Solo guilds donde el user es admin (PERMISSION ADMINISTRATOR bit)
     ADMIN = 0x8
     glist = []
     if guilds.status_code == 200:
@@ -382,7 +399,7 @@ async def callback(request: Request, code: str = "", state: str = "", error: str
                 perms = int(g.get("permissions", 0))
             except Exception:
                 perms = 0
-            if (perms & ADMIN) or (perms & 0x20):  # ADMIN or MANAGE_GUILD
+            if (perms & ADMIN) or (perms & 0x20):
                 glist.append(
                     {
                         "id": str(g["id"]),
@@ -453,7 +470,6 @@ async def guild_save(request: Request, guild_id: str):
     if not user:
         return RedirectResponse("/login")
 
-    # Seguridad: solo puede guardar si es admin del servidor o owner
     guilds = request.session.get("guilds") or []
     has_access = any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)
     if not has_access:
@@ -462,7 +478,7 @@ async def guild_save(request: Request, guild_id: str):
     form = await request.form()
     if not _check_csrf(request, str(form.get("csrf_token") or "")):
         return RedirectResponse(f"/guild/{guild_id}?err=csrf", status_code=303)
-    # Validar guild_id solo dígitos
+
     if not str(guild_id).isdigit():
         return RedirectResponse("/dashboard")
 
@@ -491,9 +507,7 @@ async def guild_save(request: Request, guild_id: str):
             "enabled": form.get("logs_enabled") == "on",
             "channel_id": (form.get("logs_channel") or "").strip(),
         },
-        "ia": {
-            "enabled": form.get("ia_enabled") == "on",
-        },
+        "ia": {"enabled": form.get("ia_enabled") == "on"},
         "welcome": {
             "enabled": form.get("welcome_enabled") == "on",
             "channel_id": (form.get("welcome_channel") or "").strip(),
@@ -502,35 +516,57 @@ async def guild_save(request: Request, guild_id: str):
             "enabled": form.get("autorole_enabled") == "on",
             "role_id": (form.get("autorole_role") or "").strip(),
         },
-        "levels": {
-            "enabled": form.get("levels_enabled") == "on",
-        },
+        "levels": {"enabled": form.get("levels_enabled") == "on"},
         "booster": {
             "enabled": form.get("booster_enabled") == "on",
             "channel_id": (form.get("booster_channel") or "").strip(),
         },
-        "tickets": {
-            "enabled": form.get("tickets_enabled") == "on",
-        },
+        "tickets": {"enabled": form.get("tickets_enabled") == "on"},
         "starboard": {
             "enabled": form.get("starboard_enabled") == "on",
             "channel_id": (form.get("starboard_channel") or "").strip(),
             "min_stars": max(1, min(_int("starboard_min", 3), 25)),
         },
-        "nsfw": {
-            "enabled": form.get("nsfw_enabled") == "on",
+        "nsfw": {"enabled": form.get("nsfw_enabled") == "on"},
+        "raidmode": {"enabled": form.get("raidmode_enabled") == "on"},
+        "antihoist": {"enabled": form.get("antihoist_enabled") == "on"},
+        "quarantine": {
+            "enabled": form.get("quarantine_enabled") == "on",
+            "role_id": (form.get("quarantine_role") or "").strip(),
         },
+        "reports": {
+            "enabled": form.get("reports_enabled") == "on",
+            "channel_id": (form.get("reports_channel") or "").strip(),
+        },
+        "suggest": {
+            "enabled": form.get("suggest_enabled") == "on",
+            "channel_id": (form.get("suggest_channel") or "").strip(),
+        },
+        "modnotes": {"enabled": form.get("modnotes_enabled") == "on"},
+        "watchlist": {"enabled": form.get("watchlist_enabled") == "on"},
+        "reaction_roles": {"enabled": form.get("reaction_roles_enabled") == "on"},
+        "invites": {"enabled": form.get("invites_enabled") == "on"},
+        "sticky": {"enabled": form.get("sticky_enabled") == "on"},
+        "autoresponse": {"enabled": form.get("autoresponse_enabled") == "on"},
+        "afk": {"enabled": form.get("afk_enabled") == "on"},
+        "snipe": {"enabled": form.get("snipe_enabled") == "on"},
+        "tempvc": {"enabled": form.get("tempvc_enabled") == "on"},
+        "giveaways": {"enabled": form.get("giveaways_enabled") == "on"},
+        "reminders": {"enabled": form.get("reminders_enabled") == "on"},
+        "economy": {"enabled": form.get("economy_enabled") == "on"},
+        "profiles": {"enabled": form.get("profiles_enabled") == "on"},
+        "marriage": {"enabled": form.get("marriage_enabled") == "on"},
+        "actions_sfw": {"enabled": form.get("actions_sfw_enabled") == "on"},
+        "music": {"enabled": form.get("music_enabled") == "on"},
+        "fun": {"enabled": form.get("fun_enabled") == "on"},
     }
 
-    # Si no tiene premium, forzamos IA apagada
     ok, _ = is_premium(guild_id)
     if not ok:
         config["ia"]["enabled"] = False
 
-    # Marca de guardado real (el bot solo aplica configs con esto)
-    import time as _t
     config["_panel_saved"] = True
-    config["_saved_at"] = _t.time()
+    config["_saved_at"] = time.time()
 
     save_guild_config(guild_id, config)
     return RedirectResponse(f"/guild/{guild_id}?ok=1", status_code=303)
@@ -585,9 +621,9 @@ async def owner_premium_add(
     guilds = data.setdefault("guilds", {})
     now = time.time()
     if secs is None:
-        guilds[str(guild_id).strip()] = {"until": None, "label": "permanente", "added": now}
+        guilds[str(guild_id)] = {"until": None, "label": "permanente", "added": now}
     else:
-        prev = guilds.get(str(guild_id).strip()) or {}
+        prev = guilds.get(str(guild_id)) or {}
         base = now
         if prev.get("until"):
             try:
@@ -596,7 +632,7 @@ async def owner_premium_add(
                     base = pu
             except Exception:
                 pass
-        guilds[str(guild_id).strip()] = {
+        guilds[str(guild_id)] = {
             "until": base + secs,
             "label": label,
             "added": now,
@@ -607,7 +643,11 @@ async def owner_premium_add(
 
 
 @app.post("/owner/premium/remove")
-async def owner_premium_remove(request: Request, guild_id: str = Form(...), csrf_token: str = Form("")):
+async def owner_premium_remove(
+    request: Request,
+    guild_id: str = Form(...),
+    csrf_token: str = Form(""),
+):
     if not is_owner(request):
         return RedirectResponse("/", status_code=303)
     if not _check_csrf(request, csrf_token):
@@ -617,7 +657,7 @@ async def owner_premium_remove(request: Request, guild_id: str = Form(...), csrf
         return RedirectResponse("/owner", status_code=303)
     data = _load_premium()
     guilds = data.get("guilds") or {}
-    guilds.pop(str(guild_id).strip(), None)
+    guilds.pop(str(guild_id), None)
     data["guilds"] = guilds
     _save_premium(data)
     return RedirectResponse("/owner", status_code=303)
@@ -626,15 +666,12 @@ async def owner_premium_remove(request: Request, guild_id: str = Form(...), csrf
 # ───────────────────────── API para el bot ─────────────────────────
 
 def _clean_secret(val: str) -> str:
-    """Quita espacios y comillas que a veces se cuelan en Environment de Render."""
     v = (val or "").strip()
     if len(v) >= 2 and ((v[0] == v[-1] == '"') or (v[0] == v[-1] == "'")):
         v = v[1:-1].strip()
     return v
 
 
-# Token FIJO compartido con el bot (mismo valor que en el .env del bot).
-# No depende del Environment de Render para evitar 401 por token distinto.
 PANEL_API_TOKEN = "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
 
 
@@ -652,8 +689,6 @@ async def health():
 
 @app.get("/api/ping")
 async def api_ping(request: Request):
-    """Prueba rápida de token (el bot o curl pueden usarlo)."""
-    from fastapi.responses import JSONResponse
     auth = request.headers.get("Authorization") or ""
     token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
     expected = _clean_secret(PANEL_API_TOKEN)
@@ -664,8 +699,6 @@ async def api_ping(request: Request):
 
 @app.get("/api/guild/{guild_id}/config")
 async def api_guild_config(guild_id: str, request: Request):
-    """El bot llama a esta ruta para obtener la configuración de un servidor."""
-    from fastapi.responses import JSONResponse
     if not str(guild_id).isdigit():
         return JSONResponse({"error": "guild_id invalido"}, status_code=400)
     auth = request.headers.get("Authorization") or ""
