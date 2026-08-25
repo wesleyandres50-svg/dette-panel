@@ -7,30 +7,38 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <header class="top">
-    <a class="brand" href="/">🦢 Odette Panel</a>
-    <nav>
-      {% if user %}
-        <span class="user">{{ user.username }}</span>
-        <a href="/dashboard">Servidores</a>
-        {% if is_owner %}<a href="/owner">Owner</a>{% endif %}
-        <a href="/logout">Salir</a>
-      {% else %}
-        <a class="btn" href="/login">Login con Discord</a>
-      {% endif %}
+  <div class="wrap">
+    <nav class="nav">
+      <a class="brand" href="/">
+        <span class="logo">🦢</span>
+        <span>Odette Panel</span>
+      </a>
+      <div class="nav-links">
+        {% if user %}
+          <span class="user-pill">
+            {% if user.avatar %}
+              <img class="avatar" src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png?size=64" alt="" />
+            {% else %}
+              <span class="avatar"></span>
+            {% endif %}
+            {{ user.username }}
+          </span>
+          <a class="btn btn-ghost" href="/dashboard">Servidores</a>
+          {% if is_owner %}<a class="btn btn-ghost" href="/owner">👑 Owner</a>{% endif %}
+          <a class="btn" href="/logout">Salir</a>
+        {% else %}
+          <a class="btn btn-primary" href="/login">Login con Discord</a>
+        {% endif %}
+      </div>
     </nav>
-  </header>
-  <main class="container">
     {% if error %}
-      <div class="alert error">{{ error }}</div>
+      <div class="alert alert-err">{{ error }}</div>
     {% endif %}
     {% if success %}
-      <div class="alert success">{{ success }}</div>
+      <div class="alert alert-ok">{{ success }}</div>
     {% endif %}
     {% block content %}{% endblock %}
-  </main>
-  <footer class="foot">
-    Odette Dashboard · esqueleto · fase 1 (login + lista de servers)
-  </footer>
+  </div>
+  {% block scripts %}{% endblock %}
 </body>
 </html>
