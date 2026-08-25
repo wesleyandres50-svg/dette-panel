@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Owner · Odette{% endblock %}
+{% block content %}
+<h1>💎 Owner</h1>
+<p class="muted">Solo la dueña del bot (BOT_OWNER_ID).</p>
+
+<section class="card">
+  <h3>Premium (local en el panel)</h3>
+  <p>Esta lista es del panel (JSON). En fase 2 se sincroniza con el bot.</p>
+  <form method="post" action="/owner/premium/add" class="form-row">
+    <input name="guild_id" placeholder="Guild ID" required />
+    <input name="duration" placeholder="permanente / 7d / 24h" value="30d" />
+    <button type="submit" class="btn primary">Añadir / renovar</button>
+  </form>
+  <form method="post" action="/owner/premium/remove" class="form-row">
+    <input name="guild_id" placeholder="Guild ID a quitar" required />
+    <button type="submit" class="btn">Quitar</button>
+  </form>
+  <h4>Activos</h4>
+  <ul>
+    {% for gid, info in premium_list.items() %}
+      <li><code>{{ gid }}</code> — {{ info.get("label", "?") }}
+        {% if info.get("until") %} · until {{ info.get("until") }}{% else %} · permanente{% endif %}
+      </li>
+    {% else %}
+      <li class="muted">Ninguno</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}
