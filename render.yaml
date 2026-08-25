@@ -1,0 +1,19 @@
+# Blueprint Render — Odette Panel
+services:
+  - type: web
+    name: odette-panel
+    runtime: python
+    plan: free
+    buildCommand: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+    startCommand: .venv/bin/uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: 1538362367778488432
+        sync: false
+      - key: k3_M1-D50R3nttIJ0PNn7g_bg3QjuWvw
+        sync: false
+      - key: https://dette-panel-1.onrender.com/callback
+        sync: false
+      - key: 545930956721356842
+        value: "545930956721356842"
+      - key: odette_panel_secreto_largo_2026
+        generateValue: true
