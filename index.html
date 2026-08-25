@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Odette Panel{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Panel de Odette</h1>
+  <p>Configura tu servidor desde la web. Fase 1: login Discord y lista de servidores.</p>
+  {% if not user %}
+    <a class="btn primary" href="/login">Entrar con Discord</a>
+  {% else %}
+    <a class="btn primary" href="/dashboard">Ir al dashboard</a>
+  {% endif %}
+</section>
+<section class="cards">
+  <div class="card">
+    <h3>🛡️ Seguridad</h3>
+    <p>Anti-raid e IA (premium) — próximamente editable aquí.</p>
+  </div>
+  <div class="card">
+    <h3>✅ Verify</h3>
+    <p>Verificación y riesgo de multicuentas — próximamente.</p>
+  </div>
+  <div class="card">
+    <h3>💎 Premium</h3>
+    <p>Gestión de planes (solo dueña del bot).</p>
+  </div>
+</section>
+{% endblock %}
