@@ -1,0 +1,510 @@
+"""
+Odette Panel — fase 2
+- Login Discord OAuth2
+- Lista de servidores del usuario
+- Configuración por servidor (Anti-Raid, Verify, Logs, IA)
+- Zona owner: premium local (JSON)
+
+Deploy Render:
+  Build: pip install -r requirements.txt
+  Start: uvicorn main:app --host 0.0.0.0 --port $PORT
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import secrets
+import time
+from pathlib import Path
+from typing import Any, Optional
+from urllib.parse import urlencode
+
+import httpx
+from dotenv import load_dotenv
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
+
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
+PREMIUM_FILE = DATA_DIR / "premium_guilds.json"
+CONFIG_FILE = DATA_DIR / "guild_configs.json"
+
+DISCORD_CLIENT_ID = (os.getenv("DISCORD_CLIENT_ID") or "").strip()
+DISCORD_CLIENT_SECRET = (os.getenv("DISCORD_CLIENT_SECRET") or "").strip()
+DISCORD_REDIRECT_URI = (os.getenv("DISCORD_REDIRECT_URI") or "").strip()
+BOT_OWNER_ID = int(os.getenv("BOT_OWNER_ID") or "545930956721356842")
+SECRET_KEY = (os.getenv("SECRET_KEY") or secrets.token_hex(32)).strip()
+
+API_BASE = "https://discord.com/api/v10"
+OAUTH_AUTHORIZE = "https://discord.com/api/oauth2/authorize"
+OAUTH_TOKEN = "https://discord.com/api/oauth2/token"
+
+app = FastAPI(title="Odette Panel", docs_url=None, redoc_url=None)
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=60 * 60 * 24 * 7)
+_STATIC = BASE_DIR / "static"
+_STATIC.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+# ───────────────────────── Premium ─────────────────────────
+
+def _load_premium() -> dict:
+    if not PREMIUM_FILE.exists():
+        return {"guilds": {}}
+    try:
+        data = json.loads(PREMIUM_FILE.read_text(encoding="utf-8"))
+        if isinstance(data.get("guilds"), list):
+            data["guilds"] = {str(x): {"until": None, "label": "permanente"} for x in data["guilds"]}
+        if not isinstance(data.get("guilds"), dict):
+            data["guilds"] = {}
+        return data
+    except Exception:
+        return {"guilds": {}}
+
+
+def _save_premium(data: dict) -> None:
+    PREMIUM_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def parse_duration(text: str):
+    import re
+
+    t = (text or "").strip().lower().replace(" ", "")
+    if not t or t in ("perm", "permanente", "permanent", "forever", "siempre"):
+        return True, None, "permanente", None
+    if t.isdigit():
+        n = int(t)
+        if n <= 0 or n > 3650:
+            return False, None, None, "Días inválidos"
+        return True, n * 86400, f"{n}d", None
+    if not re.fullmatch(r"(\d+[dhms])+", t):
+        return False, None, None, "Formato: permanente | 7d | 24h | 30d | 1d12h"
+    total = 0
+    for num, unit in re.findall(r"(\d+)([dhms])", t):
+        n = int(num)
+        if unit == "d":
+            total += n * 86400
+        elif unit == "h":
+            total += n * 3600
+        elif unit == "m":
+            total += n * 60
+        else:
+            total += n
+    if total <= 0:
+        return False, None, None, "Duración inválida"
+    parts = []
+    d, r = divmod(total, 86400)
+    h, r = divmod(r, 3600)
+    m, _ = divmod(r, 60)
+    if d:
+        parts.append(f"{d}d")
+    if h:
+        parts.append(f"{h}h")
+    if m and not d:
+        parts.append(f"{m}m")
+    return True, total, "".join(parts), None
+
+
+def is_premium(guild_id: str | int) -> tuple[bool, str]:
+    data = _load_premium()
+    entry = (data.get("guilds") or {}).get(str(guild_id))
+    if not entry:
+        return False, "no"
+    until = entry.get("until")
+    if until is None:
+        return True, "permanente"
+    try:
+        left = float(until) - time.time()
+    except Exception:
+        return False, "no"
+    if left <= 0:
+        g = data.get("guilds") or {}
+        g.pop(str(guild_id), None)
+        data["guilds"] = g
+        _save_premium(data)
+        return False, "expirado"
+    d, r = divmod(int(left), 86400)
+    h, _ = divmod(r, 3600)
+    return True, f"queda {d}d {h}h" if d else f"queda {h}h"
+
+
+# ───────────────────────── Config por servidor ─────────────────────────
+
+def _default_config() -> dict:
+    return {
+        "anti_raid": {"enabled": False, "max_joins": 5, "window": 10},
+        "verify": {"enabled": False, "channel_id": "", "role_id": ""},
+        "logs": {"enabled": False, "channel_id": ""},
+        "ia": {"enabled": False},
+    }
+
+
+def _load_all_configs() -> dict:
+    if not CONFIG_FILE.exists():
+        return {}
+    try:
+        data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_all_configs(data: dict) -> None:
+    CONFIG_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def get_guild_config(guild_id: str) -> dict:
+    all_cfg = _load_all_configs()
+    cfg = all_cfg.get(str(guild_id))
+    if not cfg:
+        return _default_config()
+    # Asegurar que existan todas las claves
+    base = _default_config()
+    for key in base:
+        if key not in cfg:
+            cfg[key] = base[key]
+        else:
+            for sub in base[key]:
+                if sub not in cfg[key]:
+                    cfg[key][sub] = base[key][sub]
+    return cfg
+
+
+def save_guild_config(guild_id: str, config: dict) -> None:
+    all_cfg = _load_all_configs()
+    all_cfg[str(guild_id)] = config
+    _save_all_configs(all_cfg)
+
+
+# ───────────────────────── Helpers ─────────────────────────
+
+def current_user(request: Request) -> Optional[dict]:
+    return request.session.get("user")
+
+
+def is_owner(request: Request) -> bool:
+    u = current_user(request)
+    return bool(u and int(u.get("id", 0)) == BOT_OWNER_ID)
+
+
+# ───────────────────────── Rutas ─────────────────────────
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "user": current_user(request),
+            "is_owner": is_owner(request),
+        },
+    )
+
+
+@app.get("/login")
+async def login(request: Request):
+    if not DISCORD_CLIENT_ID or not DISCORD_REDIRECT_URI:
+        return templates.TemplateResponse(
+            "index.html",
+            {
+                "request": request,
+                "user": None,
+                "is_owner": False,
+                "error": "Faltan DISCORD_CLIENT_ID o DISCORD_REDIRECT_URI en variables de entorno.",
+            },
+            status_code=500,
+        )
+    state = secrets.token_urlsafe(16)
+    request.session["oauth_state"] = state
+    params = {
+        "client_id": DISCORD_CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri": DISCORD_REDIRECT_URI,
+        "scope": "identify guilds",
+        "state": state,
+        "prompt": "none",
+    }
+    return RedirectResponse(f"{OAUTH_AUTHORIZE}?{urlencode(params)}")
+
+
+@app.get("/callback")
+async def callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    if error:
+        return RedirectResponse("/?error=oauth")
+    if not code or state != request.session.get("oauth_state"):
+        return templates.TemplateResponse(
+            "index.html",
+            {
+                "request": request,
+                "user": None,
+                "is_owner": False,
+                "error": "Login inválido (state/code). Vuelve a intentar.",
+            },
+            status_code=400,
+        )
+    async with httpx.AsyncClient(timeout=20) as client:
+        token_res = await client.post(
+            OAUTH_TOKEN,
+            data={
+                "client_id": DISCORD_CLIENT_ID,
+                "client_secret": DISCORD_CLIENT_SECRET,
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": DISCORD_REDIRECT_URI,
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        if token_res.status_code != 200:
+            return templates.TemplateResponse(
+                "index.html",
+                {
+                    "request": request,
+                    "user": None,
+                    "is_owner": False,
+                    "error": f"No se pudo obtener token Discord ({token_res.status_code}). Revisa CLIENT_SECRET y REDIRECT_URI.",
+                },
+                status_code=400,
+            )
+        token = token_res.json()
+        access = token.get("access_token")
+        me = await client.get(
+            f"{API_BASE}/users/@me",
+            headers={"Authorization": f"Bearer {access}"},
+        )
+        guilds = await client.get(
+            f"{API_BASE}/users/@me/guilds",
+            headers={"Authorization": f"Bearer {access}"},
+        )
+    if me.status_code != 200:
+        return RedirectResponse("/")
+    user = me.json()
+    request.session["user"] = {
+        "id": str(user["id"]),
+        "username": user.get("global_name") or user.get("username"),
+        "avatar": user.get("avatar"),
+    }
+    # Solo guilds donde el user es admin (PERMISSION ADMINISTRATOR bit)
+    ADMIN = 0x8
+    glist = []
+    if guilds.status_code == 200:
+        for g in guilds.json():
+            try:
+                perms = int(g.get("permissions", 0))
+            except Exception:
+                perms = 0
+            if (perms & ADMIN) or (perms & 0x20):  # ADMIN or MANAGE_GUILD
+                glist.append(
+                    {
+                        "id": str(g["id"]),
+                        "name": g.get("name") or "Server",
+                        "icon": g.get("icon"),
+                    }
+                )
+    request.session["guilds"] = glist
+    request.session.pop("oauth_state", None)
+    return RedirectResponse("/dashboard")
+
+
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/")
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login")
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "user": user,
+            "is_owner": is_owner(request),
+            "guilds": request.session.get("guilds") or [],
+        },
+    )
+
+
+@app.get("/guild/{guild_id}", response_class=HTMLResponse)
+async def guild_page(request: Request, guild_id: str):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login")
+    guilds = request.session.get("guilds") or []
+    guild = next((g for g in guilds if str(g["id"]) == str(guild_id)), None)
+    if not guild and not is_owner(request):
+        return RedirectResponse("/dashboard")
+    if not guild:
+        guild = {"id": guild_id, "name": f"Server {guild_id}", "icon": None}
+
+    ok, status = is_premium(guild_id)
+    config = get_guild_config(guild_id)
+
+    return templates.TemplateResponse(
+        "guild.html",
+        {
+            "request": request,
+            "user": user,
+            "is_owner": is_owner(request),
+            "guild": guild,
+            "premium": ok,
+            "premium_status": status,
+            "config": config,
+        },
+    )
+
+
+@app.post("/guild/{guild_id}/save")
+async def guild_save(request: Request, guild_id: str):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login")
+
+    # Seguridad: solo puede guardar si es admin del servidor o owner
+    guilds = request.session.get("guilds") or []
+    has_access = any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)
+    if not has_access:
+        return RedirectResponse("/dashboard")
+
+    form = await request.form()
+
+    config = {
+        "anti_raid": {
+            "enabled": form.get("anti_raid_enabled") == "on",
+            "max_joins": int(form.get("anti_raid_max_joins") or 5),
+            "window": int(form.get("anti_raid_window") or 10),
+        },
+        "verify": {
+            "enabled": form.get("verify_enabled") == "on",
+            "channel_id": (form.get("verify_channel") or "").strip(),
+            "role_id": (form.get("verify_role") or "").strip(),
+        },
+        "logs": {
+            "enabled": form.get("logs_enabled") == "on",
+            "channel_id": (form.get("logs_channel") or "").strip(),
+        },
+        "ia": {
+            "enabled": form.get("ia_enabled") == "on",
+        },
+    }
+
+    # Si no tiene premium, forzamos IA apagada
+    ok, _ = is_premium(guild_id)
+    if not ok:
+        config["ia"]["enabled"] = False
+
+    save_guild_config(guild_id, config)
+    return RedirectResponse(f"/guild/{guild_id}", status_code=303)
+
+
+@app.get("/owner", response_class=HTMLResponse)
+async def owner_page(request: Request):
+    if not current_user(request):
+        return RedirectResponse("/login")
+    if not is_owner(request):
+        return templates.TemplateResponse(
+            "index.html",
+            {
+                "request": request,
+                "user": current_user(request),
+                "is_owner": False,
+                "error": "Solo la dueña del bot puede entrar a Owner.",
+            },
+            status_code=403,
+        )
+    data = _load_premium()
+    return templates.TemplateResponse(
+        "owner.html",
+        {
+            "request": request,
+            "user": current_user(request),
+            "is_owner": True,
+            "premium_list": data.get("guilds") or {},
+        },
+    )
+
+
+@app.post("/owner/premium/add")
+async def owner_premium_add(
+    request: Request,
+    guild_id: str = Form(...),
+    duration: str = Form("30d"),
+):
+    if not is_owner(request):
+        return RedirectResponse("/", status_code=303)
+    ok, secs, label, err = parse_duration(duration)
+    if not ok:
+        return RedirectResponse("/owner", status_code=303)
+    data = _load_premium()
+    guilds = data.setdefault("guilds", {})
+    now = time.time()
+    if secs is None:
+        guilds[str(guild_id).strip()] = {"until": None, "label": "permanente", "added": now}
+    else:
+        prev = guilds.get(str(guild_id).strip()) or {}
+        base = now
+        if prev.get("until"):
+            try:
+                pu = float(prev["until"])
+                if pu > now:
+                    base = pu
+            except Exception:
+                pass
+        guilds[str(guild_id).strip()] = {
+            "until": base + secs,
+            "label": label,
+            "added": now,
+        }
+    data["guilds"] = guilds
+    _save_premium(data)
+    return RedirectResponse("/owner", status_code=303)
+
+
+@app.post("/owner/premium/remove")
+async def owner_premium_remove(request: Request, guild_id: str = Form(...)):
+    if not is_owner(request):
+        return RedirectResponse("/", status_code=303)
+    data = _load_premium()
+    guilds = data.get("guilds") or {}
+    guilds.pop(str(guild_id).strip(), None)
+    data["guilds"] = guilds
+    _save_premium(data)
+    return RedirectResponse("/owner", status_code=303)
+
+
+@app.get("/health")
+async def health():
+    return {"ok": True, "service": "odette-panel", "phase": 2}
+
+
+# ───────────────────────── API para el bot ─────────────────────────
+
+PANEL_API_TOKEN = (os.getenv("PANEL_API_TOKEN") or "").strip()
+
+
+@app.get("/api/guild/{guild_id}/config")
+async def api_guild_config(guild_id: str, request: Request):
+    """El bot llama a esta ruta para obtener la configuración de un servidor."""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not PANEL_API_TOKEN or token != PANEL_API_TOKEN:
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+
+    config = get_guild_config(guild_id)
+    ok, status = is_premium(guild_id)
+    return {
+        "guild_id": str(guild_id),
+        "premium": ok,
+        "premium_status": status,
+        "config": config,
+    }
