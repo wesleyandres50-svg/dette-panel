@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Verificación · Odette{% endblock %}
+{% block content %}
+<div style="max-width:480px;margin:40px auto;padding:24px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
+  <h1 style="margin-top:0">{% if ok %}✅ Verificado{% else %}❌ No verificado{% endif %}</h1>
+  <p style="line-height:1.5;opacity:.9">{{ message }}</p>
+  <a class="btn" href="/dashboard">Ir al panel</a>
+</div>
+{% endblock %}
