@@ -46,8 +46,82 @@ API_BASE = "https://discord.com/api/v10"
 OAUTH_AUTHORIZE = "https://discord.com/api/oauth2/authorize"
 OAUTH_TOKEN = "https://discord.com/api/oauth2/token"
 
-app = FastAPI(title="Odette Panel", docs_url=None, redoc_url=None)
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=60 * 60 * 24 * 7)
+app = FastAPI(
+    title="Odette Panel",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,  # no exponer esquema de rutas
+)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    max_age=60 * 60 * 24 * 7,
+    same_site="lax",
+    https_only=True,
+    session_cookie="odette_session",
+)
+
+# --- Seguridad: cabeceras + rate limit simple en memoria ---
+from collections import defaultdict
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse as _JSONResponse
+import hmac as _hmac
+import hashlib as _hashlib
+
+_rate_buckets: dict = defaultdict(list)  # ip -> [timestamps]
+_RATE_WINDOW = 60.0
+_RATE_MAX = 90  # req/min por IP
+_RATE_API_MAX = 30
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        # Rate limit básico
+        client = request.client.host if request.client else "unknown"
+        now = time.time()
+        bucket = _rate_buckets[client]
+        _rate_buckets[client] = [t for t in bucket if now - t < _RATE_WINDOW]
+        limit = _RATE_API_MAX if request.url.path.startswith("/api/") else _RATE_MAX
+        if len(_rate_buckets[client]) >= limit:
+            return _JSONResponse({"error": "Demasiadas peticiones"}, status_code=429)
+        _rate_buckets[client].append(now)
+
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; img-src 'self' https://cdn.discordapp.com data:; "
+            "style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'"
+        )
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+
+def _safe_token_eq(a: str, b: str) -> bool:
+    """Comparación en tiempo constante."""
+    try:
+        return _hmac.compare_digest((a or "").encode(), (b or "").encode())
+    except Exception:
+        return False
+
+
+def _csrf_token(request: Request) -> str:
+    tok = request.session.get("_csrf")
+    if not tok:
+        tok = secrets.token_urlsafe(32)
+        request.session["_csrf"] = tok
+    return tok
+
+
+def _check_csrf(request: Request, form_token: str) -> bool:
+    expected = request.session.get("_csrf") or ""
+    return _safe_token_eq(expected, (form_token or "").strip())
 _STATIC = BASE_DIR / "static"
 _STATIC.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
@@ -368,6 +442,7 @@ async def guild_page(request: Request, guild_id: str):
             "premium": ok,
             "premium_status": status,
             "config": config,
+            "csrf_token": _csrf_token(request),
         },
     )
 
@@ -385,6 +460,11 @@ async def guild_save(request: Request, guild_id: str):
         return RedirectResponse("/dashboard")
 
     form = await request.form()
+    if not _check_csrf(request, str(form.get("csrf_token") or "")):
+        return RedirectResponse(f"/guild/{guild_id}?err=csrf", status_code=303)
+    # Validar guild_id solo dígitos
+    if not str(guild_id).isdigit():
+        return RedirectResponse("/dashboard")
 
     def _int(name, default=0):
         try:
@@ -479,6 +559,7 @@ async def owner_page(request: Request):
             "user": current_user(request),
             "is_owner": True,
             "premium_list": data.get("guilds") or {},
+            "csrf_token": _csrf_token(request),
         },
     )
 
@@ -488,9 +569,15 @@ async def owner_premium_add(
     request: Request,
     guild_id: str = Form(...),
     duration: str = Form("30d"),
+    csrf_token: str = Form(""),
 ):
     if not is_owner(request):
         return RedirectResponse("/", status_code=303)
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse("/owner?err=csrf", status_code=303)
+    guild_id = str(guild_id).strip()
+    if not guild_id.isdigit():
+        return RedirectResponse("/owner", status_code=303)
     ok, secs, label, err = parse_duration(duration)
     if not ok:
         return RedirectResponse("/owner", status_code=303)
@@ -520,9 +607,14 @@ async def owner_premium_add(
 
 
 @app.post("/owner/premium/remove")
-async def owner_premium_remove(request: Request, guild_id: str = Form(...)):
+async def owner_premium_remove(request: Request, guild_id: str = Form(...), csrf_token: str = Form("")):
     if not is_owner(request):
         return RedirectResponse("/", status_code=303)
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse("/owner?err=csrf", status_code=303)
+    guild_id = str(guild_id).strip()
+    if not guild_id.isdigit():
+        return RedirectResponse("/owner", status_code=303)
     data = _load_premium()
     guilds = data.get("guilds") or {}
     guilds.pop(str(guild_id).strip(), None)
@@ -565,11 +657,8 @@ async def api_ping(request: Request):
     auth = request.headers.get("Authorization") or ""
     token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
     expected = _clean_secret(PANEL_API_TOKEN)
-    if token != expected:
-        return JSONResponse(
-            {"ok": False, "error": "token invalido", "panel_token_len": len(expected)},
-            status_code=401,
-        )
+    if not _safe_token_eq(token, expected):
+        return JSONResponse({"ok": False, "error": "token invalido"}, status_code=401)
     return {"ok": True, "service": "odette-panel", "token_ok": True}
 
 
@@ -577,19 +666,13 @@ async def api_ping(request: Request):
 async def api_guild_config(guild_id: str, request: Request):
     """El bot llama a esta ruta para obtener la configuración de un servidor."""
     from fastapi.responses import JSONResponse
+    if not str(guild_id).isdigit():
+        return JSONResponse({"error": "guild_id invalido"}, status_code=400)
     auth = request.headers.get("Authorization") or ""
     token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
     expected = _clean_secret(PANEL_API_TOKEN)
-    if not expected or token != expected:
-        return JSONResponse(
-            {
-                "error": "No autorizado",
-                "hint": "PANEL_API_TOKEN del bot debe coincidir con el del panel",
-                "token_configured": bool(expected),
-                "token_len": len(expected),
-            },
-            status_code=401,
-        )
+    if not expected or not _safe_token_eq(token, expected):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
 
     config = get_guild_config(guild_id)
     ok, status = is_premium(guild_id)
