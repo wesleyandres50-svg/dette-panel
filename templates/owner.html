@@ -1,30 +1,133 @@
 {% extends "base.html" %}
 {% block title %}Owner · Odette{% endblock %}
 {% block content %}
-<h1>💎 Owner</h1>
-<p class="muted">Solo la dueña del bot (BOT_OWNER_ID).</p>
+<style>
+  .owner-wrap{max-width:720px;margin:0 auto}
+  .owner-card{padding:16px;border-radius:14px;margin-bottom:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+  .owner-card h2{margin:0 0 8px;font-size:1.05rem}
+  .hint{font-size:.8rem;color:var(--muted,#9aa);line-height:1.4;margin:0 0 12px}
+  .hint code{font-size:.75rem;background:rgba(0,0,0,.25);padding:1px 5px;border-radius:4px}
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:.8rem;margin-bottom:4px;opacity:.85}
+  .field input,.field select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:inherit;box-sizing:border-box}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:560px){.row{grid-template-columns:1fr}}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .list-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9rem}
+  .list-item:last-child{border-bottom:none}
+  .badge-mini{font-size:.7rem;padding:2px 7px;border-radius:6px;background:#3a2f10;color:#f0c14a}
+  .alert{padding:10px 12px;border-radius:10px;margin-bottom:14px;font-size:.9rem}
+  .alert-err{background:#3d1a1a;color:#ff9b9b;border:1px solid #6b2e2e}
+  .empty{opacity:.6;font-size:.85rem}
+</style>
 
-<section class="card">
-  <h3>Premium (local en el panel)</h3>
-  <p>Esta lista es del panel (JSON). En fase 2 se sincroniza con el bot.</p>
-  <form method="post" action="/owner/premium/add" class="form-row">
-    <input name="guild_id" placeholder="Guild ID" required />
-    <input name="duration" placeholder="permanente / 7d / 24h" value="30d" />
-    <button type="submit" class="btn primary">Añadir / renovar</button>
-  </form>
-  <form method="post" action="/owner/premium/remove" class="form-row">
-    <input name="guild_id" placeholder="Guild ID a quitar" required />
-    <button type="submit" class="btn">Quitar</button>
-  </form>
-  <h4>Activos</h4>
-  <ul>
-    {% for gid, info in premium_list.items() %}
-      <li><code>{{ gid }}</code> — {{ info.get("label", "?") }}
-        {% if info.get("until") %} · until {{ info.get("until") }}{% else %} · permanente{% endif %}
-      </li>
+<div class="page-head">
+  <div>
+    <h1>👑 Owner</h1>
+    <div class="meta">Premium por servidor y por persona</div>
+  </div>
+  <a class="btn" href="/dashboard">← Dashboard</a>
+</div>
+
+{% if request.query_params.get('err') == 'csrf' %}
+  <div class="alert alert-err">⚠️ CSRF inválido. Recarga la página e inténtalo de nuevo.</div>
+{% endif %}
+
+<div class="owner-wrap">
+
+  {# ——— AÑADIR PREMIUM ——— #}
+  <div class="owner-card">
+    <h2>➕ Añadir premium</h2>
+    <p class="hint">
+      <strong>Tipo Servidor:</strong> ID del servidor (clic derecho en el server → Copiar ID de servidor).<br>
+      <strong>Tipo Persona:</strong> ID del usuario (modo desarrollador → clic derecho en el usuario → Copiar ID).<br>
+      <strong>Duración:</strong> <code>permanente</code> · <code>7d</code> · <code>30d</code> · <code>24h</code> · <code>1d12h</code> (obligatorio).
+    </p>
+    <form method="post" action="/owner/premium/add">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+      <div class="row">
+        <div class="field">
+          <label>Tipo * <span style="opacity:.6">(obligatorio)</span></label>
+          <select name="kind" required>
+            <option value="guild">Servidor (guild ID)</option>
+            <option value="user">Persona (user ID)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Duración * <span style="opacity:.6">(obligatorio)</span></label>
+          <input type="text" name="duration" value="30d" placeholder="permanente | 7d | 30d" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>ID * <span style="opacity:.6">(solo números, obligatorio)</span></label>
+        <input type="text" name="target_id" placeholder="Ej: 438512406612934660" pattern="[0-9]+" required />
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" type="submit">💎 Añadir premium</button>
+      </div>
+    </form>
+  </div>
+
+  {# ——— SERVIDORES ——— #}
+  <div class="owner-card">
+    <h2>🖥️ Servidores premium</h2>
+    <p class="hint">Estos servers tienen IA / extras de premium activos en el panel y el bot.</p>
+    {% if premium_guilds %}
+      {% for gid, entry in premium_guilds.items() %}
+        <div class="list-item">
+          <div>
+            <code>{{ gid }}</code>
+            <span class="badge-mini">{{ entry.label or 'premium' }}</span>
+            {% if entry.until %}
+              <span style="opacity:.6;font-size:.75rem"> · until {{ entry.until }}</span>
+            {% else %}
+              <span style="opacity:.6;font-size:.75rem"> · permanente</span>
+            {% endif %}
+          </div>
+          <form method="post" action="/owner/premium/remove" style="margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="kind" value="guild" />
+            <input type="hidden" name="target_id" value="{{ gid }}" />
+            <button class="btn" type="submit" style="font-size:.8rem">Quitar</button>
+          </form>
+        </div>
+      {% endfor %}
     {% else %}
-      <li class="muted">Ninguno</li>
-    {% endfor %}
-  </ul>
-</section>
+      <p class="empty">Ningún servidor premium todavía.</p>
+    {% endif %}
+  </div>
+
+  {# ——— PERSONAS ——— #}
+  <div class="owner-card">
+    <h2>👤 Personas premium</h2>
+    <p class="hint">Usuarios con premium personal (sirve aunque el server no sea premium).</p>
+    {% if premium_users %}
+      {% for uid, entry in premium_users.items() %}
+        <div class="list-item">
+          <div>
+            <code>{{ uid }}</code>
+            <span class="badge-mini">{{ entry.label or 'premium' }}</span>
+            {% if entry.until %}
+              <span style="opacity:.6;font-size:.75rem"> · until {{ entry.until }}</span>
+            {% else %}
+              <span style="opacity:.6;font-size:.75rem"> · permanente</span>
+            {% endif %}
+          </div>
+          <form method="post" action="/owner/premium/remove" style="margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="kind" value="user" />
+            <input type="hidden" name="target_id" value="{{ uid }}" />
+            <button class="btn" type="submit" style="font-size:.8rem">Quitar</button>
+          </form>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="empty">Ninguna persona premium todavía.</p>
+    {% endif %}
+  </div>
+
+</div>
 {% endblock %}
