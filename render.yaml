@@ -17,5 +17,6 @@ services:
         value: "545930956721356842"
       - key: SECRET_KEY
         generateValue: true
+      # Token compartido panel ↔ bot (mismo valor en el .env del bot)
       - key: PANEL_API_TOKEN
         value: "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
