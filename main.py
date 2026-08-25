@@ -1,12 +1,17 @@
 """
 Odette Panel — completo
+- OAuth, dashboard, config, tickets, premium guild+user
+- API bot GET/POST config (restore)
+- Verificación web: token 1 uso, edad cuenta, VPN opcional
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import secrets
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlencode
@@ -30,12 +35,18 @@ DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 PREMIUM_FILE = DATA_DIR / "premium_guilds.json"
 CONFIG_FILE = DATA_DIR / "guild_configs.json"
+VERIFY_TOKENS_FILE = DATA_DIR / "verify_tokens.json"
+VERIFIED_USERS_FILE = DATA_DIR / "verified_users.json"
 
 DISCORD_CLIENT_ID = (os.getenv("DISCORD_CLIENT_ID") or "").strip()
 DISCORD_CLIENT_SECRET = (os.getenv("DISCORD_CLIENT_SECRET") or "").strip()
 DISCORD_REDIRECT_URI = (os.getenv("DISCORD_REDIRECT_URI") or "").strip()
 BOT_OWNER_ID = int(os.getenv("BOT_OWNER_ID") or "545930956721356842")
 SECRET_KEY = (os.getenv("SECRET_KEY") or secrets.token_hex(32)).strip()
+PUBLIC_BASE_URL = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+VERIFY_MIN_ACCOUNT_DAYS = int(os.getenv("VERIFY_MIN_ACCOUNT_DAYS") or "7")
+IP_REPUTATION_KEY = (os.getenv("IP_REPUTATION_KEY") or "").strip()
+BLOCK_VPN = (os.getenv("BLOCK_VPN") or "1").strip() not in ("0", "false", "no")
 
 API_BASE = "https://discord.com/api/v10"
 OAUTH_AUTHORIZE = "https://discord.com/api/oauth2/authorize"
@@ -69,6 +80,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; img-src 'self' https://cdn.discordapp.com data:; "
             "style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'"
@@ -100,11 +112,39 @@ def _check_csrf(request: Request, form_token: str) -> bool:
     return _safe_token_eq(request.session.get("_csrf") or "", (form_token or "").strip())
 
 
+def _clean_secret(val: str) -> str:
+    v = (val or "").strip()
+    if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+        v = v[1:-1].strip()
+    return v
+
+
+def _client_ip(request: Request) -> str:
+    xff = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    if xff:
+        return xff
+    return request.client.host if request.client else "unknown"
+
+
+def _public_base() -> str:
+    if PUBLIC_BASE_URL:
+        return PUBLIC_BASE_URL
+    if DISCORD_REDIRECT_URI:
+        return DISCORD_REDIRECT_URI.replace("/callback", "").rstrip("/")
+    return ""
+
+
 _STATIC = BASE_DIR / "static"
 _STATIC.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+PANEL_API_TOKEN = _clean_secret(
+    os.getenv("PANEL_API_TOKEN") or "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
+)
+
+
+# ───────────────────────── Premium ─────────────────────────
 
 def _load_premium() -> dict:
     if not PREMIUM_FILE.exists():
@@ -200,6 +240,8 @@ def is_user_premium(user_id):
     return ok, status
 
 
+# ───────────────────────── Config ─────────────────────────
+
 def _default_config() -> dict:
     return {
         "anti_raid": {"enabled": False, "max_joins": 5, "window": 10},
@@ -209,6 +251,8 @@ def _default_config() -> dict:
             "channel_id": "",
             "role_id": "",
             "message": "Bienvenido. Verifícate para acceder al servidor.",
+            "min_account_days": VERIFY_MIN_ACCOUNT_DAYS,
+            "block_vpn": True,
         },
         "logs": {"enabled": False, "channel_id": ""},
         "ia": {"enabled": False},
@@ -312,15 +356,65 @@ def is_owner(request: Request) -> bool:
     return bool(u and int(u.get("id", 0)) == BOT_OWNER_ID)
 
 
-def _clean_secret(val: str) -> str:
-    v = (val or "").strip()
-    if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
-        v = v[1:-1].strip()
-    return v
+# ───────────────────────── Verify helpers ─────────────────────────
+
+def _load_verify_tokens() -> dict:
+    if not VERIFY_TOKENS_FILE.exists():
+        return {}
+    try:
+        return json.loads(VERIFY_TOKENS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
 
 
-PANEL_API_TOKEN = "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
+def _save_verify_tokens(data: dict) -> None:
+    VERIFY_TOKENS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
+
+def _load_verified_users() -> dict:
+    if not VERIFIED_USERS_FILE.exists():
+        return {}
+    try:
+        return json.loads(VERIFIED_USERS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_verified_users(data: dict) -> None:
+    VERIFIED_USERS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def _discord_snowflake_created(user_id: str):
+    try:
+        uid = int(user_id)
+        ms = (uid >> 22) + 1420070400000
+        return datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+    except Exception:
+        return None
+
+
+async def _ip_is_risky(ip: str) -> tuple[bool, str]:
+    if not ip or ip in ("unknown", "127.0.0.1", "::1"):
+        return False, "local"
+    if not IP_REPUTATION_KEY:
+        return False, "no_api"
+    url = f"https://proxycheck.io/v2/{ip}?key={IP_REPUTATION_KEY}&vpn=1&risk=1"
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(url)
+            if r.status_code != 200:
+                return False, "api_error"
+            info = (r.json() or {}).get(ip) or {}
+            proxy = str(info.get("proxy", "")).lower()
+            typ = str(info.get("type", "")).lower()
+            if proxy in ("yes", "1", "true") or typ in ("vpn", "proxy", "tor"):
+                return True, typ or "proxy"
+    except Exception:
+        return False, "api_error"
+    return False, "ok"
+
+
+# ───────────────────────── Rutas web ─────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -403,6 +497,9 @@ async def callback(request: Request, code: str = "", state: str = "", error: str
                 glist.append({"id": str(g["id"]), "name": g.get("name") or "Server", "icon": g.get("icon")})
     request.session["guilds"] = glist
     request.session.pop("oauth_state", None)
+    nxt = request.session.pop("verify_next", None)
+    if nxt:
+        return RedirectResponse(nxt)
     return RedirectResponse("/dashboard")
 
 
@@ -494,6 +591,8 @@ async def guild_save(request: Request, guild_id: str):
             "channel_id": (form.get("verify_channel") or "").strip(),
             "role_id": (form.get("verify_role") or "").strip(),
             "message": (form.get("verify_message") or "").strip()[:1000],
+            "min_account_days": max(0, min(_int("verify_min_days", VERIFY_MIN_ACCOUNT_DAYS), 365)),
+            "block_vpn": form.get("verify_block_vpn") == "on",
         },
         "logs": {
             "enabled": form.get("logs_enabled") == "on",
@@ -515,11 +614,7 @@ async def guild_save(request: Request, guild_id: str):
             "channel_id": (form.get("booster_channel") or "").strip(),
             "message": (form.get("booster_message") or "").strip()[:1500],
         },
-        # tickets: enabled desde guild; detalle en /tickets
-        "tickets": {
-            **prev_tickets,
-            "enabled": form.get("tickets_enabled") == "on",
-        },
+        "tickets": {**prev_tickets, "enabled": form.get("tickets_enabled") == "on"},
         "starboard": {
             "enabled": form.get("starboard_enabled") == "on",
             "channel_id": (form.get("starboard_channel") or "").strip(),
@@ -624,6 +719,98 @@ async def tickets_save(request: Request, guild_id: str):
     return RedirectResponse(f"/guild/{guild_id}/tickets?ok=1", status_code=303)
 
 
+# ── Verificación web ──
+
+@app.get("/verify/{guild_id}", response_class=HTMLResponse)
+async def verify_start(request: Request, guild_id: str, token: str = ""):
+    if not str(guild_id).isdigit():
+        return HTMLResponse("Servidor inválido", status_code=400)
+    user = current_user(request)
+    if not user:
+        request.session["verify_next"] = f"/verify/{guild_id}?token={token}"
+        return RedirectResponse("/login")
+
+    cfg = get_guild_config(guild_id)
+    vcfg = cfg.get("verify") or {}
+    min_days = int(vcfg.get("min_account_days") or VERIFY_MIN_ACCOUNT_DAYS)
+    block_vpn = bool(vcfg.get("block_vpn", True)) if "block_vpn" in vcfg else BLOCK_VPN
+
+    tokens = _load_verify_tokens()
+    key = f"{guild_id}:{token}"
+    entry = tokens.get(key)
+    if not token or not entry or entry.get("used"):
+        return templates.TemplateResponse(
+            "verify_result.html",
+            {
+                "request": request,
+                "ok": False,
+                "message": "Enlace inválido o ya usado. Pide uno nuevo en Discord.",
+            },
+        )
+    if float(entry.get("exp", 0)) < time.time():
+        return templates.TemplateResponse(
+            "verify_result.html",
+            {"request": request, "ok": False, "message": "Enlace caducado. Pide uno nuevo."},
+        )
+    for_user = entry.get("for_user")
+    if for_user and str(for_user) != str(user["id"]):
+        return templates.TemplateResponse(
+            "verify_result.html",
+            {"request": request, "ok": False, "message": "Este enlace es para otra cuenta de Discord."},
+        )
+
+    created = _discord_snowflake_created(user["id"])
+    if created and min_days > 0:
+        age_days = (datetime.now(timezone.utc) - created).days
+        if age_days < min_days:
+            return templates.TemplateResponse(
+                "verify_result.html",
+                {
+                    "request": request,
+                    "ok": False,
+                    "message": f"Cuenta demasiado nueva ({age_days} días). Mínimo: {min_days} días.",
+                },
+            )
+
+    ip = _client_ip(request)
+    if block_vpn and IP_REPUTATION_KEY:
+        risky, reason = await _ip_is_risky(ip)
+        if risky:
+            return templates.TemplateResponse(
+                "verify_result.html",
+                {
+                    "request": request,
+                    "ok": False,
+                    "message": "No se permiten VPN/proxy para verificar. Desactívala e inténtalo de nuevo.",
+                },
+            )
+
+    entry["used"] = True
+    entry["user_id"] = user["id"]
+    entry["ip_hash"] = hashlib.sha256(ip.encode()).hexdigest()[:16]
+    entry["verified_at"] = time.time()
+    tokens[key] = entry
+    _save_verify_tokens(tokens)
+
+    vdata = _load_verified_users()
+    g = vdata.setdefault(str(guild_id), {})
+    g[str(user["id"])] = {
+        "at": time.time(),
+        "ip_hash": entry["ip_hash"],
+        "username": user.get("username"),
+    }
+    _save_verified_users(vdata)
+
+    return templates.TemplateResponse(
+        "verify_result.html",
+        {
+            "request": request,
+            "ok": True,
+            "message": "Verificación completada. Vuelve a Discord; el bot te asignará el rol en unos segundos.",
+        },
+    )
+
+
 @app.get("/owner", response_class=HTMLResponse)
 async def owner_page(request: Request):
     if not current_user(request):
@@ -714,17 +901,23 @@ async def owner_premium_remove(
     return RedirectResponse("/owner", status_code=303)
 
 
+# ───────────────────────── API bot ─────────────────────────
+
 @app.get("/health")
 async def health():
-    tlen = len(_clean_secret(PANEL_API_TOKEN) or "")
-    return {"ok": True, "service": "odette-panel", "panel_token_len": tlen}
+    return {
+        "ok": True,
+        "service": "odette-panel",
+        "panel_token_len": len(PANEL_API_TOKEN or ""),
+        "verify_vpn_api": bool(IP_REPUTATION_KEY),
+    }
 
 
 @app.get("/api/ping")
 async def api_ping(request: Request):
     auth = request.headers.get("Authorization") or ""
     token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
-    if not _safe_token_eq(token, _clean_secret(PANEL_API_TOKEN)):
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
         return JSONResponse({"ok": False, "error": "token invalido"}, status_code=401)
     return {"ok": True, "token_ok": True}
 
@@ -735,7 +928,7 @@ async def api_guild_config(guild_id: str, request: Request):
         return JSONResponse({"error": "guild_id invalido"}, status_code=400)
     auth = request.headers.get("Authorization") or ""
     token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
-    if not _safe_token_eq(token, _clean_secret(PANEL_API_TOKEN)):
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
         return JSONResponse({"error": "No autorizado"}, status_code=401)
     config = get_guild_config(guild_id)
     ok, status = is_premium(guild_id)
@@ -754,7 +947,7 @@ async def api_guild_config_restore(guild_id: str, request: Request):
         return JSONResponse({"error": "guild_id invalido"}, status_code=400)
     auth = request.headers.get("Authorization") or ""
     token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
-    if not _safe_token_eq(token, _clean_secret(PANEL_API_TOKEN)):
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
         return JSONResponse({"error": "No autorizado"}, status_code=401)
     try:
         body = await request.json()
@@ -772,11 +965,52 @@ async def api_guild_config_restore(guild_id: str, request: Request):
     return {"ok": True, "restored": True, "guild_id": str(guild_id)}
 
 
+@app.post("/api/guild/{guild_id}/verify/token")
+async def api_create_verify_token(guild_id: str, request: Request):
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+    if not str(guild_id).isdigit():
+        return JSONResponse({"error": "guild_id invalido"}, status_code=400)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    user_id = str((body or {}).get("user_id") or "").strip()
+    vt = secrets.token_urlsafe(24)
+    tokens = _load_verify_tokens()
+    tokens[f"{guild_id}:{vt}"] = {
+        "exp": time.time() + 900,
+        "used": False,
+        "for_user": user_id or None,
+    }
+    _save_verify_tokens(tokens)
+    base = _public_base()
+    return {
+        "token": vt,
+        "url": f"{base}/verify/{guild_id}?token={vt}",
+        "expires_in": 900,
+    }
+
+
+@app.get("/api/guild/{guild_id}/verify/status/{user_id}")
+async def api_verify_status(guild_id: str, user_id: str, request: Request):
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+    if not str(guild_id).isdigit() or not str(user_id).isdigit():
+        return JSONResponse({"error": "id invalido"}, status_code=400)
+    entry = (_load_verified_users().get(str(guild_id)) or {}).get(str(user_id))
+    return {"verified": bool(entry), "data": entry}
+
+
 @app.get("/api/user/{user_id}/premium")
 async def api_user_premium(user_id: str, request: Request):
     auth = request.headers.get("Authorization") or ""
     token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
-    if not _safe_token_eq(token, _clean_secret(PANEL_API_TOKEN)):
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
         return JSONResponse({"error": "No autorizado"}, status_code=401)
     if not str(user_id).isdigit():
         return JSONResponse({"error": "user_id invalido"}, status_code=400)
