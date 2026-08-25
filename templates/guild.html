@@ -1,25 +1,286 @@
 {% extends "base.html" %}
 {% block title %}{{ guild.name }} · Odette{% endblock %}
 {% block content %}
-<a class="back" href="/dashboard">← Servidores</a>
-<h1>{{ guild.name }}</h1>
-<p class="muted">ID: {{ guild.id }}</p>
+<div class="page-head">
+  <div style="display:flex;gap:14px;align-items:center">
+    {% if guild.icon %}
+      <img class="guild-icon" src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png?size=128" alt="" />
+    {% else %}
+      <div class="guild-icon">🦢</div>
+    {% endif %}
+    <div>
+      <h1>{{ guild.name }}</h1>
+      <div class="meta">
+        ID {{ guild.id }} ·
+        {% if premium %}
+          <span class="badge badge-gold">💎 Premium · {{ premium_status }}</span>
+        {% else %}
+          <span class="badge badge-off">Sin premium</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <a class="btn" href="/dashboard">← Servidores</a>
+</div>
 
-<section class="cards">
-  <div class="card">
-    <h3>Estado (esqueleto)</h3>
-    <p>Aquí irán interruptores reales conectados al bot:</p>
-    <ul>
-      <li>Anti-raid clásico</li>
-      <li>IA (requiere premium)</li>
-      <li>Verify / captcha</li>
-      <li>Logs</li>
-    </ul>
-    <p class="muted">Fase 2: lectura/escritura de config del bot.</p>
+<form method="post" action="/guild/{{ guild.id }}/save">
+
+  {# ——— SEGURIDAD ——— #}
+  <div class="section" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">01</span> 🛡️ Seguridad</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">Anti-Raid</div>
+            <label class="switch">
+              <input type="checkbox" name="anti_raid_enabled" {% if config.anti_raid.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Limita joins masivos y cuentas nuevas.</p>
+          <div class="fields">
+            <div class="field">
+              <label>Máx. joins</label>
+              <input type="number" name="anti_raid_max_joins" min="1" max="50" value="{{ config.anti_raid.max_joins }}" />
+            </div>
+            <div class="field">
+              <label>Ventana (segundos)</label>
+              <input type="number" name="anti_raid_window" min="5" max="120" value="{{ config.anti_raid.window }}" />
+            </div>
+          </div>
+        </div>
+
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">AutoMod</div>
+            <label class="switch">
+              <input type="checkbox" name="automod_enabled" {% if config.automod.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Filtro de invitaciones, spam y contenido básico.</p>
+          <div class="fields">
+            <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)">
+              <input type="checkbox" name="automod_anti_invite" {% if config.automod.anti_invite %}checked{% endif %} />
+              Bloquear invitaciones
+            </label>
+          </div>
+        </div>
+
+        <div class="mod {% if not premium %}prem-lock{% endif %}">
+          <div class="mod-top">
+            <div class="mod-title">IA Anti-Raid {% if not premium %}<span class="badge badge-gold">Premium</span>{% endif %}</div>
+            <label class="switch">
+              <input type="checkbox" name="ia_enabled" {% if config.ia.enabled and premium %}checked{% endif %} {% if not premium %}disabled{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Decisiones inteligentes ante raids (requiere premium + GROQ).</p>
+        </div>
+
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">Verificación</div>
+            <label class="switch">
+              <input type="checkbox" name="verify_enabled" {% if config.verify.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Captcha / rol de verificado. (Panel completo de verify en la siguiente fase.)</p>
+          <div class="fields">
+            <div class="field">
+              <label>Canal ID</label>
+              <input type="text" name="verify_channel" value="{{ config.verify.channel_id }}" placeholder="ID del canal" />
+            </div>
+            <div class="field">
+              <label>Rol verificado ID</label>
+              <input type="text" name="verify_role" value="{{ config.verify.role_id }}" placeholder="ID del rol" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </div>
-  <div class="card">
-    <h3>Premium</h3>
-    <p>{% if premium %}✅ Activo: {{ premium_status }}{% else %}❌ Sin premium{% endif %}</p>
+
+  {# ——— REGISTRO ——— #}
+  <div class="section" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">02</span> 📋 Registro</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">Logs del servidor</div>
+            <label class="switch">
+              <input type="checkbox" name="logs_enabled" {% if config.logs.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Canal donde Odette envía registros de moderación y eventos.</p>
+          <div class="fields">
+            <div class="field">
+              <label>Canal ID</label>
+              <input type="text" name="logs_channel" value="{{ config.logs.channel_id }}" placeholder="ID del canal de logs" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-</section>
+
+  {# ——— COMUNIDAD ——— #}
+  <div class="section" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">03</span> 👋 Comunidad</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">Bienvenidas</div>
+            <label class="switch">
+              <input type="checkbox" name="welcome_enabled" {% if config.welcome.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Mensaje al unirse un miembro.</p>
+          <div class="fields">
+            <div class="field">
+              <label>Canal ID</label>
+              <input type="text" name="welcome_channel" value="{{ config.welcome.channel_id }}" placeholder="ID canal bienvenida" />
+            </div>
+          </div>
+        </div>
+
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">Autorole</div>
+            <label class="switch">
+              <input type="checkbox" name="autorole_enabled" {% if config.autorole.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Rol automático al entrar.</p>
+          <div class="fields">
+            <div class="field">
+              <label>Rol ID</label>
+              <input type="text" name="autorole_role" value="{{ config.autorole.role_id }}" placeholder="ID del rol" />
+            </div>
+          </div>
+        </div>
+
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">Niveles / XP</div>
+            <label class="switch">
+              <input type="checkbox" name="levels_enabled" {% if config.levels.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Sistema de experiencia por mensajes.</p>
+        </div>
+
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">Boosters</div>
+            <label class="switch">
+              <input type="checkbox" name="booster_enabled" {% if config.booster.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Aviso cuando alguien boostea el servidor.</p>
+          <div class="fields">
+            <div class="field">
+              <label>Canal ID</label>
+              <input type="text" name="booster_channel" value="{{ config.booster.channel_id }}" placeholder="ID canal boost" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  {# ——— UTILIDADES ——— #}
+  <div class="section" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">04</span> 🛠️ Utilidades</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">Tickets</div>
+            <label class="switch">
+              <input type="checkbox" name="tickets_enabled" {% if config.tickets.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Sistema de tickets de soporte.</p>
+        </div>
+
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">Starboard</div>
+            <label class="switch">
+              <input type="checkbox" name="starboard_enabled" {% if config.starboard.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Mensajes destacados con ⭐.</p>
+          <div class="fields">
+            <div class="field">
+              <label>Canal ID</label>
+              <input type="text" name="starboard_channel" value="{{ config.starboard.channel_id }}" placeholder="ID canal starboard" />
+            </div>
+            <div class="field">
+              <label>Mín. estrellas</label>
+              <input type="number" name="starboard_min" min="1" max="25" value="{{ config.starboard.min_stars }}" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  {# ——— CONTENIDO ——— #}
+  <div class="section" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">05</span> 🎭 Contenido</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+        <div class="mod">
+          <div class="mod-top">
+            <div class="mod-title">Comandos NSFW</div>
+            <label class="switch">
+              <input type="checkbox" name="nsfw_enabled" {% if config.nsfw.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Activa o desactiva los comandos NSFW en este servidor (solo canales NSFW).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <a class="btn" href="/dashboard">Cancelar</a>
+    <button class="btn btn-primary" type="submit">💾 Guardar cambios</button>
+  </div>
+</form>
 {% endblock %}
