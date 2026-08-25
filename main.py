@@ -492,9 +492,9 @@ def _clean_secret(val: str) -> str:
     return v
 
 
-# Si el env de Render falla o queda vacío, usa este default (mismo que el bot).
-_DEFAULT_PANEL_TOKEN = "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
-PANEL_API_TOKEN = _clean_secret(os.getenv("PANEL_API_TOKEN") or "") or _DEFAULT_PANEL_TOKEN
+# Token FIJO compartido con el bot (mismo valor que en el .env del bot).
+# No depende del Environment de Render para evitar 401 por token distinto.
+PANEL_API_TOKEN = "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
 
 
 @app.get("/health")
