@@ -1,9 +1,10 @@
 """
-Odette Panel — fase 2
-- Login Discord OAuth2
-- Lista de servidores + config por servidor
-- Premium local (JSON)
-- API para el bot (GET config + POST restore si el panel perdió datos)
+Odette Panel — completo
+- OAuth Discord, dashboard, config por servidor
+- Mensajes editables: welcome, booster, verify
+- Cuarentena: crear rol, nombre, strip roles, logs
+- Premium guild + user
+- API bot: GET config + POST restore
 
 Deploy Render:
   Build: pip install -r requirements.txt
@@ -49,12 +50,7 @@ API_BASE = "https://discord.com/api/v10"
 OAUTH_AUTHORIZE = "https://discord.com/api/oauth2/authorize"
 OAUTH_TOKEN = "https://discord.com/api/oauth2/token"
 
-app = FastAPI(
-    title="Odette Panel",
-    docs_url=None,
-    redoc_url=None,
-    openapi_url=None,
-)
+app = FastAPI(title="Odette Panel", docs_url=None, redoc_url=None, openapi_url=None)
 
 app.add_middleware(
     SessionMiddleware,
@@ -65,7 +61,6 @@ app.add_middleware(
     session_cookie="odette_session",
 )
 
-# --- Rate limit + cabeceras ---
 _rate_buckets: dict = defaultdict(list)
 _RATE_WINDOW = 60.0
 _RATE_MAX = 90
@@ -146,10 +141,8 @@ def _load_premium() -> dict:
 
 
 def _save_premium(data: dict) -> None:
-    if "guilds" not in data:
-        data["guilds"] = {}
-    if "users" not in data:
-        data["users"] = {}
+    data.setdefault("guilds", {})
+    data.setdefault("users", {})
     PREMIUM_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
@@ -215,9 +208,7 @@ def is_premium(guild_id: str | int) -> tuple[bool, str]:
     entry = (data.get("guilds") or {}).get(gid)
     ok, status = _premium_entry_status(entry)
     if status == "expirado" and entry:
-        g = data.get("guilds") or {}
-        g.pop(gid, None)
-        data["guilds"] = g
+        (data.get("guilds") or {}).pop(gid, None)
         _save_premium(data)
     return ok, status
 
@@ -228,32 +219,50 @@ def is_user_premium(user_id: str | int) -> tuple[bool, str]:
     entry = (data.get("users") or {}).get(uid)
     ok, status = _premium_entry_status(entry)
     if status == "expirado" and entry:
-        u = data.get("users") or {}
-        u.pop(uid, None)
-        data["users"] = u
+        (data.get("users") or {}).pop(uid, None)
         _save_premium(data)
     return ok, status
 
 
-# ───────────────────────── Config por servidor ─────────────────────────
+# ───────────────────────── Config ─────────────────────────
 
 def _default_config() -> dict:
     return {
         "anti_raid": {"enabled": False, "max_joins": 5, "window": 10},
         "automod": {"enabled": False, "anti_invite": True},
-        "verify": {"enabled": False, "channel_id": "", "role_id": ""},
+        "verify": {
+            "enabled": False,
+            "channel_id": "",
+            "role_id": "",
+            "message": "Bienvenido. Verifícate para acceder al servidor.",
+        },
         "logs": {"enabled": False, "channel_id": ""},
         "ia": {"enabled": False},
-        "welcome": {"enabled": False, "channel_id": ""},
+        "welcome": {
+            "enabled": False,
+            "channel_id": "",
+            "message": "¡Bienvenido {user} a **{server}**!",
+        },
         "autorole": {"enabled": False, "role_id": ""},
         "levels": {"enabled": False},
-        "booster": {"enabled": False, "channel_id": ""},
+        "booster": {
+            "enabled": False,
+            "channel_id": "",
+            "message": "¡Gracias {user} por potenciar **{server}**! 🚀",
+        },
         "tickets": {"enabled": False},
         "starboard": {"enabled": False, "channel_id": "", "min_stars": 3},
         "nsfw": {"enabled": True},
         "raidmode": {"enabled": False},
         "antihoist": {"enabled": False},
-        "quarantine": {"enabled": False, "role_id": ""},
+        "quarantine": {
+            "enabled": False,
+            "role_id": "",
+            "create_role": False,
+            "role_name": "Cuarentena",
+            "strip_roles": True,
+            "log_channel_id": "",
+        },
         "reports": {"enabled": False, "channel_id": ""},
         "suggest": {"enabled": False, "channel_id": ""},
         "modnotes": {"enabled": False},
@@ -312,8 +321,6 @@ def save_guild_config(guild_id: str, config: dict) -> None:
     _save_all_configs(all_cfg)
 
 
-# ───────────────────────── Helpers ─────────────────────────
-
 def current_user(request: Request) -> Optional[dict]:
     return request.session.get("user")
 
@@ -330,7 +337,6 @@ def _clean_secret(val: str) -> str:
     return v
 
 
-# Mismo valor que en el .env del bot (PANEL_API_TOKEN)
 PANEL_API_TOKEN = "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
 
 
@@ -340,11 +346,7 @@ PANEL_API_TOKEN = "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
 async def home(request: Request):
     return templates.TemplateResponse(
         "index.html",
-        {
-            "request": request,
-            "user": current_user(request),
-            "is_owner": is_owner(request),
-        },
+        {"request": request, "user": current_user(request), "is_owner": is_owner(request)},
     )
 
 
@@ -489,7 +491,6 @@ async def guild_page(request: Request, guild_id: str):
     ok_u, status_u = is_user_premium(user["id"])
     premium_ok = ok_g or ok_u
     premium_status = status_g if ok_g else (status_u if ok_u else "no")
-    config = get_guild_config(guild_id)
 
     return templates.TemplateResponse(
         "guild.html",
@@ -500,7 +501,7 @@ async def guild_page(request: Request, guild_id: str):
             "guild": guild,
             "premium": premium_ok,
             "premium_status": premium_status,
-            "config": config,
+            "config": get_guild_config(guild_id),
             "csrf_token": _csrf_token(request),
         },
     )
@@ -520,7 +521,6 @@ async def guild_save(request: Request, guild_id: str):
     form = await request.form()
     if not _check_csrf(request, str(form.get("csrf_token") or "")):
         return RedirectResponse(f"/guild/{guild_id}?err=csrf", status_code=303)
-
     if not str(guild_id).isdigit():
         return RedirectResponse("/dashboard")
 
@@ -544,6 +544,7 @@ async def guild_save(request: Request, guild_id: str):
             "enabled": form.get("verify_enabled") == "on",
             "channel_id": (form.get("verify_channel") or "").strip(),
             "role_id": (form.get("verify_role") or "").strip(),
+            "message": (form.get("verify_message") or "").strip()[:1000],
         },
         "logs": {
             "enabled": form.get("logs_enabled") == "on",
@@ -553,6 +554,7 @@ async def guild_save(request: Request, guild_id: str):
         "welcome": {
             "enabled": form.get("welcome_enabled") == "on",
             "channel_id": (form.get("welcome_channel") or "").strip(),
+            "message": (form.get("welcome_message") or "").strip()[:1500],
         },
         "autorole": {
             "enabled": form.get("autorole_enabled") == "on",
@@ -562,6 +564,7 @@ async def guild_save(request: Request, guild_id: str):
         "booster": {
             "enabled": form.get("booster_enabled") == "on",
             "channel_id": (form.get("booster_channel") or "").strip(),
+            "message": (form.get("booster_message") or "").strip()[:1500],
         },
         "tickets": {"enabled": form.get("tickets_enabled") == "on"},
         "starboard": {
@@ -575,6 +578,11 @@ async def guild_save(request: Request, guild_id: str):
         "quarantine": {
             "enabled": form.get("quarantine_enabled") == "on",
             "role_id": (form.get("quarantine_role") or "").strip(),
+            "create_role": form.get("quarantine_create_role") == "on",
+            "role_name": (form.get("quarantine_role_name") or "Cuarentena").strip()[:80]
+            or "Cuarentena",
+            "strip_roles": form.get("quarantine_strip_roles") == "on",
+            "log_channel_id": (form.get("quarantine_log_channel") or "").strip(),
         },
         "reports": {
             "enabled": form.get("reports_enabled") == "on",
@@ -681,8 +689,7 @@ async def owner_premium_add(
         return RedirectResponse("/", status_code=303)
     if not _check_csrf(request, csrf_token):
         return RedirectResponse("/owner?err=csrf", status_code=303)
-    kind = (kind or "guild").strip().lower()
-    bucket = "users" if kind == "user" else "guilds"
+    bucket = "users" if (kind or "").strip().lower() == "user" else "guilds"
     _add_premium_entry(bucket, str(target_id).strip(), duration)
     return RedirectResponse("/owner", status_code=303)
 
@@ -698,8 +705,7 @@ async def owner_premium_remove(
         return RedirectResponse("/", status_code=303)
     if not _check_csrf(request, csrf_token):
         return RedirectResponse("/owner?err=csrf", status_code=303)
-    kind = (kind or "guild").strip().lower()
-    bucket = "users" if kind == "user" else "guilds"
+    bucket = "users" if (kind or "").strip().lower() == "user" else "guilds"
     data = _load_premium()
     store = data.get(bucket) or {}
     store.pop(str(target_id).strip(), None)
@@ -734,7 +740,6 @@ async def api_ping(request: Request):
 
 @app.get("/api/guild/{guild_id}/config")
 async def api_guild_config(guild_id: str, request: Request):
-    """El bot LEE la config del panel."""
     if not str(guild_id).isdigit():
         return JSONResponse({"error": "guild_id invalido"}, status_code=400)
     auth = request.headers.get("Authorization") or ""
@@ -745,31 +750,25 @@ async def api_guild_config(guild_id: str, request: Request):
 
     config = get_guild_config(guild_id)
     ok, status = is_premium(guild_id)
-    has_saved = bool(config.get("_panel_saved"))
     return {
         "guild_id": str(guild_id),
         "premium": ok,
         "premium_status": status,
-        "has_saved": has_saved,
+        "has_saved": bool(config.get("_panel_saved")),
         "config": config,
     }
 
 
 @app.post("/api/guild/{guild_id}/config")
 async def api_guild_config_restore(guild_id: str, request: Request):
-    """
-    El bot EMPUJA la config de vuelta cuando el panel perdió el JSON
-    (Render free se reinició / durmió).
-    """
+    """El bot restaura la config si el panel perdió el JSON."""
     if not str(guild_id).isdigit():
         return JSONResponse({"error": "guild_id invalido"}, status_code=400)
-
     auth = request.headers.get("Authorization") or ""
     token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
     expected = _clean_secret(PANEL_API_TOKEN)
     if not expected or not _safe_token_eq(token, expected):
         return JSONResponse({"error": "No autorizado"}, status_code=401)
-
     try:
         body = await request.json()
     except Exception:
@@ -779,7 +778,6 @@ async def api_guild_config_restore(guild_id: str, request: Request):
     if not isinstance(cfg, dict):
         return JSONResponse({"error": "config invalida"}, status_code=400)
 
-    # No pisar un guardado más reciente hecho en el panel
     current = get_guild_config(guild_id)
     cur_ts = float(current.get("_saved_at") or 0)
     new_ts = float(cfg.get("_saved_at") or 0)
@@ -794,7 +792,6 @@ async def api_guild_config_restore(guild_id: str, request: Request):
     cfg["_panel_saved"] = True
     if "_saved_at" not in cfg:
         cfg["_saved_at"] = time.time()
-
     save_guild_config(guild_id, cfg)
     return {"ok": True, "restored": True, "guild_id": str(guild_id)}
 
