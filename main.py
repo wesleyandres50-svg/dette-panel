@@ -1,9 +1,9 @@
 """
 Odette Panel — fase 2
 - Login Discord OAuth2
-- Lista de servidores del usuario
-- Configuración por servidor (todos los módulos)
-- Zona owner: premium local (JSON)
+- Lista de servidores + config por servidor
+- Premium local (JSON)
+- API para el bot (GET config + POST restore si el panel perdió datos)
 
 Deploy Render:
   Build: pip install -r requirements.txt
@@ -16,7 +16,7 @@ import os
 import secrets
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 from urllib.parse import urlencode
 from collections import defaultdict
 
@@ -65,7 +65,7 @@ app.add_middleware(
     session_cookie="odette_session",
 )
 
-# --- Seguridad: cabeceras + rate limit ---
+# --- Rate limit + cabeceras ---
 _rate_buckets: dict = defaultdict(list)
 _RATE_WINDOW = 60.0
 _RATE_MAX = 90
@@ -129,19 +129,27 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 def _load_premium() -> dict:
     if not PREMIUM_FILE.exists():
-        return {"guilds": {}}
+        return {"guilds": {}, "users": {}}
     try:
         data = json.loads(PREMIUM_FILE.read_text(encoding="utf-8"))
         if isinstance(data.get("guilds"), list):
-            data["guilds"] = {str(x): {"until": None, "label": "permanente"} for x in data["guilds"]}
+            data["guilds"] = {
+                str(x): {"until": None, "label": "permanente"} for x in data["guilds"]
+            }
         if not isinstance(data.get("guilds"), dict):
             data["guilds"] = {}
+        if not isinstance(data.get("users"), dict):
+            data["users"] = {}
         return data
     except Exception:
-        return {"guilds": {}}
+        return {"guilds": {}, "users": {}}
 
 
 def _save_premium(data: dict) -> None:
+    if "guilds" not in data:
+        data["guilds"] = {}
+    if "users" not in data:
+        data["users"] = {}
     PREMIUM_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
@@ -184,9 +192,7 @@ def parse_duration(text: str):
     return True, total, "".join(parts), None
 
 
-def is_premium(guild_id: str | int) -> tuple[bool, str]:
-    data = _load_premium()
-    entry = (data.get("guilds") or {}).get(str(guild_id))
+def _premium_entry_status(entry: dict | None) -> tuple[bool, str]:
     if not entry:
         return False, "no"
     until = entry.get("until")
@@ -197,14 +203,36 @@ def is_premium(guild_id: str | int) -> tuple[bool, str]:
     except Exception:
         return False, "no"
     if left <= 0:
-        g = data.get("guilds") or {}
-        g.pop(str(guild_id), None)
-        data["guilds"] = g
-        _save_premium(data)
         return False, "expirado"
     d, r = divmod(int(left), 86400)
     h, _ = divmod(r, 3600)
     return True, f"queda {d}d {h}h" if d else f"queda {h}h"
+
+
+def is_premium(guild_id: str | int) -> tuple[bool, str]:
+    data = _load_premium()
+    gid = str(guild_id)
+    entry = (data.get("guilds") or {}).get(gid)
+    ok, status = _premium_entry_status(entry)
+    if status == "expirado" and entry:
+        g = data.get("guilds") or {}
+        g.pop(gid, None)
+        data["guilds"] = g
+        _save_premium(data)
+    return ok, status
+
+
+def is_user_premium(user_id: str | int) -> tuple[bool, str]:
+    data = _load_premium()
+    uid = str(user_id)
+    entry = (data.get("users") or {}).get(uid)
+    ok, status = _premium_entry_status(entry)
+    if status == "expirado" and entry:
+        u = data.get("users") or {}
+        u.pop(uid, None)
+        data["users"] = u
+        _save_premium(data)
+    return ok, status
 
 
 # ───────────────────────── Config por servidor ─────────────────────────
@@ -295,7 +323,18 @@ def is_owner(request: Request) -> bool:
     return bool(u and int(u.get("id", 0)) == BOT_OWNER_ID)
 
 
-# ───────────────────────── Rutas ─────────────────────────
+def _clean_secret(val: str) -> str:
+    v = (val or "").strip()
+    if len(v) >= 2 and ((v[0] == v[-1] == '"') or (v[0] == v[-1] == "'")):
+        v = v[1:-1].strip()
+    return v
+
+
+# Mismo valor que en el .env del bot (PANEL_API_TOKEN)
+PANEL_API_TOKEN = "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
+
+
+# ───────────────────────── Rutas web ─────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -318,7 +357,7 @@ async def login(request: Request):
                 "request": request,
                 "user": None,
                 "is_owner": False,
-                "error": "Faltan DISCORD_CLIENT_ID o DISCORD_REDIRECT_URI en variables de entorno.",
+                "error": "Faltan DISCORD_CLIENT_ID o DISCORD_REDIRECT_URI.",
             },
             status_code=500,
         )
@@ -346,7 +385,7 @@ async def callback(request: Request, code: str = "", state: str = "", error: str
                 "request": request,
                 "user": None,
                 "is_owner": False,
-                "error": "Login inválido (state/code). Vuelve a intentar.",
+                "error": "Login inválido (state/code).",
             },
             status_code=400,
         )
@@ -369,7 +408,7 @@ async def callback(request: Request, code: str = "", state: str = "", error: str
                     "request": request,
                     "user": None,
                     "is_owner": False,
-                    "error": f"No se pudo obtener token Discord ({token_res.status_code}). Revisa CLIENT_SECRET y REDIRECT_URI.",
+                    "error": f"Token Discord falló ({token_res.status_code}).",
                 },
                 status_code=400,
             )
@@ -446,7 +485,10 @@ async def guild_page(request: Request, guild_id: str):
     if not guild:
         guild = {"id": guild_id, "name": f"Server {guild_id}", "icon": None}
 
-    ok, status = is_premium(guild_id)
+    ok_g, status_g = is_premium(guild_id)
+    ok_u, status_u = is_user_premium(user["id"])
+    premium_ok = ok_g or ok_u
+    premium_status = status_g if ok_g else (status_u if ok_u else "no")
     config = get_guild_config(guild_id)
 
     return templates.TemplateResponse(
@@ -456,8 +498,8 @@ async def guild_page(request: Request, guild_id: str):
             "user": user,
             "is_owner": is_owner(request),
             "guild": guild,
-            "premium": ok,
-            "premium_status": status,
+            "premium": premium_ok,
+            "premium_status": premium_status,
             "config": config,
             "csrf_token": _csrf_token(request),
         },
@@ -561,13 +603,13 @@ async def guild_save(request: Request, guild_id: str):
         "fun": {"enabled": form.get("fun_enabled") == "on"},
     }
 
-    ok, _ = is_premium(guild_id)
-    if not ok:
+    ok_g, _ = is_premium(guild_id)
+    ok_u, _ = is_user_premium(user["id"])
+    if not (ok_g or ok_u):
         config["ia"]["enabled"] = False
 
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
-
     save_guild_config(guild_id, config)
     return RedirectResponse(f"/guild/{guild_id}?ok=1", status_code=303)
 
@@ -594,36 +636,25 @@ async def owner_page(request: Request):
             "request": request,
             "user": current_user(request),
             "is_owner": True,
-            "premium_list": data.get("guilds") or {},
+            "premium_guilds": data.get("guilds") or {},
+            "premium_users": data.get("users") or {},
             "csrf_token": _csrf_token(request),
         },
     )
 
 
-@app.post("/owner/premium/add")
-async def owner_premium_add(
-    request: Request,
-    guild_id: str = Form(...),
-    duration: str = Form("30d"),
-    csrf_token: str = Form(""),
-):
-    if not is_owner(request):
-        return RedirectResponse("/", status_code=303)
-    if not _check_csrf(request, csrf_token):
-        return RedirectResponse("/owner?err=csrf", status_code=303)
-    guild_id = str(guild_id).strip()
-    if not guild_id.isdigit():
-        return RedirectResponse("/owner", status_code=303)
+def _add_premium_entry(bucket: str, target_id: str, duration: str) -> bool:
     ok, secs, label, err = parse_duration(duration)
-    if not ok:
-        return RedirectResponse("/owner", status_code=303)
+    if not ok or not target_id.isdigit():
+        return False
     data = _load_premium()
-    guilds = data.setdefault("guilds", {})
+    store = data.setdefault(bucket, {})
     now = time.time()
+    key = str(target_id).strip()
     if secs is None:
-        guilds[str(guild_id)] = {"until": None, "label": "permanente", "added": now}
+        store[key] = {"until": None, "label": "permanente", "added": now}
     else:
-        prev = guilds.get(str(guild_id)) or {}
+        prev = store.get(key) or {}
         base = now
         if prev.get("until"):
             try:
@@ -632,48 +663,52 @@ async def owner_premium_add(
                     base = pu
             except Exception:
                 pass
-        guilds[str(guild_id)] = {
-            "until": base + secs,
-            "label": label,
-            "added": now,
-        }
-    data["guilds"] = guilds
+        store[key] = {"until": base + secs, "label": label, "added": now}
+    data[bucket] = store
     _save_premium(data)
-    return RedirectResponse("/owner", status_code=303)
+    return True
 
 
-@app.post("/owner/premium/remove")
-async def owner_premium_remove(
+@app.post("/owner/premium/add")
+async def owner_premium_add(
     request: Request,
-    guild_id: str = Form(...),
+    target_id: str = Form(...),
+    duration: str = Form("30d"),
+    kind: str = Form("guild"),
     csrf_token: str = Form(""),
 ):
     if not is_owner(request):
         return RedirectResponse("/", status_code=303)
     if not _check_csrf(request, csrf_token):
         return RedirectResponse("/owner?err=csrf", status_code=303)
-    guild_id = str(guild_id).strip()
-    if not guild_id.isdigit():
-        return RedirectResponse("/owner", status_code=303)
+    kind = (kind or "guild").strip().lower()
+    bucket = "users" if kind == "user" else "guilds"
+    _add_premium_entry(bucket, str(target_id).strip(), duration)
+    return RedirectResponse("/owner", status_code=303)
+
+
+@app.post("/owner/premium/remove")
+async def owner_premium_remove(
+    request: Request,
+    target_id: str = Form(...),
+    kind: str = Form("guild"),
+    csrf_token: str = Form(""),
+):
+    if not is_owner(request):
+        return RedirectResponse("/", status_code=303)
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse("/owner?err=csrf", status_code=303)
+    kind = (kind or "guild").strip().lower()
+    bucket = "users" if kind == "user" else "guilds"
     data = _load_premium()
-    guilds = data.get("guilds") or {}
-    guilds.pop(str(guild_id), None)
-    data["guilds"] = guilds
+    store = data.get(bucket) or {}
+    store.pop(str(target_id).strip(), None)
+    data[bucket] = store
     _save_premium(data)
     return RedirectResponse("/owner", status_code=303)
 
 
-# ───────────────────────── API para el bot ─────────────────────────
-
-def _clean_secret(val: str) -> str:
-    v = (val or "").strip()
-    if len(v) >= 2 and ((v[0] == v[-1] == '"') or (v[0] == v[-1] == "'")):
-        v = v[1:-1].strip()
-    return v
-
-
-PANEL_API_TOKEN = "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
-
+# ───────────────────────── API bot ─────────────────────────
 
 @app.get("/health")
 async def health():
@@ -699,6 +734,7 @@ async def api_ping(request: Request):
 
 @app.get("/api/guild/{guild_id}/config")
 async def api_guild_config(guild_id: str, request: Request):
+    """El bot LEE la config del panel."""
     if not str(guild_id).isdigit():
         return JSONResponse({"error": "guild_id invalido"}, status_code=400)
     auth = request.headers.get("Authorization") or ""
@@ -717,3 +753,60 @@ async def api_guild_config(guild_id: str, request: Request):
         "has_saved": has_saved,
         "config": config,
     }
+
+
+@app.post("/api/guild/{guild_id}/config")
+async def api_guild_config_restore(guild_id: str, request: Request):
+    """
+    El bot EMPUJA la config de vuelta cuando el panel perdió el JSON
+    (Render free se reinició / durmió).
+    """
+    if not str(guild_id).isdigit():
+        return JSONResponse({"error": "guild_id invalido"}, status_code=400)
+
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    expected = _clean_secret(PANEL_API_TOKEN)
+    if not expected or not _safe_token_eq(token, expected):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "JSON invalido"}, status_code=400)
+
+    cfg = body.get("config") if isinstance(body, dict) and "config" in body else body
+    if not isinstance(cfg, dict):
+        return JSONResponse({"error": "config invalida"}, status_code=400)
+
+    # No pisar un guardado más reciente hecho en el panel
+    current = get_guild_config(guild_id)
+    cur_ts = float(current.get("_saved_at") or 0)
+    new_ts = float(cfg.get("_saved_at") or 0)
+    if current.get("_panel_saved") and cur_ts > new_ts:
+        return {
+            "ok": True,
+            "restored": False,
+            "reason": "panel_has_newer",
+            "guild_id": str(guild_id),
+        }
+
+    cfg["_panel_saved"] = True
+    if "_saved_at" not in cfg:
+        cfg["_saved_at"] = time.time()
+
+    save_guild_config(guild_id, cfg)
+    return {"ok": True, "restored": True, "guild_id": str(guild_id)}
+
+
+@app.get("/api/user/{user_id}/premium")
+async def api_user_premium(user_id: str, request: Request):
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    expected = _clean_secret(PANEL_API_TOKEN)
+    if not expected or not _safe_token_eq(token, expected):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+    if not str(user_id).isdigit():
+        return JSONResponse({"error": "user_id invalido"}, status_code=400)
+    ok, status = is_user_premium(user_id)
+    return {"user_id": str(user_id), "premium": ok, "premium_status": status}
