@@ -1,8 +1,8 @@
 """
-Odette Panel — esqueleto fase 1
+Odette Panel — fase 2
 - Login Discord OAuth2
 - Lista de servidores del usuario
-- Página por servidor (placeholder de config)
+- Configuración por servidor (Anti-Raid, Verify, Logs, IA)
 - Zona owner: premium local (JSON)
 
 Deploy Render:
@@ -34,6 +34,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 PREMIUM_FILE = DATA_DIR / "premium_guilds.json"
+CONFIG_FILE = DATA_DIR / "guild_configs.json"
 
 DISCORD_CLIENT_ID = (os.getenv("DISCORD_CLIENT_ID") or "").strip()
 DISCORD_CLIENT_SECRET = (os.getenv("DISCORD_CLIENT_SECRET") or "").strip()
@@ -47,9 +48,13 @@ OAUTH_TOKEN = "https://discord.com/api/oauth2/token"
 
 app = FastAPI(title="Odette Panel", docs_url=None, redoc_url=None)
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=60 * 60 * 24 * 7)
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+_STATIC = BASE_DIR / "static"
+_STATIC.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+
+# ───────────────────────── Premium ─────────────────────────
 
 def _load_premium() -> dict:
     if not PREMIUM_FILE.exists():
@@ -131,6 +136,64 @@ def is_premium(guild_id: str | int) -> tuple[bool, str]:
     return True, f"queda {d}d {h}h" if d else f"queda {h}h"
 
 
+# ───────────────────────── Config por servidor ─────────────────────────
+
+def _default_config() -> dict:
+    return {
+        "anti_raid": {"enabled": False, "max_joins": 5, "window": 10},
+        "automod": {"enabled": False, "anti_invite": True},
+        "verify": {"enabled": False, "channel_id": "", "role_id": ""},
+        "logs": {"enabled": False, "channel_id": ""},
+        "ia": {"enabled": False},
+        "welcome": {"enabled": False, "channel_id": ""},
+        "autorole": {"enabled": False, "role_id": ""},
+        "levels": {"enabled": False},
+        "booster": {"enabled": False, "channel_id": ""},
+        "tickets": {"enabled": False},
+        "starboard": {"enabled": False, "channel_id": "", "min_stars": 3},
+        "nsfw": {"enabled": True},
+    }
+
+
+def _load_all_configs() -> dict:
+    if not CONFIG_FILE.exists():
+        return {}
+    try:
+        data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_all_configs(data: dict) -> None:
+    CONFIG_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def get_guild_config(guild_id: str) -> dict:
+    all_cfg = _load_all_configs()
+    cfg = all_cfg.get(str(guild_id))
+    if not cfg:
+        return _default_config()
+    # Asegurar que existan todas las claves
+    base = _default_config()
+    for key in base:
+        if key not in cfg:
+            cfg[key] = base[key]
+        else:
+            for sub in base[key]:
+                if sub not in cfg[key]:
+                    cfg[key][sub] = base[key][sub]
+    return cfg
+
+
+def save_guild_config(guild_id: str, config: dict) -> None:
+    all_cfg = _load_all_configs()
+    all_cfg[str(guild_id)] = config
+    _save_all_configs(all_cfg)
+
+
+# ───────────────────────── Helpers ─────────────────────────
+
 def current_user(request: Request) -> Optional[dict]:
     return request.session.get("user")
 
@@ -139,6 +202,8 @@ def is_owner(request: Request) -> bool:
     u = current_user(request)
     return bool(u and int(u.get("id", 0)) == BOT_OWNER_ID)
 
+
+# ───────────────────────── Rutas ─────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -289,7 +354,10 @@ async def guild_page(request: Request, guild_id: str):
         return RedirectResponse("/dashboard")
     if not guild:
         guild = {"id": guild_id, "name": f"Server {guild_id}", "icon": None}
+
     ok, status = is_premium(guild_id)
+    config = get_guild_config(guild_id)
+
     return templates.TemplateResponse(
         "guild.html",
         {
@@ -299,8 +367,93 @@ async def guild_page(request: Request, guild_id: str):
             "guild": guild,
             "premium": ok,
             "premium_status": status,
+            "config": config,
         },
     )
+
+
+@app.post("/guild/{guild_id}/save")
+async def guild_save(request: Request, guild_id: str):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login")
+
+    # Seguridad: solo puede guardar si es admin del servidor o owner
+    guilds = request.session.get("guilds") or []
+    has_access = any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)
+    if not has_access:
+        return RedirectResponse("/dashboard")
+
+    form = await request.form()
+
+    def _int(name, default=0):
+        try:
+            return int(form.get(name) or default)
+        except Exception:
+            return default
+
+    config = {
+        "anti_raid": {
+            "enabled": form.get("anti_raid_enabled") == "on",
+            "max_joins": max(1, min(_int("anti_raid_max_joins", 5), 50)),
+            "window": max(5, min(_int("anti_raid_window", 10), 120)),
+        },
+        "automod": {
+            "enabled": form.get("automod_enabled") == "on",
+            "anti_invite": form.get("automod_anti_invite") == "on",
+        },
+        "verify": {
+            "enabled": form.get("verify_enabled") == "on",
+            "channel_id": (form.get("verify_channel") or "").strip(),
+            "role_id": (form.get("verify_role") or "").strip(),
+        },
+        "logs": {
+            "enabled": form.get("logs_enabled") == "on",
+            "channel_id": (form.get("logs_channel") or "").strip(),
+        },
+        "ia": {
+            "enabled": form.get("ia_enabled") == "on",
+        },
+        "welcome": {
+            "enabled": form.get("welcome_enabled") == "on",
+            "channel_id": (form.get("welcome_channel") or "").strip(),
+        },
+        "autorole": {
+            "enabled": form.get("autorole_enabled") == "on",
+            "role_id": (form.get("autorole_role") or "").strip(),
+        },
+        "levels": {
+            "enabled": form.get("levels_enabled") == "on",
+        },
+        "booster": {
+            "enabled": form.get("booster_enabled") == "on",
+            "channel_id": (form.get("booster_channel") or "").strip(),
+        },
+        "tickets": {
+            "enabled": form.get("tickets_enabled") == "on",
+        },
+        "starboard": {
+            "enabled": form.get("starboard_enabled") == "on",
+            "channel_id": (form.get("starboard_channel") or "").strip(),
+            "min_stars": max(1, min(_int("starboard_min", 3), 25)),
+        },
+        "nsfw": {
+            "enabled": form.get("nsfw_enabled") == "on",
+        },
+    }
+
+    # Si no tiene premium, forzamos IA apagada
+    ok, _ = is_premium(guild_id)
+    if not ok:
+        config["ia"]["enabled"] = False
+
+    # Marca de guardado real (el bot solo aplica configs con esto)
+    import time as _t
+    config["_panel_saved"] = True
+    config["_saved_at"] = _t.time()
+
+    save_guild_config(guild_id, config)
+    return RedirectResponse(f"/guild/{guild_id}?ok=1", status_code=303)
 
 
 @app.get("/owner", response_class=HTMLResponse)
@@ -378,6 +531,73 @@ async def owner_premium_remove(request: Request, guild_id: str = Form(...)):
     return RedirectResponse("/owner", status_code=303)
 
 
+# ───────────────────────── API para el bot ─────────────────────────
+
+def _clean_secret(val: str) -> str:
+    """Quita espacios y comillas que a veces se cuelan en Environment de Render."""
+    v = (val or "").strip()
+    if len(v) >= 2 and ((v[0] == v[-1] == '"') or (v[0] == v[-1] == "'")):
+        v = v[1:-1].strip()
+    return v
+
+
+# Token FIJO compartido con el bot (mismo valor que en el .env del bot).
+# No depende del Environment de Render para evitar 401 por token distinto.
+PANEL_API_TOKEN = "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
+
+
 @app.get("/health")
 async def health():
-    return {"ok": True, "service": "odette-panel", "phase": 1}
+    tlen = len(_clean_secret(PANEL_API_TOKEN) or "")
+    return {
+        "ok": True,
+        "service": "odette-panel",
+        "phase": 2,
+        "panel_token_configured": tlen > 0,
+        "panel_token_len": tlen,
+    }
+
+
+@app.get("/api/ping")
+async def api_ping(request: Request):
+    """Prueba rápida de token (el bot o curl pueden usarlo)."""
+    from fastapi.responses import JSONResponse
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    expected = _clean_secret(PANEL_API_TOKEN)
+    if token != expected:
+        return JSONResponse(
+            {"ok": False, "error": "token invalido", "panel_token_len": len(expected)},
+            status_code=401,
+        )
+    return {"ok": True, "service": "odette-panel", "token_ok": True}
+
+
+@app.get("/api/guild/{guild_id}/config")
+async def api_guild_config(guild_id: str, request: Request):
+    """El bot llama a esta ruta para obtener la configuración de un servidor."""
+    from fastapi.responses import JSONResponse
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    expected = _clean_secret(PANEL_API_TOKEN)
+    if not expected or token != expected:
+        return JSONResponse(
+            {
+                "error": "No autorizado",
+                "hint": "PANEL_API_TOKEN del bot debe coincidir con el del panel",
+                "token_configured": bool(expected),
+                "token_len": len(expected),
+            },
+            status_code=401,
+        )
+
+    config = get_guild_config(guild_id)
+    ok, status = is_premium(guild_id)
+    has_saved = bool(config.get("_panel_saved"))
+    return {
+        "guild_id": str(guild_id),
+        "premium": ok,
+        "premium_status": status,
+        "has_saved": has_saved,
+        "config": config,
+    }
