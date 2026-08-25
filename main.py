@@ -141,9 +141,17 @@ def is_premium(guild_id: str | int) -> tuple[bool, str]:
 def _default_config() -> dict:
     return {
         "anti_raid": {"enabled": False, "max_joins": 5, "window": 10},
+        "automod": {"enabled": False, "anti_invite": True},
         "verify": {"enabled": False, "channel_id": "", "role_id": ""},
         "logs": {"enabled": False, "channel_id": ""},
         "ia": {"enabled": False},
+        "welcome": {"enabled": False, "channel_id": ""},
+        "autorole": {"enabled": False, "role_id": ""},
+        "levels": {"enabled": False},
+        "booster": {"enabled": False, "channel_id": ""},
+        "tickets": {"enabled": False},
+        "starboard": {"enabled": False, "channel_id": "", "min_stars": 3},
+        "nsfw": {"enabled": True},
     }
 
 
@@ -378,11 +386,21 @@ async def guild_save(request: Request, guild_id: str):
 
     form = await request.form()
 
+    def _int(name, default=0):
+        try:
+            return int(form.get(name) or default)
+        except Exception:
+            return default
+
     config = {
         "anti_raid": {
             "enabled": form.get("anti_raid_enabled") == "on",
-            "max_joins": int(form.get("anti_raid_max_joins") or 5),
-            "window": int(form.get("anti_raid_window") or 10),
+            "max_joins": max(1, min(_int("anti_raid_max_joins", 5), 50)),
+            "window": max(5, min(_int("anti_raid_window", 10), 120)),
+        },
+        "automod": {
+            "enabled": form.get("automod_enabled") == "on",
+            "anti_invite": form.get("automod_anti_invite") == "on",
         },
         "verify": {
             "enabled": form.get("verify_enabled") == "on",
@@ -395,6 +413,32 @@ async def guild_save(request: Request, guild_id: str):
         },
         "ia": {
             "enabled": form.get("ia_enabled") == "on",
+        },
+        "welcome": {
+            "enabled": form.get("welcome_enabled") == "on",
+            "channel_id": (form.get("welcome_channel") or "").strip(),
+        },
+        "autorole": {
+            "enabled": form.get("autorole_enabled") == "on",
+            "role_id": (form.get("autorole_role") or "").strip(),
+        },
+        "levels": {
+            "enabled": form.get("levels_enabled") == "on",
+        },
+        "booster": {
+            "enabled": form.get("booster_enabled") == "on",
+            "channel_id": (form.get("booster_channel") or "").strip(),
+        },
+        "tickets": {
+            "enabled": form.get("tickets_enabled") == "on",
+        },
+        "starboard": {
+            "enabled": form.get("starboard_enabled") == "on",
+            "channel_id": (form.get("starboard_channel") or "").strip(),
+            "min_stars": max(1, min(_int("starboard_min", 3), 25)),
+        },
+        "nsfw": {
+            "enabled": form.get("nsfw_enabled") == "on",
         },
     }
 
