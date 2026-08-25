@@ -482,23 +482,65 @@ async def owner_premium_remove(request: Request, guild_id: str = Form(...)):
     return RedirectResponse("/owner", status_code=303)
 
 
-@app.get("/health")
-async def health():
-    return {"ok": True, "service": "odette-panel", "phase": 2}
-
-
 # ───────────────────────── API para el bot ─────────────────────────
 
-PANEL_API_TOKEN = (os.getenv("PANEL_API_TOKEN") or "").strip()
+def _clean_secret(val: str) -> str:
+    """Quita espacios y comillas que a veces se cuelan en Environment de Render."""
+    v = (val or "").strip()
+    if len(v) >= 2 and ((v[0] == v[-1] == '"') or (v[0] == v[-1] == "'")):
+        v = v[1:-1].strip()
+    return v
+
+
+# Si el env de Render falla o queda vacío, usa este default (mismo que el bot).
+_DEFAULT_PANEL_TOKEN = "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
+PANEL_API_TOKEN = _clean_secret(os.getenv("PANEL_API_TOKEN") or "") or _DEFAULT_PANEL_TOKEN
+
+
+@app.get("/health")
+async def health():
+    tlen = len(_clean_secret(PANEL_API_TOKEN) or "")
+    return {
+        "ok": True,
+        "service": "odette-panel",
+        "phase": 2,
+        "panel_token_configured": tlen > 0,
+        "panel_token_len": tlen,
+    }
+
+
+@app.get("/api/ping")
+async def api_ping(request: Request):
+    """Prueba rápida de token (el bot o curl pueden usarlo)."""
+    from fastapi.responses import JSONResponse
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    expected = _clean_secret(PANEL_API_TOKEN)
+    if token != expected:
+        return JSONResponse(
+            {"ok": False, "error": "token invalido", "panel_token_len": len(expected)},
+            status_code=401,
+        )
+    return {"ok": True, "service": "odette-panel", "token_ok": True}
 
 
 @app.get("/api/guild/{guild_id}/config")
 async def api_guild_config(guild_id: str, request: Request):
     """El bot llama a esta ruta para obtener la configuración de un servidor."""
-    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    if not PANEL_API_TOKEN or token != PANEL_API_TOKEN:
-        from fastapi.responses import JSONResponse
-        return JSONResponse({"error": "No autorizado"}, status_code=401)
+    from fastapi.responses import JSONResponse
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    expected = _clean_secret(PANEL_API_TOKEN)
+    if not expected or token != expected:
+        return JSONResponse(
+            {
+                "error": "No autorizado",
+                "hint": "PANEL_API_TOKEN del bot debe coincidir con el del panel",
+                "token_configured": bool(expected),
+                "token_len": len(expected),
+            },
+            status_code=401,
+        )
 
     config = get_guild_config(guild_id)
     ok, status = is_premium(guild_id)
