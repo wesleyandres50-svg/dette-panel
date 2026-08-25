@@ -23,7 +23,19 @@
   <a class="btn" href="/dashboard">← Servidores</a>
 </div>
 
+{% if request.query_params.get('ok') %}
+  <div class="alert alert-ok" style="margin-bottom:16px;padding:12px 16px;border-radius:10px;background:#1a3d2e;color:#7dffa3;border:1px solid #2e6b4f;">
+    ✅ Cambios guardados correctamente.
+  </div>
+{% endif %}
+{% if request.query_params.get('err') == 'csrf' %}
+  <div class="alert alert-err" style="margin-bottom:16px;padding:12px 16px;border-radius:10px;background:#3d1a1a;color:#ff9b9b;border:1px solid #6b2e2e;">
+    ⚠️ Sesión de seguridad expirada. Vuelve a intentar guardar.
+  </div>
+{% endif %}
+
 <form method="post" action="/guild/{{ guild.id }}/save">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
 
   {# ——— SEGURIDAD ——— #}
   <div class="section" data-section>
@@ -33,7 +45,6 @@
     </div>
     <div class="section-body">
       <div class="mod-grid">
-
         <div class="mod">
           <div class="mod-top">
             <div class="mod-title">Anti-Raid</div>
@@ -54,7 +65,6 @@
             </div>
           </div>
         </div>
-
         <div class="mod">
           <div class="mod-top">
             <div class="mod-title">AutoMod</div>
@@ -71,7 +81,6 @@
             </label>
           </div>
         </div>
-
         <div class="mod {% if not premium %}prem-lock{% endif %}">
           <div class="mod-top">
             <div class="mod-title">IA Anti-Raid {% if not premium %}<span class="badge badge-gold">Premium</span>{% endif %}</div>
@@ -82,7 +91,6 @@
           </div>
           <p class="mod-desc">Decisiones inteligentes ante raids (requiere premium + GROQ).</p>
         </div>
-
         <div class="mod">
           <div class="mod-top">
             <div class="mod-title">Verificación</div>
@@ -103,7 +111,6 @@
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
@@ -144,7 +151,6 @@
     </div>
     <div class="section-body">
       <div class="mod-grid">
-
         <div class="mod">
           <div class="mod-top">
             <div class="mod-title">Bienvenidas</div>
@@ -161,7 +167,6 @@
             </div>
           </div>
         </div>
-
         <div class="mod">
           <div class="mod-top">
             <div class="mod-title">Autorole</div>
@@ -178,7 +183,6 @@
             </div>
           </div>
         </div>
-
         <div class="mod">
           <div class="mod-top">
             <div class="mod-title">Niveles / XP</div>
@@ -189,7 +193,6 @@
           </div>
           <p class="mod-desc">Sistema de experiencia por mensajes.</p>
         </div>
-
         <div class="mod">
           <div class="mod-top">
             <div class="mod-title">Boosters</div>
@@ -206,7 +209,6 @@
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
@@ -219,7 +221,6 @@
     </div>
     <div class="section-body">
       <div class="mod-grid">
-
         <div class="mod">
           <div class="mod-top">
             <div class="mod-title">Tickets</div>
@@ -230,7 +231,6 @@
           </div>
           <p class="mod-desc">Sistema de tickets de soporte.</p>
         </div>
-
         <div class="mod">
           <div class="mod-top">
             <div class="mod-title">Starboard</div>
@@ -251,7 +251,6 @@
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
