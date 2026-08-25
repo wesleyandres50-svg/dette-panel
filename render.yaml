@@ -1,0 +1,21 @@
+# Opcional: Blueprint de Render
+# En el dashboard también puedes crear el Web Service a mano.
+
+services:
+  - type: web
+    name: odette-panel
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: DISCORD_REDIRECT_URI
+        sync: false
+      - key: BOT_OWNER_ID
+        value: "545930956721356842"
+      - key: SECRET_KEY
+        generateValue: true
