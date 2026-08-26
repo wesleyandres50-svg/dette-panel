@@ -3,46 +3,44 @@
 
 {% block content %}
 <style>
-  /* ========== ODETTE DASHBOARD ========== */
   :root {
     --od-radius: 16px;
     --od-radius-sm: 12px;
-    --od-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --od-transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* Accent por defecto (cian) */
+    /* Valores por defecto */
     --od-accent: #38bdf8;
     --od-accent-rgb: 56, 189, 248;
     --od-accent-2: #818cf8;
   }
 
-  /* === MODO OSCURO === */
   [data-theme="dark"] {
     --od-bg: #070a10;
-    --od-surface: rgba(16, 20, 30, 0.72);
-    --od-surface-2: rgba(22, 27, 40, 0.85);
-    --od-border: rgba(255,255,255,0.07);
+    --od-surface: rgba(16, 20, 30, 0.78);
+    --od-surface-2: rgba(22, 27, 40, 0.92);
+    --od-border: rgba(255,255,255,0.08);
     --od-text: #f1f5f9;
     --od-muted: #94a3b8;
-    --od-glow: rgba(var(--od-accent-rgb), 0.15);
-    --od-card-hover: rgba(var(--od-accent-rgb), 0.08);
+    --od-glow: rgba(var(--od-accent-rgb), 0.18);
+    --od-card-hover: rgba(var(--od-accent-rgb), 0.09);
   }
 
-  /* === MODO CLARO === */
   [data-theme="light"] {
     --od-bg: #f1f5f9;
-    --od-surface: rgba(255,255,255,0.85);
+    --od-surface: rgba(255,255,255,0.88);
     --od-surface-2: #ffffff;
-    --od-border: rgba(15,23,42,0.08);
+    --od-border: rgba(15,23,42,0.09);
     --od-text: #0f172a;
     --od-muted: #64748b;
-    --od-glow: rgba(var(--od-accent-rgb), 0.12);
-    --od-card-hover: rgba(var(--od-accent-rgb), 0.06);
+    --od-glow: rgba(var(--od-accent-rgb), 0.14);
+    --od-card-hover: rgba(var(--od-accent-rgb), 0.07);
   }
 
   .od-page {
     max-width: 1180px;
     margin: 0 auto;
-    padding: 0 8px 60px;
+    padding: 0 8px 70px;
+    color: var(--od-text);
   }
 
   /* ===== HEADER ===== */
@@ -65,9 +63,9 @@
     text-transform: uppercase;
     padding: 5px 12px;
     border-radius: 999px;
-    background: rgba(var(--od-accent-rgb), 0.12);
+    background: rgba(var(--od-accent-rgb), 0.14);
     color: var(--od-accent);
-    border: 1px solid rgba(var(--od-accent-rgb), 0.25);
+    border: 1px solid rgba(var(--od-accent-rgb), 0.28);
     margin-bottom: 10px;
   }
 
@@ -92,7 +90,7 @@
 
   .od-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
     align-items: center;
   }
@@ -101,7 +99,7 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: 10px 18px;
+    padding: 10px 16px;
     border-radius: 999px;
     border: 1px solid var(--od-border);
     background: var(--od-surface);
@@ -115,7 +113,7 @@
   }
   .od-btn:hover {
     background: var(--od-card-hover);
-    border-color: rgba(var(--od-accent-rgb), 0.4);
+    border-color: rgba(var(--od-accent-rgb), 0.45);
     transform: translateY(-1px);
   }
   .od-btn.primary {
@@ -123,14 +121,101 @@
     border: none;
     color: #0b0e14;
     font-weight: 600;
-    box-shadow: 0 4px 20px rgba(var(--od-accent-rgb), 0.35);
+    box-shadow: 0 4px 22px rgba(var(--od-accent-rgb), 0.38);
   }
   .od-btn.primary:hover {
     filter: brightness(1.08);
-    box-shadow: 0 6px 28px rgba(var(--od-accent-rgb), 0.45);
+    box-shadow: 0 6px 28px rgba(var(--od-accent-rgb), 0.5);
   }
 
-  /* ===== PREMIUM BANNER ===== */
+  /* Botones icono (tema, idioma, paleta) */
+  .od-icon-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--od-border);
+    background: var(--od-surface);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    font-size: 1.15rem;
+    color: var(--od-text);
+    transition: all var(--od-transition);
+    position: relative;
+  }
+  .od-icon-btn:hover {
+    border-color: rgba(var(--od-accent-rgb), 0.5);
+    background: var(--od-card-hover);
+  }
+
+  /* ===== DROPDOWNS (idioma + colores) ===== */
+  .od-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--od-surface-2);
+    border: 1px solid var(--od-border);
+    border-radius: 14px;
+    padding: 10px;
+    min-width: 180px;
+    box-shadow: 0 16px 50px rgba(0,0,0,0.35);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px) scale(0.96);
+    transition: all 0.18s ease;
+    z-index: 200;
+    backdrop-filter: blur(16px);
+  }
+  .od-dropdown.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+
+  .od-dropdown .item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--od-text);
+    transition: background 0.15s;
+  }
+  .od-dropdown .item:hover {
+    background: rgba(var(--od-accent-rgb), 0.12);
+  }
+  .od-dropdown .item.active {
+    background: rgba(var(--od-accent-rgb), 0.18);
+    color: var(--od-accent);
+    font-weight: 600;
+  }
+
+  /* Color picker escondido */
+  .od-color-panel {
+    display: flex;
+    gap: 8px;
+    padding: 6px 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .od-color {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
+  }
+  .od-color:hover { transform: scale(1.18); }
+  .od-color.active {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px var(--od-accent), 0 0 14px rgba(var(--od-accent-rgb), 0.55);
+  }
+
+  /* ===== PREMIUM ===== */
   .od-premium {
     display: flex;
     align-items: center;
@@ -150,7 +235,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 0% 50%, rgba(var(--od-accent-rgb), 0.12), transparent 55%);
+    background: radial-gradient(ellipse at 0% 50%, rgba(var(--od-accent-rgb), 0.13), transparent 55%);
     pointer-events: none;
   }
   .od-premium .left {
@@ -163,11 +248,11 @@
     width: 44px;
     height: 44px;
     border-radius: 14px;
-    background: rgba(var(--od-accent-rgb), 0.15);
+    background: rgba(var(--od-accent-rgb), 0.16);
     display: grid;
     place-items: center;
     font-size: 1.25rem;
-    border: 1px solid rgba(var(--od-accent-rgb), 0.25);
+    border: 1px solid rgba(var(--od-accent-rgb), 0.28);
   }
   .od-premium .title {
     font-weight: 600;
@@ -203,7 +288,6 @@
     gap: 14px;
     margin-bottom: 28px;
   }
-
   .od-stat {
     background: var(--od-surface);
     border: 1px solid var(--od-border);
@@ -215,10 +299,10 @@
     transition: all var(--od-transition);
   }
   .od-stat:hover {
-    border-color: rgba(var(--od-accent-rgb), 0.35);
+    border-color: rgba(var(--od-accent-rgb), 0.4);
     background: var(--od-card-hover);
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px var(--od-glow);
+    box-shadow: 0 10px 32px var(--od-glow);
   }
   .od-stat::after {
     content: "";
@@ -227,10 +311,9 @@
     right: -30%;
     width: 120px;
     height: 120px;
-    background: radial-gradient(circle, rgba(var(--od-accent-rgb), 0.18), transparent 70%);
+    background: radial-gradient(circle, rgba(var(--od-accent-rgb), 0.2), transparent 70%);
     pointer-events: none;
   }
-
   .od-stat .label {
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -276,11 +359,11 @@
     color: var(--od-text);
     font-size: 0.9rem;
     outline: none;
-    transition: border-color var(--od-transition);
+    transition: border-color var(--od-transition), box-shadow var(--od-transition);
   }
   .od-search input:focus {
     border-color: rgba(var(--od-accent-rgb), 0.55);
-    box-shadow: 0 0 0 3px rgba(var(--od-accent-rgb), 0.12);
+    box-shadow: 0 0 0 3px rgba(var(--od-accent-rgb), 0.14);
   }
   .od-search .icon {
     position: absolute;
@@ -291,7 +374,6 @@
     font-size: 1rem;
     pointer-events: none;
   }
-
   .od-filters {
     display: flex;
     gap: 6px;
@@ -310,9 +392,9 @@
   }
   .od-filter.active,
   .od-filter:hover {
-    background: rgba(var(--od-accent-rgb), 0.14);
+    background: rgba(var(--od-accent-rgb), 0.15);
     color: var(--od-accent);
-    border-color: rgba(var(--od-accent-rgb), 0.35);
+    border-color: rgba(var(--od-accent-rgb), 0.38);
   }
 
   /* ===== GUILDS ===== */
@@ -321,7 +403,6 @@
     grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
     gap: 12px;
   }
-
   .od-guild {
     display: flex;
     align-items: center;
@@ -335,10 +416,10 @@
     transition: all var(--od-transition);
   }
   .od-guild:hover {
-    border-color: rgba(var(--od-accent-rgb), 0.45);
+    border-color: rgba(var(--od-accent-rgb), 0.48);
     background: var(--od-card-hover);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px var(--od-glow);
+    box-shadow: 0 10px 28px var(--od-glow);
   }
   .od-guild img,
   .od-guild .fallback {
@@ -376,7 +457,7 @@
     font-size: 1.15rem;
     transition: opacity var(--od-transition);
   }
-  .od-guild:hover .arrow { opacity: 0.7; }
+  .od-guild:hover .arrow { opacity: 0.75; }
 
   .od-empty {
     text-align: center;
@@ -387,47 +468,7 @@
     background: var(--od-surface);
   }
 
-  /* ===== COLOR PICKER ===== */
-  .od-color-panel {
-    position: fixed;
-    top: 90px;
-    right: 24px;
-    background: var(--od-surface-2);
-    border: 1px solid var(--od-border);
-    border-radius: 14px;
-    padding: 12px 14px;
-    backdrop-filter: blur(16px);
-    z-index: 50;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
-  }
-  .od-color-panel .title {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--od-muted);
-    margin-bottom: 10px;
-    font-weight: 600;
-  }
-  .od-colors {
-    display: flex;
-    gap: 8px;
-  }
-  .od-color {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: transform 0.15s, border-color 0.15s;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
-  }
-  .od-color:hover { transform: scale(1.15); }
-  .od-color.active {
-    border-color: #fff;
-    box-shadow: 0 0 0 2px var(--od-accent), 0 0 12px rgba(var(--od-accent-rgb), 0.5);
-  }
-
-  /* ===== INFO BUBBLE (tooltip) ===== */
+  /* ===== INFO BUBBLE ===== */
   .od-info {
     position: relative;
     display: inline-flex;
@@ -436,12 +477,12 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: rgba(var(--od-accent-rgb), 0.15);
+    background: rgba(var(--od-accent-rgb), 0.16);
     color: var(--od-accent);
     font-size: 0.7rem;
     font-weight: 700;
     cursor: help;
-    border: 1px solid rgba(var(--od-accent-rgb), 0.3);
+    border: 1px solid rgba(var(--od-accent-rgb), 0.32);
     flex-shrink: 0;
   }
   .od-info .bubble {
@@ -482,55 +523,61 @@
     visibility: visible;
     transform: translateX(-50%) scale(1);
   }
-
-  /* Theme toggle */
-  .od-theme-toggle {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    border: 1px solid var(--od-border);
-    background: var(--od-surface);
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    font-size: 1.15rem;
-    transition: all var(--od-transition);
-  }
-  .od-theme-toggle:hover {
-    border-color: rgba(var(--od-accent-rgb), 0.4);
-  }
 </style>
 
 <div class="od-page" data-theme="dark" id="odPage">
 
-  <!-- Color del panel -->
-  <div class="od-color-panel">
-    <div class="title">Color del panel</div>
-    <div class="od-colors">
-      <div class="od-color active" style="background:#38bdf8" data-color="#38bdf8" data-rgb="56,189,248" data-2="#818cf8"></div>
-      <div class="od-color" style="background:#a78bfa" data-color="#a78bfa" data-rgb="167,139,250" data-2="#c4b5fd"></div>
-      <div class="od-color" style="background:#2dd4bf" data-color="#2dd4bf" data-rgb="45,212,191" data-2="#5eead4"></div>
-      <div class="od-color" style="background:#4ade80" data-color="#4ade80" data-rgb="74,222,128" data-2="#86efac"></div>
-      <div class="od-color" style="background:#fbbf24" data-color="#fbbf24" data-rgb="251,191,36" data-2="#fcd34d"></div>
-      <div class="od-color" style="background:#f472b6" data-color="#f472b6" data-rgb="244,114,182" data-2="#f9a8d4"></div>
-      <div class="od-color" style="background:#fb7185" data-color="#fb7185" data-rgb="251,113,133" data-2="#fda4af"></div>
-      <div class="od-color" style="background:#c084fc" data-color="#c084fc" data-rgb="192,132,252" data-2="#d8b4fe"></div>
-    </div>
-  </div>
-
   <!-- Header -->
   <div class="od-header">
     <div>
-      <div class="od-badge">Panel de control</div>
+      <div class="od-badge" data-i18n="badge">Panel de control</div>
       <div class="od-greeting">
-        Hola, <span class="name">{{ user.username if user else "Usuario" }}</span>
+        <span data-i18n="hello">Hola</span>, <span class="name">{{ user.username if user else "Usuario" }}</span>
       </div>
-      <div class="od-sub">Elige un servidor para configurar a Odette</div>
+      <div class="od-sub" data-i18n="subtitle">Elige un servidor para configurar a Odette</div>
     </div>
+
     <div class="od-actions">
-      <button class="od-theme-toggle" id="themeToggle" title="Cambiar tema">🌙</button>
-      <a class="od-btn" href="#">Soporte</a>
-      <a class="od-btn primary" href="#">+ Añadir a un servidor</a>
+      <!-- Tema -->
+      <button class="od-icon-btn" id="themeToggle" title="Cambiar tema">🌙</button>
+
+      <!-- Idioma -->
+      <div style="position:relative">
+        <button class="od-icon-btn" id="langBtn" title="Idioma">
+          <span id="langFlag">🇪🇸</span>
+        </button>
+        <div class="od-dropdown" id="langDropdown">
+          <div class="item active" data-lang="es" data-flag="🇪🇸">Español</div>
+          <div class="item" data-lang="en" data-flag="🇺🇸">English</div>
+          <div class="item" data-lang="pt" data-flag="🇧🇷">Português</div>
+          <div class="item" data-lang="fr" data-flag="🇫🇷">Français</div>
+          <div class="item" data-lang="de" data-flag="🇩🇪">Deutsch</div>
+          <div class="item" data-lang="it" data-flag="🇮🇹">Italiano</div>
+          <div class="item" data-lang="ru" data-flag="🇷🇺">Русский</div>
+        </div>
+      </div>
+
+      <!-- Paleta de colores (escondida) -->
+      <div style="position:relative">
+        <button class="od-icon-btn" id="colorBtn" title="Color del panel" style="color: var(--od-accent)">
+          🎨
+        </button>
+        <div class="od-dropdown" id="colorDropdown" style="min-width:auto;padding:12px">
+          <div class="od-color-panel">
+            <div class="od-color active" style="background:#38bdf8" data-color="#38bdf8" data-rgb="56,189,248" data-2="#818cf8"></div>
+            <div class="od-color" style="background:#a78bfa" data-color="#a78bfa" data-rgb="167,139,250" data-2="#c4b5fd"></div>
+            <div class="od-color" style="background:#2dd4bf" data-color="#2dd4bf" data-rgb="45,212,191" data-2="#5eead4"></div>
+            <div class="od-color" style="background:#4ade80" data-color="#4ade80" data-rgb="74,222,128" data-2="#86efac"></div>
+            <div class="od-color" style="background:#fbbf24" data-color="#fbbf24" data-rgb="251,191,36" data-2="#fcd34d"></div>
+            <div class="od-color" style="background:#f472b6" data-color="#f472b6" data-rgb="244,114,182" data-2="#f9a8d4"></div>
+            <div class="od-color" style="background:#fb7185" data-color="#fb7185" data-rgb="251,113,133" data-2="#fda4af"></div>
+            <div class="od-color" style="background:#c084fc" data-color="#c084fc" data-rgb="192,132,252" data-2="#d8b4fe"></div>
+          </div>
+        </div>
+      </div>
+
+      <a class="od-btn" href="#" data-i18n="support">Soporte</a>
+      <a class="od-btn primary" href="#" data-i18n="add_server">+ Añadir a un servidor</a>
     </div>
   </div>
 
@@ -540,77 +587,77 @@
       <div class="icon">👑</div>
       <div>
         <div class="title">
-          Tu premium
-          <span class="badge-pill">Sin premium</span>
+          <span data-i18n="premium_title">Tu premium</span>
+          <span class="badge-pill" data-i18n="no_premium">Sin premium</span>
           <span class="od-info">?
-            <span class="bubble">
+            <span class="bubble" data-i18n="premium_tip">
               <strong>¿Qué es Premium?</strong><br>
-              Desbloquea sistema de actividad, tickets avanzados, logs detallados y más funciones exclusivas. Puedes gestionar los servidores premium desde el panel de Owner.
+              Desbloquea sistema de actividad, tickets avanzados, logs detallados y más funciones exclusivas.
             </span>
           </span>
         </div>
-        <div class="desc">El sistema de actividad y otras funciones necesitan premium.</div>
+        <div class="desc" data-i18n="premium_desc">El sistema de actividad y otras funciones necesitan premium.</div>
       </div>
     </div>
-    <div class="tickets">Tickets disponibles: 0</div>
+    <div class="tickets" data-i18n="tickets">Tickets disponibles: 0</div>
   </div>
 
   <!-- Stats -->
   <div class="od-stats">
     <div class="od-stat">
       <div class="label">
-        📊 Administrables
+        📊 <span data-i18n="stat_admin">Administrables</span>
         <span class="od-info">?
-          <span class="bubble">
+          <span class="bubble" data-i18n="tip_admin">
             <strong>Servidores administrables</strong><br>
-            Son todos los servidores donde tienes permiso de Administrador o Gestionar servidor. Odette solo puede configurarse en estos.
+            Servidores donde tienes permiso de Administrador o Gestionar servidor.
           </span>
         </span>
       </div>
       <div class="value">{{ guilds|length }}</div>
-      <div class="hint">Servidores donde eres admin</div>
+      <div class="hint" data-i18n="hint_admin">Servidores donde eres admin</div>
     </div>
 
     <div class="od-stat">
       <div class="label">
-        🦢 Con Odette
+        🦢 <span data-i18n="stat_with">Con Odette</span>
         <span class="od-info">?
-          <span class="bubble">
+          <span class="bubble" data-i18n="tip_with">
             <strong>Servidores con Odette</strong><br>
-            Aquí aparecen los servidores donde el bot ya está invitado y listo para configurar. Entra a cada uno para ajustar módulos.
+            Donde el bot ya está invitado y listo para configurar.
           </span>
         </span>
       </div>
       <div class="value">0</div>
-      <div class="hint">Listos para configurar</div>
+      <div class="hint" data-i18n="hint_with">Listos para configurar</div>
     </div>
 
     <div class="od-stat">
       <div class="label">
-        📭 Sin el bot
+        📭 <span data-i18n="stat_without">Sin el bot</span>
         <span class="od-info">?
-          <span class="bubble">
+          <span class="bubble" data-i18n="tip_without">
             <strong>Servidores sin el bot</strong><br>
-            Tienes permisos de admin, pero Odette todavía no está en el servidor. Usa el botón “Añadir a un servidor” para invitarla.
+            Tienes permisos de admin, pero Odette todavía no está en el servidor.
           </span>
         </span>
       </div>
       <div class="value">{{ guilds|length }}</div>
-      <div class="hint">Invita a Odette para empezar</div>
+      <div class="hint" data-i18n="hint_without">Invita a Odette para empezar</div>
     </div>
 
     <div class="od-stat">
       <div class="label">
-        🎫 Tickets
+        🎫 <span data-i18n="stat_tickets">Tickets</span>
         <span class="od-info">?
-          <span class="bubble">
+          <span class="bubble" data-i18n="tip_tickets">
             <strong>Tickets</strong><br>
-            Muestra cuántos tickets nuevos o con novedades tienes. El sistema de tickets requiere Premium para funcionar completamente.
+            Tickets nuevos o con novedades. Requiere Premium.
           </span>
         </span>
       </div>
       <div class="value">0</div>
-      <div class="hint">Con novedades para ti</div>
+      <div class="hint" data-i18n="hint_tickets">Con novedades para ti</div>
     </div>
   </div>
 
@@ -618,12 +665,12 @@
   <div class="od-toolbar">
     <div class="od-search">
       <span class="icon">⌕</span>
-      <input type="text" id="searchGuild" placeholder="Buscar servidor por nombre..." oninput="filterGuilds()">
+      <input type="text" id="searchGuild" data-i18n-placeholder="search_placeholder" placeholder="Buscar servidor por nombre..." oninput="filterGuilds()">
     </div>
     <div class="od-filters">
-      <button class="od-filter active" data-filter="all" onclick="setFilter(this)">Todos</button>
-      <button class="od-filter" data-filter="with" onclick="setFilter(this)">Con Odette</button>
-      <button class="od-filter" data-filter="without" onclick="setFilter(this)">Sin el bot</button>
+      <button class="od-filter active" data-filter="all" onclick="setFilter(this)" data-i18n="filter_all">Todos</button>
+      <button class="od-filter" data-filter="with" onclick="setFilter(this)" data-i18n="filter_with">Con Odette</button>
+      <button class="od-filter" data-filter="without" onclick="setFilter(this)" data-i18n="filter_without">Sin el bot</button>
     </div>
   </div>
 
@@ -647,8 +694,8 @@
     </div>
   {% else %}
     <div class="od-empty">
-      <p style="margin:0 0 8px;font-size:1.05rem;font-weight:500">No hay servidores donde seas administrador</p>
-      <p style="margin:0;font-size:0.88rem;opacity:0.8">
+      <p style="margin:0 0 8px;font-size:1.05rem;font-weight:500" data-i18n="empty_title">No hay servidores donde seas administrador</p>
+      <p style="margin:0;font-size:0.88rem;opacity:0.8" data-i18n="empty_desc">
         Asegúrate de que Odette esté en el servidor y tú tengas permisos de Administrador o Gestionar servidor.
       </p>
     </div>
@@ -657,9 +704,254 @@
 </div>
 
 <script>
-  // ===== Theme toggle =====
+  // ===================== TRADUCCIONES =====================
+  const i18n = {
+    es: {
+      badge: "Panel de control",
+      hello: "Hola",
+      subtitle: "Elige un servidor para configurar a Odette",
+      support: "Soporte",
+      add_server: "+ Añadir a un servidor",
+      premium_title: "Tu premium",
+      no_premium: "Sin premium",
+      premium_desc: "El sistema de actividad y otras funciones necesitan premium.",
+      premium_tip: "<strong>¿Qué es Premium?</strong><br>Desbloquea sistema de actividad, tickets avanzados, logs detallados y más funciones exclusivas.",
+      tickets: "Tickets disponibles: 0",
+      stat_admin: "Administrables",
+      tip_admin: "<strong>Servidores administrables</strong><br>Servidores donde tienes permiso de Administrador o Gestionar servidor.",
+      hint_admin: "Servidores donde eres admin",
+      stat_with: "Con Odette",
+      tip_with: "<strong>Servidores con Odette</strong><br>Donde el bot ya está invitado y listo para configurar.",
+      hint_with: "Listos para configurar",
+      stat_without: "Sin el bot",
+      tip_without: "<strong>Servidores sin el bot</strong><br>Tienes permisos de admin, pero Odette todavía no está en el servidor.",
+      hint_without: "Invita a Odette para empezar",
+      stat_tickets: "Tickets",
+      tip_tickets: "<strong>Tickets</strong><br>Tickets nuevos o con novedades. Requiere Premium.",
+      hint_tickets: "Con novedades para ti",
+      search_placeholder: "Buscar servidor por nombre...",
+      filter_all: "Todos",
+      filter_with: "Con Odette",
+      filter_without: "Sin el bot",
+      empty_title: "No hay servidores donde seas administrador",
+      empty_desc: "Asegúrate de que Odette esté en el servidor y tú tengas permisos de Administrador o Gestionar servidor."
+    },
+    en: {
+      badge: "Control Panel",
+      hello: "Hello",
+      subtitle: "Choose a server to configure Odette",
+      support: "Support",
+      add_server: "+ Add to a server",
+      premium_title: "Your premium",
+      no_premium: "No premium",
+      premium_desc: "Activity system and other features require premium.",
+      premium_tip: "<strong>What is Premium?</strong><br>Unlocks activity system, advanced tickets, detailed logs and more exclusive features.",
+      tickets: "Available tickets: 0",
+      stat_admin: "Manageable",
+      tip_admin: "<strong>Manageable servers</strong><br>Servers where you have Administrator or Manage Server permission.",
+      hint_admin: "Servers where you are admin",
+      stat_with: "With Odette",
+      tip_with: "<strong>Servers with Odette</strong><br>Where the bot is already invited and ready to configure.",
+      hint_with: "Ready to configure",
+      stat_without: "Without the bot",
+      tip_without: "<strong>Servers without the bot</strong><br>You have admin permissions, but Odette is not in the server yet.",
+      hint_without: "Invite Odette to get started",
+      stat_tickets: "Tickets",
+      tip_tickets: "<strong>Tickets</strong><br>New tickets or with updates. Requires Premium.",
+      hint_tickets: "With news for you",
+      search_placeholder: "Search server by name...",
+      filter_all: "All",
+      filter_with: "With Odette",
+      filter_without: "Without bot",
+      empty_title: "No servers where you are an administrator",
+      empty_desc: "Make sure Odette is in the server and you have Administrator or Manage Server permissions."
+    },
+    pt: {
+      badge: "Painel de controle",
+      hello: "Olá",
+      subtitle: "Escolha um servidor para configurar a Odette",
+      support: "Suporte",
+      add_server: "+ Adicionar a um servidor",
+      premium_title: "Seu premium",
+      no_premium: "Sem premium",
+      premium_desc: "O sistema de atividade e outras funções precisam de premium.",
+      premium_tip: "<strong>O que é Premium?</strong><br>Desbloqueia sistema de atividade, tickets avançados, logs detalhados e mais funções exclusivas.",
+      tickets: "Tickets disponíveis: 0",
+      stat_admin: "Administráveis",
+      tip_admin: "<strong>Servidores administráveis</strong><br>Servidores onde você tem permissão de Administrador ou Gerenciar servidor.",
+      hint_admin: "Servidores onde você é admin",
+      stat_with: "Com Odette",
+      tip_with: "<strong>Servidores com Odette</strong><br>Onde o bot já está convidado e pronto para configurar.",
+      hint_with: "Prontos para configurar",
+      stat_without: "Sem o bot",
+      tip_without: "<strong>Servidores sem o bot</strong><br>Você tem permissões de admin, mas a Odette ainda não está no servidor.",
+      hint_without: "Convide a Odette para começar",
+      stat_tickets: "Tickets",
+      tip_tickets: "<strong>Tickets</strong><br>Tickets novos ou com novidades. Requer Premium.",
+      hint_tickets: "Com novidades para você",
+      search_placeholder: "Buscar servidor por nome...",
+      filter_all: "Todos",
+      filter_with: "Com Odette",
+      filter_without: "Sem o bot",
+      empty_title: "Não há servidores onde você seja administrador",
+      empty_desc: "Certifique-se de que a Odette está no servidor e você tem permissões de Administrador ou Gerenciar servidor."
+    },
+    fr: {
+      badge: "Panneau de contrôle",
+      hello: "Bonjour",
+      subtitle: "Choisissez un serveur pour configurer Odette",
+      support: "Support",
+      add_server: "+ Ajouter à un serveur",
+      premium_title: "Votre premium",
+      no_premium: "Sans premium",
+      premium_desc: "Le système d'activité et d'autres fonctions nécessitent le premium.",
+      premium_tip: "<strong>Qu'est-ce que le Premium ?</strong><br>Débloque le système d'activité, les tickets avancés, les logs détaillés et plus de fonctions exclusives.",
+      tickets: "Tickets disponibles : 0",
+      stat_admin: "Gérables",
+      tip_admin: "<strong>Serveurs gérables</strong><br>Serveurs où vous avez la permission Administrateur ou Gérer le serveur.",
+      hint_admin: "Serveurs où vous êtes admin",
+      stat_with: "Avec Odette",
+      tip_with: "<strong>Serveurs avec Odette</strong><br>Où le bot est déjà invité et prêt à être configuré.",
+      hint_with: "Prêts à configurer",
+      stat_without: "Sans le bot",
+      tip_without: "<strong>Serveurs sans le bot</strong><br>Vous avez les permissions admin, mais Odette n'est pas encore sur le serveur.",
+      hint_without: "Invitez Odette pour commencer",
+      stat_tickets: "Tickets",
+      tip_tickets: "<strong>Tickets</strong><br>Nouveaux tickets ou avec des nouveautés. Nécessite Premium.",
+      hint_tickets: "Avec des nouveautés pour vous",
+      search_placeholder: "Rechercher un serveur par nom...",
+      filter_all: "Tous",
+      filter_with: "Avec Odette",
+      filter_without: "Sans le bot",
+      empty_title: "Aucun serveur où vous êtes administrateur",
+      empty_desc: "Assurez-vous qu'Odette est sur le serveur et que vous avez les permissions Administrateur ou Gérer le serveur."
+    },
+    de: {
+      badge: "Kontrollzentrum",
+      hello: "Hallo",
+      subtitle: "Wähle einen Server, um Odette zu konfigurieren",
+      support: "Support",
+      add_server: "+ Zu einem Server hinzufügen",
+      premium_title: "Dein Premium",
+      no_premium: "Kein Premium",
+      premium_desc: "Aktivitätssystem und andere Funktionen benötigen Premium.",
+      premium_tip: "<strong>Was ist Premium?</strong><br>Schaltet Aktivitätssystem, erweiterte Tickets, detaillierte Logs und weitere exklusive Funktionen frei.",
+      tickets: "Verfügbare Tickets: 0",
+      stat_admin: "Verwaltbar",
+      tip_admin: "<strong>Verwaltbare Server</strong><br>Server, auf denen du Administrator- oder Server verwalten-Berechtigung hast.",
+      hint_admin: "Server, auf denen du Admin bist",
+      stat_with: "Mit Odette",
+      tip_with: "<strong>Server mit Odette</strong><br>Wo der Bot bereits eingeladen und bereit zur Konfiguration ist.",
+      hint_with: "Bereit zur Konfiguration",
+      stat_without: "Ohne Bot",
+      tip_without: "<strong>Server ohne Bot</strong><br>Du hast Admin-Rechte, aber Odette ist noch nicht auf dem Server.",
+      hint_without: "Lade Odette ein, um zu starten",
+      stat_tickets: "Tickets",
+      tip_tickets: "<strong>Tickets</strong><br>Neue Tickets oder mit Neuigkeiten. Erfordert Premium.",
+      hint_tickets: "Mit Neuigkeiten für dich",
+      search_placeholder: "Server nach Namen suchen...",
+      filter_all: "Alle",
+      filter_with: "Mit Odette",
+      filter_without: "Ohne Bot",
+      empty_title: "Keine Server, auf denen du Administrator bist",
+      empty_desc: "Stelle sicher, dass Odette auf dem Server ist und du Administrator- oder Server-verwalten-Berechtigungen hast."
+    },
+    it: {
+      badge: "Pannello di controllo",
+      hello: "Ciao",
+      subtitle: "Scegli un server per configurare Odette",
+      support: "Supporto",
+      add_server: "+ Aggiungi a un server",
+      premium_title: "Il tuo premium",
+      no_premium: "Senza premium",
+      premium_desc: "Il sistema di attività e altre funzioni richiedono il premium.",
+      premium_tip: "<strong>Cos'è il Premium?</strong><br>Sblocca sistema di attività, ticket avanzati, log dettagliati e altre funzioni esclusive.",
+      tickets: "Ticket disponibili: 0",
+      stat_admin: "Gestibili",
+      tip_admin: "<strong>Server gestibili</strong><br>Server in cui hai il permesso di Amministratore o Gestisci server.",
+      hint_admin: "Server in cui sei admin",
+      stat_with: "Con Odette",
+      tip_with: "<strong>Server con Odette</strong><br>Dove il bot è già invitato e pronto per la configurazione.",
+      hint_with: "Pronti per configurare",
+      stat_without: "Senza il bot",
+      tip_without: "<strong>Server senza il bot</strong><br>Hai i permessi di admin, ma Odette non è ancora nel server.",
+      hint_without: "Invita Odette per iniziare",
+      stat_tickets: "Ticket",
+      tip_tickets: "<strong>Ticket</strong><br>Nuovi ticket o con novità. Richiede Premium.",
+      hint_tickets: "Con novità per te",
+      search_placeholder: "Cerca server per nome...",
+      filter_all: "Tutti",
+      filter_with: "Con Odette",
+      filter_without: "Senza bot",
+      empty_title: "Nessun server in cui sei amministratore",
+      empty_desc: "Assicurati che Odette sia nel server e tu abbia i permessi di Amministratore o Gestisci server."
+    },
+    ru: {
+      badge: "Панель управления",
+      hello: "Привет",
+      subtitle: "Выберите сервер для настройки Odette",
+      support: "Поддержка",
+      add_server: "+ Добавить на сервер",
+      premium_title: "Ваш премиум",
+      no_premium: "Без премиума",
+      premium_desc: "Система активности и другие функции требуют премиум.",
+      premium_tip: "<strong>Что такое Premium?</strong><br>Разблокирует систему активности, расширенные тикеты, подробные логи и другие эксклюзивные функции.",
+      tickets: "Доступные тикеты: 0",
+      stat_admin: "Управляемые",
+      tip_admin: "<strong>Управляемые серверы</strong><br>Серверы, где у вас есть права Администратора или Управление сервером.",
+      hint_admin: "Серверы, где вы админ",
+      stat_with: "С Odette",
+      tip_with: "<strong>Серверы с Odette</strong><br>Где бот уже приглашён и готов к настройке.",
+      hint_with: "Готовы к настройке",
+      stat_without: "Без бота",
+      tip_without: "<strong>Серверы без бота</strong><br>У вас есть права админа, но Odette ещё нет на сервере.",
+      hint_without: "Пригласите Odette, чтобы начать",
+      stat_tickets: "Тикеты",
+      tip_tickets: "<strong>Тикеты</strong><br>Новые тикеты или с обновлениями. Требуется Premium.",
+      hint_tickets: "С новостями для вас",
+      search_placeholder: "Поиск сервера по имени...",
+      filter_all: "Все",
+      filter_with: "С Odette",
+      filter_without: "Без бота",
+      empty_title: "Нет серверов, где вы администратор",
+      empty_desc: "Убедитесь, что Odette на сервере и у вас есть права Администратора или Управление сервером."
+    }
+  };
+
+  // ===================== APLICAR IDIOMA =====================
+  function setLanguage(lang) {
+    const t = i18n[lang] || i18n.es;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.innerHTML = t[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      if (t[key]) el.placeholder = t[key];
+    });
+    localStorage.setItem('od-lang', lang);
+  }
+
+  // ===================== COLORES (FUNCIONA DE VERDAD) =====================
+  function applyAccent(color, rgb, color2) {
+    const root = document.documentElement;
+    root.style.setProperty('--od-accent', color);
+    root.style.setProperty('--od-accent-rgb', rgb);
+    root.style.setProperty('--od-accent-2', color2);
+
+    // Forzar repaint de elementos que usan el color
+    document.getElementById('colorBtn').style.color = color;
+  }
+
+  // ===================== INICIALIZACIÓN =====================
   const page = document.getElementById('odPage');
   const themeBtn = document.getElementById('themeToggle');
+  const langBtn = document.getElementById('langBtn');
+  const langDropdown = document.getElementById('langDropdown');
+  const colorBtn = document.getElementById('colorBtn');
+  const colorDropdown = document.getElementById('colorDropdown');
+
+  // Tema
   const savedTheme = localStorage.getItem('od-theme') || 'dark';
   page.setAttribute('data-theme', savedTheme);
   themeBtn.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
@@ -671,18 +963,53 @@
     themeBtn.textContent = next === 'dark' ? '🌙' : '☀️';
   });
 
-  // ===== Color picker =====
+  // Idioma
+  const savedLang = localStorage.getItem('od-lang') || 'es';
+  setLanguage(savedLang);
+  document.querySelectorAll('#langDropdown .item').forEach(item => {
+    if (item.dataset.lang === savedLang) {
+      item.classList.add('active');
+      document.getElementById('langFlag').textContent = item.dataset.flag;
+    } else {
+      item.classList.remove('active');
+    }
+  });
+
+  langBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    colorDropdown.classList.remove('open');
+    langDropdown.classList.toggle('open');
+  });
+
+  document.querySelectorAll('#langDropdown .item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('#langDropdown .item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      document.getElementById('langFlag').textContent = item.dataset.flag;
+      setLanguage(item.dataset.lang);
+      langDropdown.classList.remove('open');
+    });
+  });
+
+  // Colores
+  colorBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    langDropdown.classList.remove('open');
+    colorDropdown.classList.toggle('open');
+  });
+
   document.querySelectorAll('.od-color').forEach(el => {
     el.addEventListener('click', () => {
       document.querySelectorAll('.od-color').forEach(c => c.classList.remove('active'));
       el.classList.add('active');
+
       const color = el.dataset.color;
       const rgb = el.dataset.rgb;
       const color2 = el.dataset['2'];
-      document.documentElement.style.setProperty('--od-accent', color);
-      document.documentElement.style.setProperty('--od-accent-rgb', rgb);
-      document.documentElement.style.setProperty('--od-accent-2', color2);
+
+      applyAccent(color, rgb, color2);
       localStorage.setItem('od-accent', JSON.stringify({ color, rgb, color2 }));
+      colorDropdown.classList.remove('open');
     });
   });
 
@@ -691,16 +1018,20 @@
   if (savedAccent) {
     try {
       const { color, rgb, color2 } = JSON.parse(savedAccent);
-      document.documentElement.style.setProperty('--od-accent', color);
-      document.documentElement.style.setProperty('--od-accent-rgb', rgb);
-      document.documentElement.style.setProperty('--od-accent-2', color2);
+      applyAccent(color, rgb, color2);
       document.querySelectorAll('.od-color').forEach(c => {
         c.classList.toggle('active', c.dataset.color === color);
       });
     } catch(e) {}
   }
 
-  // ===== Search =====
+  // Cerrar dropdowns al hacer click fuera
+  document.addEventListener('click', () => {
+    langDropdown.classList.remove('open');
+    colorDropdown.classList.remove('open');
+  });
+
+  // Search & filters
   function filterGuilds() {
     const q = document.getElementById('searchGuild').value.toLowerCase();
     document.querySelectorAll('.od-guild').forEach(el => {
