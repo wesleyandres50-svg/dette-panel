@@ -1,4 +1,5 @@
 
+
 """
 Odette Panel — completo
 - OAuth, dashboard, config, tickets, premium guild+user
@@ -279,6 +280,7 @@ def _default_config() -> dict:
             "button_label": "Abrir ticket",
         },
         "starboard": {"enabled": False, "channel_id": "", "min_stars": 3},
+        "embed_color": "#AFD7E6",
         "nsfw": {"enabled": True},
         "raidmode": {"enabled": False},
         "antihoist": {"enabled": False},
@@ -658,6 +660,18 @@ async def guild_save(request: Request, guild_id: str):
         "music": {"enabled": form.get("music_enabled") == "on"},
         "fun": {"enabled": form.get("fun_enabled") == "on"},
     }
+    # Color de embeds del servidor (#RRGGBB)
+    _raw_color = (form.get("embed_color") or "#AFD7E6").strip()
+    if not _raw_color.startswith("#"):
+        _raw_color = "#" + _raw_color
+    if len(_raw_color) != 7:
+        _raw_color = "#AFD7E6"
+    try:
+        int(_raw_color[1:], 16)
+    except Exception:
+        _raw_color = "#AFD7E6"
+    config["embed_color"] = _raw_color.upper()
+
     ok_g, _ = is_premium(guild_id)
     ok_u, _ = is_user_premium(user["id"])
     if not (ok_g or ok_u):
