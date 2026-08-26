@@ -119,23 +119,29 @@
 
   .od-color-row {
     display: flex;
-    gap: 8px;
-    padding: 6px 4px;
+    gap: 7px;
+    padding: 4px 2px;
     flex-wrap: wrap;
     justify-content: center;
+    max-width: 200px;
   }
   .od-color {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     cursor: pointer;
-    border: 2px solid transparent;
-    transition: transform 0.15s, box-shadow 0.15s;
+    border: 2px solid rgba(255,255,255,0.12);
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
   }
-  .od-color:hover { transform: scale(1.15); }
+  .od-color:hover {
+    transform: scale(1.18);
+    border-color: rgba(255,255,255,0.5);
+  }
   .od-color.active {
     border-color: #fff;
-    box-shadow: 0 0 0 2px var(--od-accent), 0 0 12px rgba(var(--od-accent-rgb), 0.6);
+    box-shadow: 0 0 0 2px var(--od-accent), 0 0 14px rgba(var(--od-accent-rgb), 0.7);
+    transform: scale(1.1);
   }
 
   /* Premium card */
@@ -296,16 +302,29 @@
       <!-- Color de acento -->
       <div style="position:relative">
         <button type="button" class="od-icon-btn" id="btnColor" title="Color del panel" style="color:var(--od-accent)">🎨</button>
-        <div class="od-dropdown" id="menuColor" style="min-width:auto;padding:12px">
+        <div class="od-dropdown" id="menuColor" style="min-width:auto;padding:14px;max-width:220px">
           <div class="od-color-row">
-            <div class="od-color active" data-c="#38bdf8" data-r="56,189,248" data-2="#818cf8" style="background:#38bdf8"></div>
-            <div class="od-color" data-c="#a78bfa" data-r="167,139,250" data-2="#c4b5fd" style="background:#a78bfa"></div>
-            <div class="od-color" data-c="#2dd4bf" data-r="45,212,191" data-2="#5eead4" style="background:#2dd4bf"></div>
-            <div class="od-color" data-c="#4ade80" data-r="74,222,128" data-2="#86efac" style="background:#4ade80"></div>
-            <div class="od-color" data-c="#fbbf24" data-r="251,191,36" data-2="#fcd34d" style="background:#fbbf24"></div>
-            <div class="od-color" data-c="#f472b6" data-r="244,114,182" data-2="#f9a8d4" style="background:#f472b6"></div>
-            <div class="od-color" data-c="#fb7185" data-r="251,113,133" data-2="#fda4af" style="background:#fb7185"></div>
-            <div class="od-color" data-c="#c084fc" data-r="192,132,252" data-2="#d8b4fe" style="background:#c084fc"></div>
+            <!-- Azules -->
+            <div class="od-color active" data-c="#38bdf8" data-r="56,189,248" data-2="#7dd3fc" style="background:#38bdf8" title="Sky"></div>
+            <div class="od-color" data-c="#0ea5e9" data-r="14,165,233" data-2="#38bdf8" style="background:#0ea5e9" title="Ocean"></div>
+            <div class="od-color" data-c="#6366f1" data-r="99,102,241" data-2="#818cf8" style="background:#6366f1" title="Indigo"></div>
+            <!-- Violetas / Rosas -->
+            <div class="od-color" data-c="#a78bfa" data-r="167,139,250" data-2="#c4b5fd" style="background:#a78bfa" title="Violet"></div>
+            <div class="od-color" data-c="#c084fc" data-r="192,132,252" data-2="#d8b4fe" style="background:#c084fc" title="Purple"></div>
+            <div class="od-color" data-c="#e879f9" data-r="232,121,249" data-2="#f0abfc" style="background:#e879f9" title="Fuchsia"></div>
+            <div class="od-color" data-c="#f472b6" data-r="244,114,182" data-2="#f9a8d4" style="background:#f472b6" title="Pink"></div>
+            <!-- Rojos -->
+            <div class="od-color" data-c="#e11d48" data-r="225,29,72" data-2="#fb7185" style="background:#e11d48" title="Carmesí"></div>
+            <div class="od-color" data-c="#dc2626" data-r="220,38,38" data-2="#f87171" style="background:#dc2626" title="Rojo"></div>
+            <div class="od-color" data-c="#f43f5e" data-r="244,63,94" data-2="#fb7185" style="background:#f43f5e" title="Rose"></div>
+            <!-- Cálidos -->
+            <div class="od-color" data-c="#f97316" data-r="249,115,22" data-2="#fb923c" style="background:#f97316" title="Naranja"></div>
+            <div class="od-color" data-c="#fbbf24" data-r="251,191,36" data-2="#fcd34d" style="background:#fbbf24" title="Gold"></div>
+            <div class="od-color" data-c="#eab308" data-r="234,179,8" data-2="#facc15" style="background:#eab308" title="Ámbar"></div>
+            <!-- Verdes / Teal -->
+            <div class="od-color" data-c="#22c55e" data-r="34,197,94" data-2="#4ade80" style="background:#22c55e" title="Verde"></div>
+            <div class="od-color" data-c="#14b8a6" data-r="20,184,166" data-2="#2dd4bf" style="background:#14b8a6" title="Teal"></div>
+            <div class="od-color" data-c="#06b6d4" data-r="6,182,212" data-2="#22d3ee" style="background:#06b6d4" title="Cyan"></div>
           </div>
         </div>
       </div>
