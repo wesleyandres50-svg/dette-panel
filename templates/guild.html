@@ -380,6 +380,7 @@
 
 <nav class="mod-nav">
   <a href="#sec-estilo">🎨 Estilo</a>
+  <a href="#sec-perfilbot">🏷️ Perfil bot</a>
   <a href="#sec-seguridad">🛡️ Seguridad</a>
   <a href="#sec-comunidad">👋 Comunidad</a>
   <a href="#sec-moderacion">📋 Moderación</a>
@@ -446,7 +447,96 @@
   </div>
 
   {# ══════════════ 01 SEGURIDAD ══════════════ #}
-  <div class="section sec-security" id="sec-seguridad" data-section>
+  
+  {# ══════════════ 00b PERFIL BOT (estilo MEE6) ══════════════ #}
+  {% set bp = config.bot_profile or {} %}
+  {% set free_on = free_profile|default(false) %}
+  {% set can_profile = premium or free_on or is_owner %}
+  <div class="section sec-style" id="sec-perfilbot" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">00b</span> 🏷️ Perfil del bot (este server)</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% if is_owner %}
+      <div class="mod is-on" style="max-width:100%;margin-bottom:12px;border:1px solid rgba(59,165,93,0.35)">
+        <div class="mod-top">
+          <div class="mod-title">🆓 Free · perfil global</div>
+          <label class="switch">
+            <input type="checkbox" name="free_profile" {% if free_on %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">
+          Solo dueña. Con <b>ON</b>, <b>todos</b> los servers pueden personalizar el apodo del bot (estilo MEE6).
+          No incluye IA ni premium completo. Equivale a <code>o!free on/off</code>.
+        </p>
+      </div>
+      {% endif %}
+
+      <div class="mod {% if can_profile %}is-on{% endif %}" style="max-width:100%;{% if not can_profile %}opacity:0.65{% endif %}">
+        <div class="mod-top">
+          <div class="mod-title">Apodo y marca en <b>este</b> servidor</div>
+          {% if can_profile %}
+            <span class="badge badge-gold">Disponible</span>
+          {% else %}
+            <span class="badge badge-off">Requiere premium o free</span>
+          {% endif %}
+        </div>
+        <p class="mod-desc">
+          Cambia cómo se ve Odette <b>solo aquí</b> (nick en la lista de miembros). No afecta otros servers.
+          {% if not can_profile %}
+            <br/>💎 Activa premium de este server o pide a la dueña <code>o!free on</code>.
+          {% endif %}
+        </p>
+        <div class="mod-settings" style="display:block;border-top:none">
+          <div class="mod-settings-inner">
+            <div class="fields" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+              <div>
+                <label style="font-size:0.75rem;opacity:0.75">Apodo (máx 32)</label>
+                <input type="text" name="bot_nick" maxlength="32"
+                       value="{{ bp.nick or '' }}" placeholder="Odette 💕"
+                       {% if not can_profile %}disabled{% endif %}
+                       style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit" />
+              </div>
+              <div>
+                <label style="font-size:0.75rem;opacity:0.75">Emoji acento</label>
+                <input type="text" name="bot_emoji" maxlength="8"
+                       value="{{ bp.accent_emoji or '🦢' }}"
+                       {% if not can_profile %}disabled{% endif %}
+                       style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit" />
+              </div>
+              <div>
+                <label style="font-size:0.75rem;opacity:0.75">Color embeds (perfil)</label>
+                <input type="color" name="bot_embed_color"
+                       value="{{ bp.embed_color if bp.embed_color and bp.embed_color.startswith('#') else (config.embed_color or '#AFD7E6') }}"
+                       {% if not can_profile %}disabled{% endif %} />
+              </div>
+            </div>
+            <div style="margin-top:12px">
+              <label style="font-size:0.75rem;opacity:0.75">Footer de embeds</label>
+              <input type="text" name="bot_footer" maxlength="100"
+                     value="{{ bp.footer or 'Odette • El Lago de los Cisnes' }}"
+                     {% if not can_profile %}disabled{% endif %}
+                     style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit" />
+            </div>
+            <div style="margin-top:12px">
+              <label style="font-size:0.75rem;opacity:0.75">Bio (este servidor)</label>
+              <textarea name="bot_bio" maxlength="200" rows="2"
+                        {% if not can_profile %}disabled{% endif %}
+                        style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit;resize:vertical">{{ bp.custom_bio or '' }}</textarea>
+            </div>
+            <p class="mod-desc" style="margin-top:10px">
+              Deja el apodo vacío y guarda para quitar el nick custom.
+              El bot aplica el cambio en el próximo sync (~40s) o con <code>o!panelsync</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div class="section sec-security" id="sec-seguridad" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">01</span> 🛡️ Seguridad</h2>
       <span class="chev">▼</span>
