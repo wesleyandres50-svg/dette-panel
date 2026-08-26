@@ -1,3 +1,4 @@
+
 """
 Odette Panel — completo
 - OAuth, dashboard, config, tickets, premium guild+user
@@ -406,6 +407,15 @@ def _default_config() -> dict:
         },
         "starboard": {"enabled": False, "channel_id": "", "min_stars": 3},
         "embed_color": "#AFD7E6",
+        "bot_profile": {
+            "nick": None,
+            "avatar_url": None,
+            "footer": "Odette • El Lago de los Cisnes",
+            "accent_emoji": "🦢",
+            "custom_bio": None,
+            "embed_color": "#AFD7E6",
+            "status_note": None,
+        },
         "nsfw": {"enabled": True},
         "alianzas": {
             "enabled": False,
@@ -945,8 +955,10 @@ async def guild_save(request: Request, guild_id: str):
             int(_bc[1:], 16)
         except Exception:
             _bc = "#AFD7E6"
+        _ba = (form.get("bot_avatar_url") or "").strip()[:500]
         config["bot_profile"] = {
             "nick": _bn[:32] if _bn else None,
+            "avatar_url": _ba if _ba else None,
             "footer": _bf or "Odette • El Lago de los Cisnes",
             "accent_emoji": _be,
             "custom_bio": _bb or None,
@@ -956,6 +968,7 @@ async def guild_save(request: Request, guild_id: str):
     else:
         config["bot_profile"] = prev_bp or {
             "nick": None,
+            "avatar_url": None,
             "footer": "Odette • El Lago de los Cisnes",
             "accent_emoji": "🦢",
             "custom_bio": None,
@@ -1314,6 +1327,7 @@ async def api_guild_config(guild_id: str, request: Request):
     if not isinstance(config.get("bot_profile"), dict):
         config["bot_profile"] = {
             "nick": None,
+            "avatar_url": None,
             "footer": "Odette • El Lago de los Cisnes",
             "accent_emoji": "🦢",
             "custom_bio": None,
