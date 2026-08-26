@@ -267,19 +267,24 @@ def parse_duration(text: str):
 
 def _premium_entry_status(entry):
     if not entry:
-        return False, "no"
+        return False, "Sin premium"
     until = entry.get("until")
     if until is None:
-        return True, "permanente"
+        return True, "Permanente"
     try:
         left = float(until) - time.time()
     except Exception:
-        return False, "no"
+        return False, "Sin premium"
     if left <= 0:
-        return False, "expirado"
+        return False, "Expirado"
     d, r = divmod(int(left), 86400)
-    h, _ = divmod(r, 3600)
-    return True, f"queda {d}d {h}h" if d else f"queda {h}h"
+    h, r = divmod(r, 3600)
+    m, _ = divmod(r, 60)
+    if d >= 1:
+        return True, f"{d} día{'s' if d != 1 else ''} {h}h restantes"
+    if h >= 1:
+        return True, f"{h}h {m}m restantes"
+    return True, f"{max(1, m)}m restantes"
 
 
 def is_premium(guild_id):
@@ -670,6 +675,7 @@ async def dashboard(request: Request):
     user = current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=303)
+    ok_u, st_u = is_user_premium(user["id"])
     return templates.TemplateResponse(
         "dashboard.html",
         {
@@ -677,6 +683,8 @@ async def dashboard(request: Request):
             "user": user,
             "is_owner": is_owner(request),
             "guilds": request.session.get("guilds") or [],
+            "user_premium": ok_u,
+            "user_premium_status": st_u if ok_u else "Sin premium",
         },
     )
 
@@ -1303,4 +1311,11 @@ async def api_user_premium(user_id: str, request: Request):
     if not str(user_id).isdigit():
         return JSONResponse({"error": "user_id invalido"}, status_code=400)
     ok, status = is_user_premium(user_id)
-    return {"user_id": str(user_id), "premium": ok, "premium_status": status}
+    entry = (_load_premium().get("users") or {}).get(str(user_id)) or {}
+    return {
+        "user_id": str(user_id),
+        "premium": ok,
+        "premium_status": status,
+        "until": entry.get("until"),
+        "label": entry.get("label") or status,
+    }
