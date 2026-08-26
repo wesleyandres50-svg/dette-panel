@@ -1,4 +1,5 @@
 
+
 """
 Odette Panel — completo
 - OAuth, dashboard, config, tickets, premium guild+user
@@ -246,7 +247,7 @@ def is_user_premium(user_id):
 def _default_config() -> dict:
     return {
         "anti_raid": {"enabled": False, "max_joins": 5, "window": 10},
-        "automod": {"enabled": False, "anti_invite": True},
+        "automod": {"enabled": False, "anti_invite": True, "action": "delete", "timeout_minutes": 10},
         "verify": {
             "enabled": False,
             "channel_id": "",
@@ -280,7 +281,26 @@ def _default_config() -> dict:
                 "invite_delete": False,
             },
         },
-        "ia": {"enabled": False},
+        "ia": {
+            "enabled": False,
+            "automod": True,
+            "antiraid": True,
+            "log_decisions": True,
+            "strictness": "medium",
+            "max_action": "timeout",
+            "timeout_minutes": 10,
+            "block_invites": True,
+            "block_scams": True,
+            "block_nsfw_sfw": False,
+            "nick_filter": False,
+            "auto_slowmode": False,
+            "immune_admins": True,
+            "immune_mods": True,
+            "block_words": [],
+            "allow_words": [],
+            "custom_rules": [],
+            "train_examples": [],
+        },
         "welcome": {
             "enabled": False,
             "channel_id": "",
@@ -611,6 +631,8 @@ async def guild_save(request: Request, guild_id: str):
         "automod": {
             "enabled": form.get("automod_enabled") == "on",
             "anti_invite": form.get("automod_anti_invite") == "on",
+            "action": (form.get("automod_action") or "delete").strip().lower()[:16],
+            "timeout_minutes": max(1, min(_int("automod_timeout", 10), 10080)),
         },
         "verify": {
             "enabled": form.get("verify_enabled") == "on",
@@ -645,7 +667,26 @@ async def guild_save(request: Request, guild_id: str):
                 "invite_delete": form.get("log_ev_invite_delete") == "on",
             },
         },
-        "ia": {"enabled": form.get("ia_enabled") == "on"},
+        "ia": {
+            "enabled": form.get("ia_enabled") == "on",
+            "automod": form.get("ia_automod") == "on",
+            "antiraid": form.get("ia_antiraid") == "on",
+            "log_decisions": form.get("ia_log_decisions") == "on",
+            "strictness": (form.get("ia_strictness") or "medium").strip().lower()[:16],
+            "max_action": (form.get("ia_max_action") or "timeout").strip().lower()[:16],
+            "timeout_minutes": max(1, min(_int("ia_timeout_minutes", 10), 10080)),
+            "block_invites": form.get("ia_block_invites") == "on",
+            "block_scams": form.get("ia_block_scams") == "on",
+            "block_nsfw_sfw": form.get("ia_block_nsfw_sfw") == "on",
+            "nick_filter": form.get("ia_nick_filter") == "on",
+            "auto_slowmode": form.get("ia_auto_slowmode") == "on",
+            "immune_admins": form.get("ia_immune_admins") == "on",
+            "immune_mods": form.get("ia_immune_mods") == "on",
+            "block_words": [x.strip() for x in (form.get("ia_block_words") or "").splitlines() if x.strip()][:80],
+            "allow_words": [x.strip() for x in (form.get("ia_allow_words") or "").splitlines() if x.strip()][:80],
+            "custom_rules": [x.strip() for x in (form.get("ia_custom_rules") or "").splitlines() if x.strip()][:40],
+            "train_examples": [x.strip() for x in (form.get("ia_train_examples") or "").splitlines() if x.strip()][:60],
+        },
         "welcome": {
             "enabled": form.get("welcome_enabled") == "on",
             "channel_id": (form.get("welcome_channel") or "").strip(),
