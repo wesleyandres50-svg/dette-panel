@@ -3,34 +3,82 @@
 
 {% block content %}
 <style>
-  /* ===== Dashboard Odette – estilo propio ===== */
+  /* ========== ODETTE DASHBOARD ========== */
   :root {
-    --od-bg: #0b0e14;
-    --od-card: rgba(18, 22, 32, 0.75);
-    --od-border: rgba(255,255,255,0.07);
-    --od-accent: #7dd3fc;          /* cian suave */
-    --od-accent2: #a78bfa;         /* violeta */
-    --od-text: #e8eef7;
-    --od-muted: #8b9bb8;
     --od-radius: 16px;
+    --od-radius-sm: 12px;
+    --od-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Accent por defecto (cian) */
+    --od-accent: #38bdf8;
+    --od-accent-rgb: 56, 189, 248;
+    --od-accent-2: #818cf8;
   }
 
+  /* === MODO OSCURO === */
+  [data-theme="dark"] {
+    --od-bg: #070a10;
+    --od-surface: rgba(16, 20, 30, 0.72);
+    --od-surface-2: rgba(22, 27, 40, 0.85);
+    --od-border: rgba(255,255,255,0.07);
+    --od-text: #f1f5f9;
+    --od-muted: #94a3b8;
+    --od-glow: rgba(var(--od-accent-rgb), 0.15);
+    --od-card-hover: rgba(var(--od-accent-rgb), 0.08);
+  }
+
+  /* === MODO CLARO === */
+  [data-theme="light"] {
+    --od-bg: #f1f5f9;
+    --od-surface: rgba(255,255,255,0.85);
+    --od-surface-2: #ffffff;
+    --od-border: rgba(15,23,42,0.08);
+    --od-text: #0f172a;
+    --od-muted: #64748b;
+    --od-glow: rgba(var(--od-accent-rgb), 0.12);
+    --od-card-hover: rgba(var(--od-accent-rgb), 0.06);
+  }
+
+  .od-page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 8px 60px;
+  }
+
+  /* ===== HEADER ===== */
   .od-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    gap: 20px;
     margin-bottom: 28px;
     flex-wrap: wrap;
   }
 
-  .od-greeting {
-    font-size: 1.6rem;
+  .od-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(var(--od-accent-rgb), 0.12);
+    color: var(--od-accent);
+    border: 1px solid rgba(var(--od-accent-rgb), 0.25);
+    margin-bottom: 10px;
   }
-  .od-greeting span {
-    background: linear-gradient(90deg, var(--od-accent), var(--od-accent2));
+
+  .od-greeting {
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+  .od-greeting .name {
+    background: linear-gradient(90deg, var(--od-accent), var(--od-accent-2));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -38,125 +86,175 @@
 
   .od-sub {
     color: var(--od-muted);
-    font-size: 0.9rem;
-    margin-top: 4px;
+    font-size: 0.92rem;
+    margin-top: 6px;
   }
 
   .od-actions {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    align-items: center;
   }
 
   .od-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 9px 16px;
+    gap: 7px;
+    padding: 10px 18px;
     border-radius: 999px;
     border: 1px solid var(--od-border);
-    background: rgba(255,255,255,0.04);
+    background: var(--od-surface);
     color: var(--od-text);
     font-size: 0.875rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all var(--od-transition);
     text-decoration: none;
+    backdrop-filter: blur(10px);
   }
   .od-btn:hover {
-    background: rgba(125, 211, 252, 0.12);
-    border-color: rgba(125, 211, 252, 0.35);
+    background: var(--od-card-hover);
+    border-color: rgba(var(--od-accent-rgb), 0.4);
+    transform: translateY(-1px);
   }
   .od-btn.primary {
-    background: linear-gradient(135deg, #38bdf8, #818cf8);
+    background: linear-gradient(135deg, var(--od-accent), var(--od-accent-2));
     border: none;
     color: #0b0e14;
     font-weight: 600;
+    box-shadow: 0 4px 20px rgba(var(--od-accent-rgb), 0.35);
   }
   .od-btn.primary:hover {
     filter: brightness(1.08);
+    box-shadow: 0 6px 28px rgba(var(--od-accent-rgb), 0.45);
   }
 
-  /* ===== Stats cards ===== */
-  .od-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px;
-    margin-bottom: 28px;
-  }
-
-  .od-stat {
-    background: var(--od-card);
-    border: 1px solid var(--od-border);
-    border-radius: var(--od-radius);
-    padding: 18px 20px;
-    backdrop-filter: blur(12px);
-    position: relative;
-    overflow: hidden;
-  }
-  .od-stat::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 100% 0%, rgba(125,211,252,0.08), transparent 60%);
-    pointer-events: none;
-  }
-  .od-stat .label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--od-muted);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .od-stat .value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-  }
-  .od-stat .hint {
-    font-size: 0.78rem;
-    color: var(--od-muted);
-    margin-top: 4px;
-  }
-
-  /* ===== Premium banner ===== */
+  /* ===== PREMIUM BANNER ===== */
   .od-premium {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    background: linear-gradient(90deg, rgba(167,139,250,0.12), rgba(125,211,252,0.08));
-    border: 1px solid rgba(167,139,250,0.25);
+    background: var(--od-surface);
+    border: 1px solid var(--od-border);
     border-radius: var(--od-radius);
-    padding: 16px 20px;
-    margin-bottom: 28px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(14px);
+    position: relative;
+    overflow: hidden;
     flex-wrap: wrap;
+  }
+  .od-premium::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 0% 50%, rgba(var(--od-accent-rgb), 0.12), transparent 55%);
+    pointer-events: none;
   }
   .od-premium .left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
+    position: relative;
   }
-  .od-premium .crown {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: rgba(167,139,250,0.2);
+  .od-premium .icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: rgba(var(--od-accent-rgb), 0.15);
     display: grid;
     place-items: center;
-    font-size: 1.2rem;
+    font-size: 1.25rem;
+    border: 1px solid rgba(var(--od-accent-rgb), 0.25);
   }
   .od-premium .title {
     font-weight: 600;
+    font-size: 1.05rem;
+  }
+  .od-premium .badge-pill {
+    display: inline-block;
+    font-size: 0.72rem;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: rgba(148,163,184,0.15);
+    color: var(--od-muted);
+    margin-left: 6px;
+    font-weight: 500;
   }
   .od-premium .desc {
     font-size: 0.85rem;
     color: var(--od-muted);
+    margin-top: 2px;
+  }
+  .od-premium .tickets {
+    font-size: 0.85rem;
+    color: var(--od-muted);
+    background: rgba(148,163,184,0.1);
+    padding: 6px 12px;
+    border-radius: 999px;
   }
 
-  /* ===== Filtros + búsqueda ===== */
+  /* ===== STATS ===== */
+  .od-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .od-stat {
+    background: var(--od-surface);
+    border: 1px solid var(--od-border);
+    border-radius: var(--od-radius);
+    padding: 18px 18px 16px;
+    backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+    transition: all var(--od-transition);
+  }
+  .od-stat:hover {
+    border-color: rgba(var(--od-accent-rgb), 0.35);
+    background: var(--od-card-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px var(--od-glow);
+  }
+  .od-stat::after {
+    content: "";
+    position: absolute;
+    top: -40%;
+    right: -30%;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(var(--od-accent-rgb), 0.18), transparent 70%);
+    pointer-events: none;
+  }
+
+  .od-stat .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--od-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .od-stat .value {
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .od-stat .hint {
+    font-size: 0.78rem;
+    color: var(--od-muted);
+    margin-top: 6px;
+  }
+
+  /* ===== TOOLBAR ===== */
   .od-toolbar {
     display: flex;
     align-items: center;
@@ -171,52 +269,56 @@
   }
   .od-search input {
     width: 100%;
-    padding: 11px 14px 11px 40px;
+    padding: 12px 14px 12px 42px;
     border-radius: 12px;
     border: 1px solid var(--od-border);
-    background: rgba(255,255,255,0.04);
+    background: var(--od-surface);
     color: var(--od-text);
     font-size: 0.9rem;
     outline: none;
+    transition: border-color var(--od-transition);
   }
   .od-search input:focus {
-    border-color: rgba(125,211,252,0.5);
+    border-color: rgba(var(--od-accent-rgb), 0.55);
+    box-shadow: 0 0 0 3px rgba(var(--od-accent-rgb), 0.12);
   }
-  .od-search::before {
-    content: "⌕";
+  .od-search .icon {
     position: absolute;
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    opacity: 0.5;
+    opacity: 0.45;
     font-size: 1rem;
+    pointer-events: none;
   }
 
   .od-filters {
     display: flex;
     gap: 6px;
+    flex-wrap: wrap;
   }
   .od-filter {
-    padding: 8px 14px;
+    padding: 9px 15px;
     border-radius: 999px;
     border: 1px solid var(--od-border);
-    background: transparent;
+    background: var(--od-surface);
     color: var(--od-muted);
     font-size: 0.82rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all var(--od-transition);
   }
   .od-filter.active,
   .od-filter:hover {
-    background: rgba(125,211,252,0.12);
+    background: rgba(var(--od-accent-rgb), 0.14);
     color: var(--od-accent);
-    border-color: rgba(125,211,252,0.3);
+    border-color: rgba(var(--od-accent-rgb), 0.35);
   }
 
-  /* ===== Lista de servidores ===== */
+  /* ===== GUILDS ===== */
   .od-guilds {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
     gap: 12px;
   }
 
@@ -226,16 +328,17 @@
     gap: 14px;
     padding: 14px 16px;
     border-radius: 14px;
-    background: var(--od-card);
+    background: var(--od-surface);
     border: 1px solid var(--od-border);
     text-decoration: none;
     color: inherit;
-    transition: all 0.18s ease;
+    transition: all var(--od-transition);
   }
   .od-guild:hover {
-    border-color: rgba(125,211,252,0.4);
-    background: rgba(125,211,252,0.06);
+    border-color: rgba(var(--od-accent-rgb), 0.45);
+    background: var(--od-card-hover);
     transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--od-glow);
   }
   .od-guild img,
   .od-guild .fallback {
@@ -251,10 +354,10 @@
     background: linear-gradient(135deg, #1e293b, #0f172a);
     font-size: 1.3rem;
   }
-  .od-guild .meta {
-    flex: 1;
-    min-width: 0;
+  [data-theme="light"] .od-guild .fallback {
+    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
   }
+  .od-guild .meta { flex: 1; min-width: 0; }
   .od-guild .name {
     font-weight: 600;
     font-size: 0.95rem;
@@ -263,117 +366,341 @@
     text-overflow: ellipsis;
   }
   .od-guild .id {
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     color: var(--od-muted);
     font-family: ui-monospace, monospace;
     margin-top: 2px;
   }
   .od-guild .arrow {
-    opacity: 0.35;
-    font-size: 1.1rem;
+    opacity: 0.3;
+    font-size: 1.15rem;
+    transition: opacity var(--od-transition);
   }
+  .od-guild:hover .arrow { opacity: 0.7; }
 
   .od-empty {
     text-align: center;
-    padding: 48px 24px;
+    padding: 52px 24px;
     border: 1px dashed var(--od-border);
     border-radius: var(--od-radius);
     color: var(--od-muted);
+    background: var(--od-surface);
+  }
+
+  /* ===== COLOR PICKER ===== */
+  .od-color-panel {
+    position: fixed;
+    top: 90px;
+    right: 24px;
+    background: var(--od-surface-2);
+    border: 1px solid var(--od-border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    backdrop-filter: blur(16px);
+    z-index: 50;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  }
+  .od-color-panel .title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--od-muted);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .od-colors {
+    display: flex;
+    gap: 8px;
+  }
+  .od-color {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+  }
+  .od-color:hover { transform: scale(1.15); }
+  .od-color.active {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px var(--od-accent), 0 0 12px rgba(var(--od-accent-rgb), 0.5);
+  }
+
+  /* ===== INFO BUBBLE (tooltip) ===== */
+  .od-info {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(var(--od-accent-rgb), 0.15);
+    color: var(--od-accent);
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: help;
+    border: 1px solid rgba(var(--od-accent-rgb), 0.3);
+    flex-shrink: 0;
+  }
+  .od-info .bubble {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) scale(0.92);
+    width: 240px;
+    padding: 12px 14px;
+    background: var(--od-surface-2);
+    border: 1px solid var(--od-border);
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--od-text);
+    line-height: 1.45;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: all 0.18s ease;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    z-index: 100;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  .od-info .bubble::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--od-surface-2);
+  }
+  .od-info:hover .bubble {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) scale(1);
+  }
+
+  /* Theme toggle */
+  .od-theme-toggle {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--od-border);
+    background: var(--od-surface);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    font-size: 1.15rem;
+    transition: all var(--od-transition);
+  }
+  .od-theme-toggle:hover {
+    border-color: rgba(var(--od-accent-rgb), 0.4);
   }
 </style>
 
-<!-- Header -->
-<div class="od-header">
-  <div>
-    <div class="od-greeting">
-      Hola, <span>{{ user.username if user else "Usuario" }}</span>
-    </div>
-    <div class="od-sub">Elige un servidor para configurar a Odette</div>
-  </div>
-  <div class="od-actions">
-    <a class="od-btn" href="#">Soporte</a>
-    <a class="od-btn primary" href="#">+ Añadir a un servidor</a>
-  </div>
-</div>
+<div class="od-page" data-theme="dark" id="odPage">
 
-<!-- Premium banner -->
-<div class="od-premium">
-  <div class="left">
-    <div class="crown">👑</div>
+  <!-- Color del panel -->
+  <div class="od-color-panel">
+    <div class="title">Color del panel</div>
+    <div class="od-colors">
+      <div class="od-color active" style="background:#38bdf8" data-color="#38bdf8" data-rgb="56,189,248" data-2="#818cf8"></div>
+      <div class="od-color" style="background:#a78bfa" data-color="#a78bfa" data-rgb="167,139,250" data-2="#c4b5fd"></div>
+      <div class="od-color" style="background:#2dd4bf" data-color="#2dd4bf" data-rgb="45,212,191" data-2="#5eead4"></div>
+      <div class="od-color" style="background:#4ade80" data-color="#4ade80" data-rgb="74,222,128" data-2="#86efac"></div>
+      <div class="od-color" style="background:#fbbf24" data-color="#fbbf24" data-rgb="251,191,36" data-2="#fcd34d"></div>
+      <div class="od-color" style="background:#f472b6" data-color="#f472b6" data-rgb="244,114,182" data-2="#f9a8d4"></div>
+      <div class="od-color" style="background:#fb7185" data-color="#fb7185" data-rgb="251,113,133" data-2="#fda4af"></div>
+      <div class="od-color" style="background:#c084fc" data-color="#c084fc" data-rgb="192,132,252" data-2="#d8b4fe"></div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="od-header">
     <div>
-      <div class="title">Tu premium · <span style="opacity:.7;font-weight:400">Sin premium</span></div>
-      <div class="desc">El sistema de actividad y otras funciones necesitan premium.</div>
+      <div class="od-badge">Panel de control</div>
+      <div class="od-greeting">
+        Hola, <span class="name">{{ user.username if user else "Usuario" }}</span>
+      </div>
+      <div class="od-sub">Elige un servidor para configurar a Odette</div>
+    </div>
+    <div class="od-actions">
+      <button class="od-theme-toggle" id="themeToggle" title="Cambiar tema">🌙</button>
+      <a class="od-btn" href="#">Soporte</a>
+      <a class="od-btn primary" href="#">+ Añadir a un servidor</a>
     </div>
   </div>
-  <div style="font-size:0.85rem;color:var(--od-muted)">
-    Tickets disponibles: 0
-  </div>
-</div>
 
-<!-- Stats -->
-<div class="od-stats">
-  <div class="od-stat">
-    <div class="label">📊 Administrables</div>
-    <div class="value">{{ guilds|length }}</div>
-    <div class="hint">Servidores donde eres admin</div>
-  </div>
-  <div class="od-stat">
-    <div class="label">🦢 Con Odette</div>
-    <div class="value">0</div>
-    <div class="hint">Listos para configurar</div>
-  </div>
-  <div class="od-stat">
-    <div class="label">📭 Sin el bot</div>
-    <div class="value">{{ guilds|length }}</div>
-    <div class="hint">Invita a Odette para empezar</div>
-  </div>
-  <div class="od-stat">
-    <div class="label">🎫 Tickets</div>
-    <div class="value">0</div>
-    <div class="hint">Con novedades para ti</div>
-  </div>
-</div>
-
-<!-- Toolbar -->
-<div class="od-toolbar">
-  <div class="od-search">
-    <input type="text" id="searchGuild" placeholder="Buscar servidor por nombre..." oninput="filterGuilds()">
-  </div>
-  <div class="od-filters">
-    <button class="od-filter active" data-filter="all" onclick="setFilter(this)">Todos</button>
-    <button class="od-filter" data-filter="with" onclick="setFilter(this)">Con Odette</button>
-    <button class="od-filter" data-filter="without" onclick="setFilter(this)">Sin el bot</button>
-  </div>
-</div>
-
-<!-- Lista de servidores -->
-{% if guilds %}
-  <div class="od-guilds" id="guildList">
-    {% for g in guilds|sort(attribute='name') %}
-      <a class="od-guild" href="/guild/{{ g.id }}" data-name="{{ g.name|lower }}">
-        {% if g.icon %}
-          <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=96" alt="">
-        {% else %}
-          <div class="fallback">🦢</div>
-        {% endif %}
-        <div class="meta">
-          <div class="name">{{ g.name }}</div>
-          <div class="id">{{ g.id }}</div>
+  <!-- Premium -->
+  <div class="od-premium">
+    <div class="left">
+      <div class="icon">👑</div>
+      <div>
+        <div class="title">
+          Tu premium
+          <span class="badge-pill">Sin premium</span>
+          <span class="od-info">?
+            <span class="bubble">
+              <strong>¿Qué es Premium?</strong><br>
+              Desbloquea sistema de actividad, tickets avanzados, logs detallados y más funciones exclusivas. Puedes gestionar los servidores premium desde el panel de Owner.
+            </span>
+          </span>
         </div>
-        <span class="arrow">→</span>
-      </a>
-    {% endfor %}
+        <div class="desc">El sistema de actividad y otras funciones necesitan premium.</div>
+      </div>
+    </div>
+    <div class="tickets">Tickets disponibles: 0</div>
   </div>
-{% else %}
-  <div class="od-empty">
-    <p style="margin:0 0 8px;font-size:1.05rem">No hay servidores donde seas administrador</p>
-    <p style="margin:0;font-size:0.88rem;opacity:0.75">
-      Asegúrate de que Odette esté en el servidor y tú tengas permisos de Administrador o Gestionar servidor.
-    </p>
+
+  <!-- Stats -->
+  <div class="od-stats">
+    <div class="od-stat">
+      <div class="label">
+        📊 Administrables
+        <span class="od-info">?
+          <span class="bubble">
+            <strong>Servidores administrables</strong><br>
+            Son todos los servidores donde tienes permiso de Administrador o Gestionar servidor. Odette solo puede configurarse en estos.
+          </span>
+        </span>
+      </div>
+      <div class="value">{{ guilds|length }}</div>
+      <div class="hint">Servidores donde eres admin</div>
+    </div>
+
+    <div class="od-stat">
+      <div class="label">
+        🦢 Con Odette
+        <span class="od-info">?
+          <span class="bubble">
+            <strong>Servidores con Odette</strong><br>
+            Aquí aparecen los servidores donde el bot ya está invitado y listo para configurar. Entra a cada uno para ajustar módulos.
+          </span>
+        </span>
+      </div>
+      <div class="value">0</div>
+      <div class="hint">Listos para configurar</div>
+    </div>
+
+    <div class="od-stat">
+      <div class="label">
+        📭 Sin el bot
+        <span class="od-info">?
+          <span class="bubble">
+            <strong>Servidores sin el bot</strong><br>
+            Tienes permisos de admin, pero Odette todavía no está en el servidor. Usa el botón “Añadir a un servidor” para invitarla.
+          </span>
+        </span>
+      </div>
+      <div class="value">{{ guilds|length }}</div>
+      <div class="hint">Invita a Odette para empezar</div>
+    </div>
+
+    <div class="od-stat">
+      <div class="label">
+        🎫 Tickets
+        <span class="od-info">?
+          <span class="bubble">
+            <strong>Tickets</strong><br>
+            Muestra cuántos tickets nuevos o con novedades tienes. El sistema de tickets requiere Premium para funcionar completamente.
+          </span>
+        </span>
+      </div>
+      <div class="value">0</div>
+      <div class="hint">Con novedades para ti</div>
+    </div>
   </div>
-{% endif %}
+
+  <!-- Toolbar -->
+  <div class="od-toolbar">
+    <div class="od-search">
+      <span class="icon">⌕</span>
+      <input type="text" id="searchGuild" placeholder="Buscar servidor por nombre..." oninput="filterGuilds()">
+    </div>
+    <div class="od-filters">
+      <button class="od-filter active" data-filter="all" onclick="setFilter(this)">Todos</button>
+      <button class="od-filter" data-filter="with" onclick="setFilter(this)">Con Odette</button>
+      <button class="od-filter" data-filter="without" onclick="setFilter(this)">Sin el bot</button>
+    </div>
+  </div>
+
+  <!-- Lista -->
+  {% if guilds %}
+    <div class="od-guilds" id="guildList">
+      {% for g in guilds|sort(attribute='name') %}
+        <a class="od-guild" href="/guild/{{ g.id }}" data-name="{{ g.name|lower }}">
+          {% if g.icon %}
+            <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=96" alt="">
+          {% else %}
+            <div class="fallback">🦢</div>
+          {% endif %}
+          <div class="meta">
+            <div class="name">{{ g.name }}</div>
+            <div class="id">{{ g.id }}</div>
+          </div>
+          <span class="arrow">→</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="od-empty">
+      <p style="margin:0 0 8px;font-size:1.05rem;font-weight:500">No hay servidores donde seas administrador</p>
+      <p style="margin:0;font-size:0.88rem;opacity:0.8">
+        Asegúrate de que Odette esté en el servidor y tú tengas permisos de Administrador o Gestionar servidor.
+      </p>
+    </div>
+  {% endif %}
+
+</div>
 
 <script>
+  // ===== Theme toggle =====
+  const page = document.getElementById('odPage');
+  const themeBtn = document.getElementById('themeToggle');
+  const savedTheme = localStorage.getItem('od-theme') || 'dark';
+  page.setAttribute('data-theme', savedTheme);
+  themeBtn.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+
+  themeBtn.addEventListener('click', () => {
+    const next = page.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    page.setAttribute('data-theme', next);
+    localStorage.setItem('od-theme', next);
+    themeBtn.textContent = next === 'dark' ? '🌙' : '☀️';
+  });
+
+  // ===== Color picker =====
+  document.querySelectorAll('.od-color').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.od-color').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      const color = el.dataset.color;
+      const rgb = el.dataset.rgb;
+      const color2 = el.dataset['2'];
+      document.documentElement.style.setProperty('--od-accent', color);
+      document.documentElement.style.setProperty('--od-accent-rgb', rgb);
+      document.documentElement.style.setProperty('--od-accent-2', color2);
+      localStorage.setItem('od-accent', JSON.stringify({ color, rgb, color2 }));
+    });
+  });
+
+  // Restaurar color guardado
+  const savedAccent = localStorage.getItem('od-accent');
+  if (savedAccent) {
+    try {
+      const { color, rgb, color2 } = JSON.parse(savedAccent);
+      document.documentElement.style.setProperty('--od-accent', color);
+      document.documentElement.style.setProperty('--od-accent-rgb', rgb);
+      document.documentElement.style.setProperty('--od-accent-2', color2);
+      document.querySelectorAll('.od-color').forEach(c => {
+        c.classList.toggle('active', c.dataset.color === color);
+      });
+    } catch(e) {}
+  }
+
+  // ===== Search =====
   function filterGuilds() {
     const q = document.getElementById('searchGuild').value.toLowerCase();
     document.querySelectorAll('.od-guild').forEach(el => {
@@ -385,7 +712,6 @@
   function setFilter(btn) {
     document.querySelectorAll('.od-filter').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    // Aquí más adelante puedes filtrar por “con bot / sin bot” cuando tengas esa data
   }
 </script>
 {% endblock %}
