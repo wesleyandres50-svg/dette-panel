@@ -5,6 +5,111 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Odette Panel{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    /* Variables globales que el dashboard y el resto pueden usar */
+    :root {
+      --od-accent: #38bdf8;
+      --od-accent-rgb: 56, 189, 248;
+      --od-accent-2: #818cf8;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: #070a10;
+      color: #f1f5f9;
+      min-height: 100vh;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    body.theme-light {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    /* Nav simple (se puede mejorar después) */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    body.theme-light .nav {
+      border-bottom-color: rgba(15,23,42,0.1);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: inherit;
+      text-decoration: none;
+      font-size: 1.1rem;
+    }
+    .nav-links {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: inherit;
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    body.theme-light .btn {
+      border-color: rgba(15,23,42,0.12);
+      background: rgba(15,23,42,0.04);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--od-accent), var(--od-accent-2));
+      border: none;
+      color: #0b0e14;
+      font-weight: 600;
+    }
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #334;
+    }
+    .alert {
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .alert-err {
+      background: rgba(240,113,120,0.15);
+      border: 1px solid #f07178;
+    }
+    .alert-ok {
+      background: rgba(62,207,142,0.12);
+      border: 1px solid #3ecf8e;
+    }
+  </style>
+  {% block head %}{% endblock %}
 </head>
 <body>
   <div class="wrap">
@@ -23,22 +128,25 @@
             {% endif %}
             {{ user.username }}
           </span>
-          <a class="btn btn-ghost" href="/dashboard">Servidores</a>
-          {% if is_owner %}<a class="btn btn-ghost" href="/owner">👑 Owner</a>{% endif %}
+          <a class="btn" href="/dashboard">Servidores</a>
+          {% if is_owner %}<a class="btn" href="/owner">👑 Owner</a>{% endif %}
           <a class="btn" href="/logout">Salir</a>
         {% else %}
           <a class="btn btn-primary" href="/login">Login con Discord</a>
         {% endif %}
       </div>
     </nav>
+
     {% if error %}
       <div class="alert alert-err">{{ error }}</div>
     {% endif %}
     {% if success %}
       <div class="alert alert-ok">{{ success }}</div>
     {% endif %}
+
     {% block content %}{% endblock %}
   </div>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>
