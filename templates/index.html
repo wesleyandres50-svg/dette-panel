@@ -49,14 +49,12 @@
     color: #0b1220;
   }
 
-  /* Anuncio del bot */
   .home-announce {
     margin: 0 0 36px;
     padding: 18px 22px;
     border-radius: 16px;
     border: 1px solid rgba(175, 215, 230, 0.25);
     background: linear-gradient(135deg, rgba(175, 215, 230, 0.1), rgba(126, 184, 212, 0.06));
-    display: {% if announce and announce.text %}block{% else %}none{% endif %};
   }
   .home-announce .tag {
     font-size: 0.72rem;
@@ -77,7 +75,6 @@
     white-space: pre-wrap;
   }
 
-  /* Sección "Lo que viene" */
   .home-section {
     margin-top: 28px;
     text-align: center;
@@ -127,7 +124,6 @@
     transform: translateY(-2px);
   }
 
-  /* Features actuales */
   .home-features {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -166,9 +162,6 @@
     color: var(--muted, #93a4c3);
     font-size: 0.85rem;
   }
-  .home-footer a {
-    color: #afd7e6;
-  }
 </style>
 
 <div class="home">
@@ -183,12 +176,13 @@
     {% endif %}
   </div>
 
-  <!-- Anuncio controlado desde el bot (o!announce) -->
-  <div class="home-announce" id="homeAnnounce">
+  {% if announce and announce.text %}
+  <div class="home-announce">
     <div class="tag">Anuncio</div>
-    <div class="title">{{ announce.title if announce and announce.title else "📢 Anuncio" }}</div>
-    <div class="body">{{ announce.text if announce and announce.text else "" }}</div>
+    <div class="title">{{ announce.title or "📢 Anuncio" }}</div>
+    <div class="body">{{ announce.text }}</div>
   </div>
+  {% endif %}
 
   <div class="home-section">
     <div class="emoji">🦢</div>
