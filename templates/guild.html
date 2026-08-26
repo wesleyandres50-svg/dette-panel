@@ -6,9 +6,6 @@
     --od-accent: #38bdf8;
     --od-accent-rgb: 56, 189, 248;
     --od-accent-2: #818cf8;
-    --od-danger: #f87171;
-    --od-success: #4ade80;
-    --od-gold: #fbbf24;
     max-width: 1120px;
     margin: 0 auto;
     padding-bottom: 40px;
@@ -31,11 +28,7 @@
     color: transparent;
     letter-spacing: -0.02em;
   }
-  .page-head .meta {
-    font-size: 0.8rem;
-    color: #94a3b8;
-    margin-top: 4px;
-  }
+  .page-head .meta { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
 
   .alert {
     margin-bottom: 14px;
@@ -54,7 +47,6 @@
     border: 1px solid rgba(239, 68, 68, 0.28);
   }
 
-  /* ── Nav chips ── */
   .mod-nav {
     display: flex;
     flex-wrap: wrap;
@@ -81,7 +73,6 @@
     background: rgba(var(--od-accent-rgb), 0.12);
   }
 
-  /* ── Sections ── */
   .section {
     margin-bottom: 14px;
     border: 1px solid rgba(255,255,255,0.08);
@@ -113,57 +104,45 @@
     opacity: 0.55;
     font-weight: 700;
     letter-spacing: 0.04em;
-    font-variant-numeric: tabular-nums;
   }
-  .section-h .chev {
-    font-size: 0.72rem;
-    opacity: 0.5;
-    transition: transform 0.2s;
-  }
+  .section-h .chev { font-size: 0.72rem; opacity: 0.5; transition: transform 0.2s; }
   .section.collapsed .chev { transform: rotate(-90deg); }
   .section.collapsed .section-body { display: none; }
   .section-body { padding: 14px; }
 
-  /* Accent variants per section */
-  .sec-security .section-h {
-    background: linear-gradient(100deg, rgba(248, 113, 113, 0.14), transparent 55%);
-  }
-  .sec-community .section-h {
-    background: linear-gradient(100deg, rgba(56, 189, 248, 0.14), transparent 55%);
-  }
-  .sec-mod .section-h {
-    background: linear-gradient(100deg, rgba(251, 191, 36, 0.12), transparent 55%);
-  }
-  .sec-fun .section-h {
-    background: linear-gradient(100deg, rgba(167, 139, 250, 0.14), transparent 55%);
-  }
-  .sec-util .section-h {
-    background: linear-gradient(100deg, rgba(74, 222, 128, 0.12), transparent 55%);
-  }
+  .sec-security .section-h { background: linear-gradient(100deg, rgba(248, 113, 113, 0.14), transparent 55%); }
+  .sec-community .section-h { background: linear-gradient(100deg, rgba(56, 189, 248, 0.14), transparent 55%); }
+  .sec-mod .section-h { background: linear-gradient(100deg, rgba(251, 191, 36, 0.12), transparent 55%); }
+  .sec-fun .section-h { background: linear-gradient(100deg, rgba(167, 139, 250, 0.14), transparent 55%); }
+  .sec-util .section-h { background: linear-gradient(100deg, rgba(74, 222, 128, 0.12), transparent 55%); }
+  .sec-style .section-h { background: linear-gradient(100deg, rgba(244, 114, 182, 0.14), transparent 55%); }
 
   .mod-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 12px;
   }
+
+  /* Module card: compact when off, expanded settings when on */
   .mod {
-    padding: 14px;
     border-radius: 14px;
     border: 1px solid rgba(255,255,255,0.07);
     background: rgba(0,0,0,0.28);
-    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-    position: relative;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: hidden;
   }
-  .mod:hover {
-    border-color: rgba(var(--od-accent-rgb), 0.38);
-    box-shadow: 0 0 0 1px rgba(var(--od-accent-rgb), 0.1), 0 8px 20px rgba(0,0,0,0.2);
+  .mod:hover { border-color: rgba(var(--od-accent-rgb), 0.35); }
+  .mod.is-on {
+    border-color: rgba(var(--od-accent-rgb), 0.45);
+    box-shadow: 0 0 0 1px rgba(var(--od-accent-rgb), 0.12);
   }
   .mod-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: 10px;
+    padding: 13px 14px;
+    cursor: default;
   }
   .mod-title {
     font-size: 0.9rem;
@@ -175,10 +154,30 @@
   }
   .mod-desc {
     font-size: 0.76rem;
-    margin: 2px 0 10px;
+    margin: 0;
     color: #94a3b8;
-    line-height: 1.4;
+    line-height: 1.35;
+    padding: 0 14px 12px;
   }
+  .mod.is-on .mod-desc { padding-bottom: 4px; }
+
+  /* Settings panel — hidden until module is ON */
+  .mod-settings {
+    display: none;
+    padding: 0 14px 14px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin-top: 2px;
+    animation: fadeIn 0.2s ease;
+  }
+  .mod.is-on .mod-settings { display: block; }
+  .mod-settings-inner { padding-top: 12px; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .mod-wide { grid-column: 1 / -1; }
 
   .fields {
     display: grid;
@@ -209,15 +208,11 @@
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .field input:focus,
-  .field textarea:focus,
-  .field select:focus {
+  .field textarea:focus {
     border-color: rgba(var(--od-accent-rgb), 0.55);
     box-shadow: 0 0 0 2px rgba(var(--od-accent-rgb), 0.15);
   }
-  .field textarea {
-    resize: vertical;
-    min-height: 58px;
-  }
+  .field textarea { resize: vertical; min-height: 58px; }
 
   .check-line {
     display: flex;
@@ -228,6 +223,13 @@
     color: #94a3b8;
   }
   .check-line input { accent-color: var(--od-accent); }
+
+  .hint {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 6px;
+    line-height: 1.35;
+  }
 
   .footer-bar {
     position: sticky;
@@ -241,14 +243,8 @@
     flex-wrap: wrap;
     background: linear-gradient(to top, #070a10 55%, transparent);
   }
+  .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  .head-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  /* Switch */
   .switch {
     position: relative;
     display: inline-block;
@@ -281,13 +277,12 @@
   .switch input:checked + .slider:before { transform: translateX(19px); }
   .switch input:disabled + .slider { opacity: 0.45; cursor: not-allowed; }
 
-  .prem-lock { opacity: 0.7; }
+  .prem-lock { opacity: 0.75; }
   .badge {
     font-size: 0.66rem;
     padding: 2px 7px;
     border-radius: 999px;
     font-weight: 650;
-    letter-spacing: 0.02em;
   }
   .badge-gold {
     background: rgba(251, 191, 36, 0.15);
@@ -298,22 +293,47 @@
     background: rgba(148, 163, 184, 0.12);
     color: #94a3b8;
   }
-  .badge-new {
-    background: rgba(56, 189, 248, 0.15);
-    color: #7dd3fc;
-    border: 1px solid rgba(56, 189, 248, 0.3);
-  }
 
-  .hint {
-    font-size: 0.72rem;
-    color: #64748b;
-    margin-top: 6px;
-    line-height: 1.35;
+  /* Color picker row */
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
   }
-
-  .mod-wide {
-    grid-column: 1 / -1;
+  .color-row input[type="color"] {
+    width: 48px;
+    height: 40px;
+    padding: 2px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.3);
+    cursor: pointer;
   }
+  .color-presets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .color-presets button {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 2px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+    padding: 0;
+  }
+  .color-presets button:hover { border-color: #fff; transform: scale(1.08); }
+  .color-preview {
+    flex: 1;
+    min-width: 160px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border-left: 4px solid var(--preview-color, #AFD7E6);
+    background: rgba(0,0,0,0.35);
+    font-size: 0.85rem;
+  }
+  .color-preview strong { display: block; margin-bottom: 2px; }
 
   @media (max-width: 640px) {
     .fields { grid-template-columns: 1fr; }
@@ -326,10 +346,10 @@
 <div class="page-head">
   <div style="display:flex;gap:12px;align-items:center">
     {% if guild.icon %}
-      <img class="guild-icon" src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png?size=64" alt=""
+      <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png?size=64" alt=""
            style="width:48px;height:48px;border-radius:14px;border:2px solid rgba(var(--od-accent-rgb),0.35);object-fit:cover" />
     {% else %}
-      <div class="guild-icon" style="width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:rgba(var(--od-accent-rgb),0.15);border:2px solid rgba(var(--od-accent-rgb),0.35);font-size:1.3rem">🦢</div>
+      <div style="width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:rgba(var(--od-accent-rgb),0.15);border:2px solid rgba(var(--od-accent-rgb),0.35);font-size:1.3rem">🦢</div>
     {% endif %}
     <div>
       <h1>{{ guild.name }}</h1>
@@ -351,13 +371,14 @@
 </div>
 
 {% if request.query_params.get('ok') %}
-  <div class="alert alert-ok">✅ Guardado. El bot sincroniza en ~40s (o usa <code>o!panelsync</code>).</div>
+  <div class="alert alert-ok">✅ Guardado. El bot sincroniza en ~40s (o <code>o!panelsync</code>).</div>
 {% endif %}
 {% if request.query_params.get('err') == 'csrf' %}
   <div class="alert alert-err">⚠️ CSRF inválido. Recarga e inténtalo de nuevo.</div>
 {% endif %}
 
 <nav class="mod-nav">
+  <a href="#sec-estilo">🎨 Estilo</a>
   <a href="#sec-seguridad">🛡️ Seguridad</a>
   <a href="#sec-comunidad">👋 Comunidad</a>
   <a href="#sec-moderacion">📋 Moderación</a>
@@ -366,8 +387,54 @@
   <a href="/guild/{{ guild.id }}/tickets">🎫 Tickets</a>
 </nav>
 
-<form method="post" action="/guild/{{ guild.id }}/save">
+<form method="post" action="/guild/{{ guild.id }}/save" id="guildForm">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+  {# ══════════════ 00 ESTILO / COLOR EMBEDS ══════════════ #}
+  {% set emb_hex = config.embed_color or '#AFD7E6' %}
+  {% if emb_hex is number %}
+    {% set emb_hex = '#%06X'|format(emb_hex) %}
+  {% endif %}
+  <div class="section sec-style" id="sec-estilo" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">00</span> 🎨 Estilo del bot</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod is-on" style="max-width:100%">
+        <div class="mod-top">
+          <div class="mod-title">Color de embeds</div>
+        </div>
+        <p class="mod-desc">Color principal de los embeds de respuesta en este servidor (comandos, bienvenidas, utilidades…).</p>
+        <div class="mod-settings" style="display:block;border-top:none">
+          <div class="mod-settings-inner">
+            <div class="color-row">
+              <input type="color" id="embedColorPicker" name="embed_color" value="{{ emb_hex if emb_hex.startswith('#') else '#AFD7E6' }}" />
+              <input type="text" id="embedColorHex" value="{{ emb_hex if emb_hex.startswith('#') else '#AFD7E6' }}"
+                     style="width:110px;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit;font-family:monospace" maxlength="7" />
+              <div class="color-presets">
+                <button type="button" style="background:#AFD7E6" data-c="#AFD7E6" title="Odette"></button>
+                <button type="button" style="background:#38bdf8" data-c="#38bdf8" title="Sky"></button>
+                <button type="button" style="background:#818cf8" data-c="#818cf8" title="Indigo"></button>
+                <button type="button" style="background:#a78bfa" data-c="#a78bfa" title="Violet"></button>
+                <button type="button" style="background:#f472b6" data-c="#f472b6" title="Pink"></button>
+                <button type="button" style="background:#fbbf24" data-c="#fbbf24" title="Gold"></button>
+                <button type="button" style="background:#4ade80" data-c="#4ade80" title="Green"></button>
+                <button type="button" style="background:#f87171" data-c="#f87171" title="Red"></button>
+                <button type="button" style="background:#94a3b8" data-c="#94a3b8" title="Slate"></button>
+                <button type="button" style="background:#2dd4bf" data-c="#2dd4bf" title="Teal"></button>
+              </div>
+            </div>
+            <div class="color-preview" id="colorPreview" style="--preview-color: {{ emb_hex if emb_hex.startswith('#') else '#AFD7E6' }}; margin-top: 12px;">
+              <strong>Vista previa</strong>
+              <span style="color:#94a3b8;font-size:0.8rem">Así se verá el borde de color en los embeds de este server.</span>
+            </div>
+            <p class="hint">Success / error / warning siguen con sus colores fijos (verde, rojo, amarillo). El resto usa este color.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   {# ══════════════ 01 SEGURIDAD ══════════════ #}
   <div class="section sec-security" id="sec-seguridad" data-section>
@@ -378,139 +445,168 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod">
+        <div class="mod {% if config.anti_raid.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Anti-Raid</div>
             <label class="switch">
-              <input type="checkbox" name="anti_raid_enabled" {% if config.anti_raid.enabled %}checked{% endif %} />
+              <input type="checkbox" name="anti_raid_enabled" data-toggle {% if config.anti_raid.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Limita joins masivos en una ventana de tiempo.</p>
-          <div class="fields">
-            <div class="field">
-              <label>Máx. joins</label>
-              <input type="number" name="anti_raid_max_joins" min="1" max="50" value="{{ config.anti_raid.max_joins }}" />
-            </div>
-            <div class="field">
-              <label>Ventana (s)</label>
-              <input type="number" name="anti_raid_window" min="5" max="120" value="{{ config.anti_raid.window }}" />
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="fields">
+                <div class="field">
+                  <label>Máx. joins</label>
+                  <input type="number" name="anti_raid_max_joins" min="1" max="50" value="{{ config.anti_raid.max_joins }}" />
+                </div>
+                <div class="field">
+                  <label>Ventana (s)</label>
+                  <input type="number" name="anti_raid_window" min="5" max="120" value="{{ config.anti_raid.window }}" />
+                </div>
+              </div>
+              <p class="hint">Ej: 5 joins en 10s → se activa la protección.</p>
             </div>
           </div>
-          <p class="hint">Ej: 5 joins en 10s → acción anti-raid.</p>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.automod.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">AutoMod</div>
             <label class="switch">
-              <input type="checkbox" name="automod_enabled" {% if config.automod.enabled %}checked{% endif %} />
+              <input type="checkbox" name="automod_enabled" data-toggle {% if config.automod.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Filtros de spam e invitaciones.</p>
-          <label class="check-line">
-            <input type="checkbox" name="automod_anti_invite" {% if config.automod.anti_invite %}checked{% endif %} />
-            Bloquear invitaciones discord.gg
-          </label>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <label class="check-line">
+                <input type="checkbox" name="automod_anti_invite" {% if config.automod.anti_invite %}checked{% endif %} />
+                Bloquear invitaciones discord.gg
+              </label>
+            </div>
+          </div>
         </div>
 
-        <div class="mod {% if not premium %}prem-lock{% endif %}">
+        <div class="mod {% if config.ia.enabled and premium %}is-on{% endif %} {% if not premium %}prem-lock{% endif %}" data-mod>
           <div class="mod-top">
-            <div class="mod-title">
-              IA Anti-Raid
-              <span class="badge badge-gold">Premium</span>
-            </div>
+            <div class="mod-title">IA Anti-Raid <span class="badge badge-gold">Premium</span></div>
             <label class="switch">
-              <input type="checkbox" name="ia_enabled"
+              <input type="checkbox" name="ia_enabled" data-toggle
                 {% if config.ia.enabled and premium %}checked{% endif %}
                 {% if not premium %}disabled{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Decisiones inteligentes con GROQ ante raids y comportamiento sospechoso.</p>
-          {% if not premium %}
-            <p class="hint">Requiere premium del servidor o del usuario.</p>
-          {% endif %}
+          <p class="mod-desc">Decisiones inteligentes con GROQ ante raids.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              {% if not premium %}
+                <p class="hint">Requiere premium del servidor o del usuario.</p>
+              {% else %}
+                <p class="hint">La IA analiza joins y comportamiento sospechoso automáticamente.</p>
+              {% endif %}
+            </div>
+          </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.raidmode.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Raid Mode</div>
             <label class="switch">
-              <input type="checkbox" name="raidmode_enabled" {% if config.raidmode.enabled %}checked{% endif %} />
+              <input type="checkbox" name="raidmode_enabled" data-toggle {% if config.raidmode.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Bloqueo duro: restringe joins y acciones durante un raid activo.</p>
+          <p class="mod-desc">Bloqueo duro durante un raid activo.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Restringe joins y acciones mientras esté activo. Se puede activar también con comandos del bot.</p>
+            </div>
+          </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.antihoist.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Anti-Hoist</div>
             <label class="switch">
-              <input type="checkbox" name="antihoist_enabled" {% if config.antihoist.enabled %}checked{% endif %} />
+              <input type="checkbox" name="antihoist_enabled" data-toggle {% if config.antihoist.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Corrige nicks que empiezan con símbolos para subir en la lista de miembros.</p>
+          <p class="mod-desc">Corrige nicks con símbolos al inicio.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Quita caracteres especiales al inicio del nick para que no suban en la lista de miembros.</p>
+            </div>
+          </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.quarantine.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Cuarentena</div>
             <label class="switch">
-              <input type="checkbox" name="quarantine_enabled" {% if config.quarantine.enabled %}checked{% endif %} />
+              <input type="checkbox" name="quarantine_enabled" data-toggle {% if config.quarantine.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Aísla cuentas sospechosas con un rol restringido.</p>
-          <label class="check-line">
-            <input type="checkbox" name="quarantine_create_role" {% if config.quarantine.create_role %}checked{% endif %} />
-            Crear rol automáticamente si no existe
-          </label>
-          <div class="fields">
-            <div class="field">
-              <label>Nombre del rol</label>
-              <input type="text" name="quarantine_role_name" value="{{ config.quarantine.role_name or 'Cuarentena' }}" />
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <label class="check-line">
+                <input type="checkbox" name="quarantine_create_role" {% if config.quarantine.create_role %}checked{% endif %} />
+                Crear rol automáticamente si no existe
+              </label>
+              <div class="fields">
+                <div class="field">
+                  <label>Nombre del rol</label>
+                  <input type="text" name="quarantine_role_name" value="{{ config.quarantine.role_name or 'Cuarentena' }}" />
+                </div>
+                <div class="field">
+                  <label>Rol ID (si ya existe)</label>
+                  <input type="text" name="quarantine_role" value="{{ config.quarantine.role_id }}" placeholder="Opcional" />
+                </div>
+              </div>
+              <label class="check-line">
+                <input type="checkbox" name="quarantine_strip_roles" {% if config.quarantine.strip_roles %}checked{% endif %} />
+                Quitar otros roles al poner en cuarentena
+              </label>
+              <div class="field">
+                <label>Canal de logs (ID)</label>
+                <input type="text" name="quarantine_log_channel" value="{{ config.quarantine.log_channel_id }}" placeholder="Opcional" />
+              </div>
             </div>
-            <div class="field">
-              <label>Rol ID (si ya existe)</label>
-              <input type="text" name="quarantine_role" value="{{ config.quarantine.role_id }}" placeholder="Opcional" />
-            </div>
-          </div>
-          <label class="check-line">
-            <input type="checkbox" name="quarantine_strip_roles" {% if config.quarantine.strip_roles %}checked{% endif %} />
-            Quitar otros roles al poner en cuarentena
-          </label>
-          <div class="field">
-            <label>Canal de logs (ID)</label>
-            <input type="text" name="quarantine_log_channel" value="{{ config.quarantine.log_channel_id }}" placeholder="Opcional" />
           </div>
         </div>
 
-        <div class="mod mod-wide">
+        <div class="mod mod-wide {% if config.verify.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Verificación web</div>
             <label class="switch">
-              <input type="checkbox" name="verify_enabled" {% if config.verify.enabled %}checked{% endif %} />
+              <input type="checkbox" name="verify_enabled" data-toggle {% if config.verify.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Canal + rol + mensaje. El usuario se verifica desde el panel (edad de cuenta / VPN opcional).</p>
-          <div class="fields">
-            <div class="field">
-              <label>Canal ID *</label>
-              <input type="text" name="verify_channel" value="{{ config.verify.channel_id }}" />
+          <p class="mod-desc">Canal + rol + mensaje. El usuario se verifica desde el panel.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="fields">
+                <div class="field">
+                  <label>Canal ID *</label>
+                  <input type="text" name="verify_channel" value="{{ config.verify.channel_id }}" />
+                </div>
+                <div class="field">
+                  <label>Rol ID *</label>
+                  <input type="text" name="verify_role" value="{{ config.verify.role_id }}" />
+                </div>
+              </div>
+              <div class="field">
+                <label>Mensaje del canal</label>
+                <textarea name="verify_message" rows="2">{{ config.verify.message }}</textarea>
+              </div>
             </div>
-            <div class="field">
-              <label>Rol ID *</label>
-              <input type="text" name="verify_role" value="{{ config.verify.role_id }}" />
-            </div>
-          </div>
-          <div class="field">
-            <label>Mensaje del canal</label>
-            <textarea name="verify_message" rows="2">{{ config.verify.message }}</textarea>
           </div>
         </div>
 
@@ -527,101 +623,128 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod">
+        <div class="mod {% if config.welcome.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Bienvenida</div>
             <label class="switch">
-              <input type="checkbox" name="welcome_enabled" {% if config.welcome.enabled %}checked{% endif %} />
+              <input type="checkbox" name="welcome_enabled" data-toggle {% if config.welcome.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Mensaje al unirse un miembro.</p>
-          <div class="field">
-            <label>Canal ID</label>
-            <input type="text" name="welcome_channel" value="{{ config.welcome.channel_id }}" />
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal ID</label>
+                <input type="text" name="welcome_channel" value="{{ config.welcome.channel_id }}" />
+              </div>
+              <div class="field">
+                <label>Mensaje</label>
+                <textarea name="welcome_message" rows="3">{{ config.welcome.message }}</textarea>
+              </div>
+              <p class="hint">Variables: {user} {server} {membercount}</p>
+            </div>
           </div>
-          <div class="field">
-            <label>Mensaje</label>
-            <textarea name="welcome_message" rows="2">{{ config.welcome.message }}</textarea>
-          </div>
-          <p class="hint">Variables: {user} {server} {membercount}</p>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.autorole.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Autorole</div>
             <label class="switch">
-              <input type="checkbox" name="autorole_enabled" {% if config.autorole.enabled %}checked{% endif %} />
+              <input type="checkbox" name="autorole_enabled" data-toggle {% if config.autorole.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Asigna un rol al entrar.</p>
-          <div class="field">
-            <label>Rol ID</label>
-            <input type="text" name="autorole_role" value="{{ config.autorole.role_id }}" />
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Rol ID</label>
+                <input type="text" name="autorole_role" value="{{ config.autorole.role_id }}" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.booster.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Booster</div>
             <label class="switch">
-              <input type="checkbox" name="booster_enabled" {% if config.booster.enabled %}checked{% endif %} />
+              <input type="checkbox" name="booster_enabled" data-toggle {% if config.booster.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Agradecimiento al boostear el server.</p>
-          <div class="field">
-            <label>Canal ID</label>
-            <input type="text" name="booster_channel" value="{{ config.booster.channel_id }}" />
-          </div>
-          <div class="field">
-            <label>Mensaje</label>
-            <textarea name="booster_message" rows="2">{{ config.booster.message }}</textarea>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal ID</label>
+                <input type="text" name="booster_channel" value="{{ config.booster.channel_id }}" />
+              </div>
+              <div class="field">
+                <label>Mensaje</label>
+                <textarea name="booster_message" rows="2">{{ config.booster.message }}</textarea>
+              </div>
+              <p class="hint">Variables: {user} {server}</p>
+            </div>
           </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.levels.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Niveles / XP</div>
             <label class="switch">
-              <input type="checkbox" name="levels_enabled" {% if config.levels.enabled %}checked{% endif %} />
+              <input type="checkbox" name="levels_enabled" data-toggle {% if config.levels.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Sistema de niveles por mensajes.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">XP por mensaje y cooldowns se configuran también con comandos del bot (o!levelsetup).</p>
+            </div>
+          </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.starboard.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Starboard</div>
             <label class="switch">
-              <input type="checkbox" name="starboard_enabled" {% if config.starboard.enabled %}checked{% endif %} />
+              <input type="checkbox" name="starboard_enabled" data-toggle {% if config.starboard.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Destaca mensajes con estrellas.</p>
-          <div class="fields">
-            <div class="field">
-              <label>Canal ID</label>
-              <input type="text" name="starboard_channel" value="{{ config.starboard.channel_id }}" />
-            </div>
-            <div class="field">
-              <label>Mín. estrellas</label>
-              <input type="number" name="starboard_min" min="1" max="50" value="{{ config.starboard.min_stars or 3 }}" />
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="fields">
+                <div class="field">
+                  <label>Canal ID</label>
+                  <input type="text" name="starboard_channel" value="{{ config.starboard.channel_id }}" />
+                </div>
+                <div class="field">
+                  <label>Mín. estrellas</label>
+                  <input type="number" name="starboard_min" min="1" max="50" value="{{ config.starboard.min_stars or 3 }}" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.nsfw.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">NSFW</div>
             <label class="switch">
-              <input type="checkbox" name="nsfw_enabled" {% if config.nsfw.enabled %}checked{% endif %} />
+              <input type="checkbox" name="nsfw_enabled" data-toggle {% if config.nsfw.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Permite comandos NSFW en canales marcados NSFW.</p>
+          <p class="mod-desc">Permite comandos NSFW en canales NSFW.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Solo funciona en canales marcados como NSFW en Discord.</p>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -637,82 +760,109 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod">
+        <div class="mod {% if config.logs.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Logs</div>
             <label class="switch">
-              <input type="checkbox" name="logs_enabled" {% if config.logs.enabled %}checked{% endif %} />
+              <input type="checkbox" name="logs_enabled" data-toggle {% if config.logs.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Canal de logs de moderación y eventos.</p>
-          <div class="field">
-            <label>Canal ID</label>
-            <input type="text" name="logs_channel" value="{{ config.logs.channel_id }}" />
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal ID</label>
+                <input type="text" name="logs_channel" value="{{ config.logs.channel_id }}" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.reports.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Reportes</div>
             <label class="switch">
-              <input type="checkbox" name="reports_enabled" {% if config.reports.enabled %}checked{% endif %} />
+              <input type="checkbox" name="reports_enabled" data-toggle {% if config.reports.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Canal donde llegan los reportes de usuarios.</p>
-          <div class="field">
-            <label>Canal ID</label>
-            <input type="text" name="reports_channel" value="{{ config.reports.channel_id }}" />
+          <p class="mod-desc">Canal donde llegan los reportes.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal ID</label>
+                <input type="text" name="reports_channel" value="{{ config.reports.channel_id }}" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.suggest.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Sugerencias</div>
             <label class="switch">
-              <input type="checkbox" name="suggest_enabled" {% if config.suggest.enabled %}checked{% endif %} />
+              <input type="checkbox" name="suggest_enabled" data-toggle {% if config.suggest.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Canal de sugerencias del servidor.</p>
-          <div class="field">
-            <label>Canal ID</label>
-            <input type="text" name="suggest_channel" value="{{ config.suggest.channel_id }}" />
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal ID</label>
+                <input type="text" name="suggest_channel" value="{{ config.suggest.channel_id }}" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.modnotes.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Mod Notes</div>
             <label class="switch">
-              <input type="checkbox" name="modnotes_enabled" {% if config.modnotes.enabled %}checked{% endif %} />
+              <input type="checkbox" name="modnotes_enabled" data-toggle {% if config.modnotes.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Notas internas del staff sobre usuarios.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Usa los comandos de notas del bot una vez activado.</p>
+            </div>
+          </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.watchlist.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Watchlist</div>
             <label class="switch">
-              <input type="checkbox" name="watchlist_enabled" {% if config.watchlist.enabled %}checked{% endif %} />
+              <input type="checkbox" name="watchlist_enabled" data-toggle {% if config.watchlist.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Vigila usuarios marcados por el staff.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Los usuarios en watchlist generan alertas al staff.</p>
+            </div>
+          </div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.reaction_roles.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Reaction Roles</div>
             <label class="switch">
-              <input type="checkbox" name="reaction_roles_enabled" {% if config.reaction_roles.enabled %}checked{% endif %} />
+              <input type="checkbox" name="reaction_roles_enabled" data-toggle {% if config.reaction_roles.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
           <p class="mod-desc">Roles por reacción en mensajes.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Configura paneles con los comandos de reaction roles del bot.</p>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -728,92 +878,76 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod">
+        <div class="mod {% if config.invites.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Invites tracker</div>
-            <label class="switch">
-              <input type="checkbox" name="invites_enabled" {% if config.invites.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="invites_enabled" data-toggle {% if config.invites.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Seguimiento de invitaciones por usuario.</p>
+          <p class="mod-desc">Seguimiento de invitaciones.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Cuenta invites por usuario.</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.sticky.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Sticky messages</div>
-            <label class="switch">
-              <input type="checkbox" name="sticky_enabled" {% if config.sticky.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="sticky_enabled" data-toggle {% if config.sticky.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Mensajes fijos que se reenvían al final del canal.</p>
+          <p class="mod-desc">Mensajes fijos al final del canal.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Configura stickies con comandos del bot.</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.autoresponse.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Autorespuestas</div>
-            <label class="switch">
-              <input type="checkbox" name="autoresponse_enabled" {% if config.autoresponse.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="autoresponse_enabled" data-toggle {% if config.autoresponse.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Respuestas automáticas a palabras clave.</p>
+          <p class="mod-desc">Respuestas a palabras clave.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Añade triggers con los comandos de autoresponse.</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.afk.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">AFK</div>
-            <label class="switch">
-              <input type="checkbox" name="afk_enabled" {% if config.afk.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="afk_enabled" data-toggle {% if config.afk.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Sistema AFK al mencionar a un usuario ausente.</p>
+          <p class="mod-desc">Sistema AFK al mencionar ausentes.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!afk [motivo]</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.snipe.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Snipe</div>
-            <label class="switch">
-              <input type="checkbox" name="snipe_enabled" {% if config.snipe.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="snipe_enabled" data-toggle {% if config.snipe.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Recupera el último mensaje borrado / editado.</p>
+          <p class="mod-desc">Último mensaje borrado / editado.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!snipe · o!editsnipe</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.tempvc.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Temp VC</div>
-            <label class="switch">
-              <input type="checkbox" name="tempvc_enabled" {% if config.tempvc.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="tempvc_enabled" data-toggle {% if config.tempvc.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Canales de voz temporales al unirse a un hub.</p>
+          <p class="mod-desc">Canales de voz temporales.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Configura el canal hub con comandos del bot.</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.giveaways.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Giveaways</div>
-            <label class="switch">
-              <input type="checkbox" name="giveaways_enabled" {% if config.giveaways.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="giveaways_enabled" data-toggle {% if config.giveaways.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
           <p class="mod-desc">Sorteos con reacción / botón.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!gstart …</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.reminders.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Recordatorios</div>
-            <label class="switch">
-              <input type="checkbox" name="reminders_enabled" {% if config.reminders.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="reminders_enabled" data-toggle {% if config.reminders.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Recordatorios personales (o!remind).</p>
+          <p class="mod-desc">Recordatorios personales.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!remind 1h texto</p></div></div>
         </div>
 
       </div>
@@ -829,70 +963,58 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod">
+        <div class="mod {% if config.economy.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Economía</div>
-            <label class="switch">
-              <input type="checkbox" name="economy_enabled" {% if config.economy.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="economy_enabled" data-toggle {% if config.economy.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Moneda, daily, shop, etc.</p>
+          <p class="mod-desc">Moneda, daily, shop…</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!balance · o!daily · o!pay</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.profiles.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Perfiles</div>
-            <label class="switch">
-              <input type="checkbox" name="profiles_enabled" {% if config.profiles.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="profiles_enabled" data-toggle {% if config.profiles.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Perfiles de usuario (o!profile).</p>
+          <p class="mod-desc">Perfiles de usuario.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!profile</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.marriage.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Matrimonios</div>
-            <label class="switch">
-              <input type="checkbox" name="marriage_enabled" {% if config.marriage.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="marriage_enabled" data-toggle {% if config.marriage.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Sistema de marriage / divorce.</p>
+          <p class="mod-desc">Marriage / divorce.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!marry @user</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.actions_sfw.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Acciones SFW</div>
-            <label class="switch">
-              <input type="checkbox" name="actions_sfw_enabled" {% if config.actions_sfw.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="actions_sfw_enabled" data-toggle {% if config.actions_sfw.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">hug, kiss, pat, dance… (roleplay GIFs).</p>
+          <p class="mod-desc">hug, kiss, pat, dance…</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Roleplay GIFs SFW.</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.music.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Música</div>
-            <label class="switch">
-              <input type="checkbox" name="music_enabled" {% if config.music.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="music_enabled" data-toggle {% if config.music.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Comandos de música / VC (si están activos en el bot).</p>
+          <p class="mod-desc">Comandos de música / VC.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Si el módulo de música está activo en el bot.</p></div></div>
         </div>
 
-        <div class="mod">
+        <div class="mod {% if config.fun.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Fun / trivia</div>
-            <label class="switch">
-              <input type="checkbox" name="fun_enabled" {% if config.fun.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" name="fun_enabled" data-toggle {% if config.fun.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Comandos divertidos, trivia, generadores, etc.</p>
+          <p class="mod-desc">Trivia, generadores, etc.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Comandos divertidos del bot.</p></div></div>
         </div>
 
       </div>
@@ -905,7 +1027,6 @@
     <button class="btn btn-primary" type="submit">💾 Guardar cambios</button>
   </div>
 </form>
-
 </div>
 
 <script>
@@ -913,6 +1034,7 @@
   const page = document.getElementById('guildPage');
   if (!page) return;
 
+  // Accent from localStorage
   try {
     const saved = JSON.parse(localStorage.getItem('od-accent') || 'null');
     if (saved && saved.c) {
@@ -922,7 +1044,51 @@
     }
   } catch (e) {}
 
-  // Smooth scroll for nav chips
+  // Expand settings when switch is ON
+  function syncMod(mod) {
+    const input = mod.querySelector('input[data-toggle]');
+    if (!input) return;
+    if (input.checked && !input.disabled) {
+      mod.classList.add('is-on');
+    } else {
+      mod.classList.remove('is-on');
+    }
+  }
+
+  page.querySelectorAll('[data-mod]').forEach(function (mod) {
+    const input = mod.querySelector('input[data-toggle]');
+    if (!input) return;
+    syncMod(mod);
+    input.addEventListener('change', function () { syncMod(mod); });
+  });
+
+  // Color picker sync
+  const picker = document.getElementById('embedColorPicker');
+  const hex = document.getElementById('embedColorHex');
+  const preview = document.getElementById('colorPreview');
+
+  function setColor(c) {
+    if (!c) return;
+    c = c.trim();
+    if (!c.startsWith('#')) c = '#' + c;
+    if (!/^#[0-9A-Fa-f]{6}$/.test(c)) return;
+    if (picker) picker.value = c;
+    if (hex) hex.value = c.toUpperCase();
+    if (preview) preview.style.setProperty('--preview-color', c);
+  }
+
+  if (picker) picker.addEventListener('input', function () { setColor(picker.value); });
+  if (hex) {
+    hex.addEventListener('change', function () { setColor(hex.value); });
+    hex.addEventListener('keyup', function (e) {
+      if (e.key === 'Enter') setColor(hex.value);
+    });
+  }
+  page.querySelectorAll('.color-presets button').forEach(function (btn) {
+    btn.addEventListener('click', function () { setColor(btn.getAttribute('data-c')); });
+  });
+
+  // Nav smooth scroll
   page.querySelectorAll('.mod-nav a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {
       const id = a.getAttribute('href').slice(1);
