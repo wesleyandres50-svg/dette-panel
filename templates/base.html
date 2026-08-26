@@ -6,13 +6,11 @@
   <title>{% block title %}Odette Panel{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css" />
   <style>
-    /* Variables globales que el dashboard y el resto pueden usar */
     :root {
       --od-accent: #38bdf8;
       --od-accent-rgb: 56, 189, 248;
       --od-accent-2: #818cf8;
     }
-
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -21,19 +19,15 @@
       min-height: 100vh;
       transition: background 0.3s ease, color 0.3s ease;
     }
-
     body.theme-light {
       background: #f1f5f9;
       color: #0f172a;
     }
-
     .wrap {
       max-width: 1200px;
       margin: 0 auto;
       padding: 20px 16px 40px;
     }
-
-    /* Nav simple (se puede mejorar después) */
     .nav {
       display: flex;
       justify-content: space-between;
@@ -41,6 +35,8 @@
       margin-bottom: 24px;
       padding-bottom: 16px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-wrap: wrap;
+      gap: 10px;
     }
     body.theme-light .nav {
       border-bottom-color: rgba(15,23,42,0.1);
@@ -58,6 +54,7 @@
       display: flex;
       gap: 10px;
       align-items: center;
+      flex-wrap: wrap;
     }
     .btn {
       display: inline-flex;
@@ -129,9 +126,11 @@
             {{ user.username }}
           </span>
           <a class="btn" href="/dashboard">Servidores</a>
+          <a class="btn" href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener">💬 Soporte</a>
           {% if is_owner %}<a class="btn" href="/owner">👑 Owner</a>{% endif %}
           <a class="btn" href="/logout">Salir</a>
         {% else %}
+          <a class="btn" href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener">💬 Soporte</a>
           <a class="btn btn-primary" href="/login">Login con Discord</a>
         {% endif %}
       </div>
