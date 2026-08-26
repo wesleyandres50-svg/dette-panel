@@ -499,6 +499,14 @@
                        {% if not can_profile %}disabled{% endif %}
                        style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit" />
               </div>
+              <div style="grid-column:1/-1">
+                <label style="font-size:0.75rem;opacity:0.75">🖼️ Foto de perfil (URL · solo este server)</label>
+                <input type="url" name="bot_avatar_url" maxlength="500"
+                       value="{{ bp.avatar_url or '' }}" placeholder="https://i.imgur.com/ejemplo.png"
+                       {% if not can_profile %}disabled{% endif %}
+                       style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit" />
+                <p style="margin:6px 0 0;font-size:0.72rem;opacity:0.65">png / jpg / webp. Vacío = quitar foto custom de este server (no cambia el avatar global).</p>
+              </div>
               <div>
                 <label style="font-size:0.75rem;opacity:0.75">Emoji acento</label>
                 <input type="text" name="bot_emoji" maxlength="8"
