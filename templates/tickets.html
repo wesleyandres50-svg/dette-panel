@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}Tickets · {{ guild.name }} · Odette{% endblock %}
+{% block content %}
+<style>
+  #ticketsPage {
+    --od-accent: #38bdf8;
+    --od-accent-rgb: 56, 189, 248;
+    --od-accent-2: #818cf8;
+    max-width: 720px;
+    margin: 0 auto;
+    padding-bottom: 40px;
+  }
+
+  .page-head {
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .page-head h1 {
+    margin: 0;
+    font-size: 1.3rem;
+    background: linear-gradient(90deg, #fff 20%, var(--od-accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .page-head .meta {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 4px;
+  }
+
+  .alert {
+    margin-bottom: 14px;
+    padding: 11px 15px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+  }
+  .alert-ok {
+    background: rgba(34, 197, 94, 0.12);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.28);
+  }
+  .alert-err {
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.28);
+  }
+
+  .card {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    background: rgba(16, 20, 30, 0.75);
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  }
+  .card-h {
+    padding: 14px 16px;
+    background: linear-gradient(100deg, rgba(251, 191, 36, 0.14), transparent 60%);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .card-h h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 650;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-body { padding: 16px; }
+
+  .field {
+    margin-bottom: 14px;
+  }
+  .field label {
+    font-size: 0.72rem;
+    display: block;
+    margin-bottom: 4px;
+    color: #94a3b8;
+    font-weight: 550;
+  }
+  .field input,
+  .field textarea {
+    width: 100%;
+    padding: 9px 11px;
+    font-size: 0.88rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.32);
+    color: inherit;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field input:focus,
+  .field textarea:focus {
+    border-color: rgba(var(--od-accent-rgb), 0.55);
+    box-shadow: 0 0 0 2px rgba(var(--od-accent-rgb), 0.15);
+  }
+  .field textarea {
+    resize: vertical;
+    min-height: 72px;
+  }
+
+  .fields-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 560px) {
+    .fields-2 { grid-template-columns: 1fr; }
+  }
+
+  .hint {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 4px;
+    line-height: 1.35;
+  }
+
+  .switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.07);
+    margin-bottom: 16px;
+  }
+  .switch-row .label {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .switch-row .desc {
+    font-size: 0.76rem;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 23px;
+    flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: rgba(255,255,255,0.12);
+    border-radius: 999px;
+    transition: 0.2s;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 17px;
+    width: 17px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  }
+  .switch input:checked + .slider { background: var(--od-accent); }
+  .switch input:checked + .slider:before { transform: translateX(19px); }
+
+  .footer-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    padding: 14px 0 8px;
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    background: linear-gradient(to top, #070a10 55%, transparent);
+  }
+
+  .head-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+</style>
+
+<div id="ticketsPage">
+
+  <div class="page-head">
+    <div>
+      <h1>🎫 Tickets · {{ guild.name }}</h1>
+      <div class="meta">ID {{ guild.id }}</div>
+    </div>
+    <div class="head-actions">
+      <a class="btn" href="/guild/{{ guild.id }}">← Config del server</a>
+      <a class="btn" href="/dashboard">Servidores</a>
+    </div>
+  </div>
+
+  {% if request.query_params.get('ok') %}
+    <div class="alert alert-ok">✅ Tickets guardados. El bot sincroniza en ~40s (o <code>o!panelsync</code>).</div>
+  {% endif %}
+  {% if request.query_params.get('err') == 'csrf' %}
+    <div class="alert alert-err">⚠️ CSRF inválido. Recarga e inténtalo de nuevo.</div>
+  {% endif %}
+
+  <form method="post" action="/guild/{{ guild.id }}/tickets/save">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+    <div class="card">
+      <div class="card-h">
+        <h2>🎫 Sistema de tickets</h2>
+      </div>
+      <div class="card-body">
+
+        <div class="switch-row">
+          <div>
+            <div class="label">Activar tickets</div>
+            <div class="desc">Permite abrir tickets desde el panel del bot.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" name="tickets_enabled" {% if config.tickets.enabled %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="fields-2">
+          <div class="field">
+            <label>Canal del panel (ID)</label>
+            <input type="text" name="tickets_channel" value="{{ config.tickets.channel_id or '' }}" placeholder="ID del canal" />
+            <p class="hint">Donde se envía el mensaje con el botón.</p>
+          </div>
+          <div class="field">
+            <label>Categoría (ID)</label>
+            <input type="text" name="tickets_category" value="{{ config.tickets.category_id or '' }}" placeholder="ID de categoría" />
+            <p class="hint">Los tickets se crean dentro de esta categoría.</p>
+          </div>
+        </div>
+
+        <div class="fields-2">
+          <div class="field">
+            <label>Rol de soporte (ID)</label>
+            <input type="text" name="tickets_support_role" value="{{ config.tickets.support_role_id or '' }}" placeholder="ID del rol staff" />
+          </div>
+          <div class="field">
+            <label>Texto del botón</label>
+            <input type="text" name="tickets_button_label" value="{{ config.tickets.button_label or 'Abrir ticket' }}" maxlength="80" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Mensaje del panel</label>
+          <textarea name="tickets_panel_message" rows="3">{{ config.tickets.panel_message or '' }}</textarea>
+          <p class="hint">Texto del embed / mensaje donde está el botón de abrir ticket.</p>
+        </div>
+
+        <div class="field">
+          <label>Mensaje al abrir un ticket</label>
+          <textarea name="tickets_open_message" rows="3">{{ config.tickets.open_message or '' }}</textarea>
+          <p class="hint">Variables: <code>{user}</code></p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <a class="btn" href="/guild/{{ guild.id }}">Cancelar</a>
+      <button class="btn btn-primary" type="submit">💾 Guardar tickets</button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
