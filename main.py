@@ -1,3 +1,4 @@
+
 """
 Odette Panel — completo
 - OAuth, dashboard, config, tickets, premium guild+user
@@ -83,7 +84,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; img-src 'self' https://cdn.discordapp.com data:; "
-            "style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'"
+            "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
         )
         if request.url.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
