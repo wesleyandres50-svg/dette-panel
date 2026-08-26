@@ -7,6 +7,7 @@
     --border: rgba(255,255,255,0.08);
     --muted: #94a3b8;
     --ok: #3ecf8e;
+    --danger: #f87171;
   }
   body.theme-light #ticketsPage {
     --card: #fff;
@@ -30,12 +31,23 @@
     background: linear-gradient(135deg, #38bdf8, #818cf8);
     border: none; color: #0b0e14; font-weight: 600;
   }
+  .btn-danger {
+    border-color: rgba(248,113,113,0.4); color: #fca5a5;
+    background: rgba(248,113,113,0.08);
+  }
+  .btn-add {
+    border-color: rgba(56,189,248,0.45);
+    background: rgba(56,189,248,0.12);
+    color: #7dd3fc;
+    font-weight: 600;
+  }
   .card {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 16px; margin-bottom: 16px; overflow: hidden;
   }
   .card-h {
     padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
   }
   .card-h h2 { margin: 0; font-size: 1.05rem; }
   .card-body { padding: 18px; }
@@ -73,8 +85,7 @@
     border-radius: 10px; padding: 10px 12px; color: inherit; font: inherit;
   }
   body.theme-light .field input,
-  body.theme-light .field textarea,
-  body.theme-light .field select {
+  body.theme-light .field textarea {
     background: #f8fafc;
   }
   .hint { font-size: 0.75rem; color: var(--muted); margin: 4px 0 0; }
@@ -85,8 +96,13 @@
   .opt-card {
     border: 1px solid var(--border); border-radius: 12px;
     padding: 12px; margin-bottom: 10px; background: rgba(0,0,0,0.15);
+    position: relative;
   }
-  .opt-card h4 { margin: 0 0 8px; font-size: 0.9rem; }
+  .opt-card-h {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+  }
+  .opt-card h4 { margin: 0; font-size: 0.9rem; }
   .opt-grid {
     display: grid; grid-template-columns: 80px 1fr 1fr; gap: 8px;
   }
@@ -97,6 +113,12 @@
     background: rgba(62,207,142,0.12); border: 1px solid var(--ok);
     padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 0.9rem;
   }
+  #optsEmpty {
+    text-align: center; color: var(--muted); padding: 20px 12px;
+    border: 1px dashed var(--border); border-radius: 12px; margin-bottom: 12px;
+    display: none;
+  }
+  #optsEmpty.show { display: block; }
 </style>
 {% endblock %}
 
@@ -115,10 +137,10 @@
   </div>
 
   {% if request.query_params.get('ok') %}
-    <div class="alert-ok">✅ Tickets guardados. El bot los sincronizará en unos minutos (o usa <code>o!panelsync</code>).</div>
+    <div class="alert-ok">✅ Tickets guardados. Usa <code>o!panelsync</code> o espera unos minutos, luego <code>o!ticketsetup panel</code>.</div>
   {% endif %}
 
-  <form method="post" action="/guild/{{ guild.id }}/tickets/save">
+  <form method="post" action="/guild/{{ guild.id }}/tickets/save" id="ticketsForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
 
     <div class="card">
@@ -178,38 +200,16 @@
 
     <div class="card">
       <div class="card-h">
-        <h2>📋 Categorías del menú desplegable</h2>
+        <h2>📋 Categorías del menú</h2>
+        <button type="button" class="btn btn-add" id="btnAddOpt">＋ Añadir categoría</button>
       </div>
       <div class="card-body">
         <p class="hint" style="margin-top:0;margin-bottom:12px">
-          Cada fila es una opción del <strong>select</strong> en Discord (máx. 25). Deja vacías las que no uses.
-          El bot usa este menú al enviar el panel (<code>o!ticketsetup panel</code>).
+          Cada categoría es una opción del menú desplegable en Discord (máx. <strong>25</strong>).
+          Pulsa <strong>Añadir categoría</strong> para crear más.
         </p>
-        {% set opts = config.tickets.options or [] %}
-        {% for i in range(8) %}
-          {% set o = opts[i] if i < (opts|length) else {} %}
-          <div class="opt-card">
-            <h4>Opción {{ i + 1 }}</h4>
-            <div class="opt-grid">
-              <div class="field" style="margin:0">
-                <label>Emoji</label>
-                <input type="text" name="tickets_opt_{{ i }}_emoji" value="{{ o.emoji or '' }}" placeholder="🛠️" maxlength="8" />
-              </div>
-              <div class="field" style="margin:0">
-                <label>Nombre (label)</label>
-                <input type="text" name="tickets_opt_{{ i }}_label" value="{{ o.label or '' }}" placeholder="Soporte" maxlength="100" />
-              </div>
-              <div class="field" style="margin:0">
-                <label>Valor interno</label>
-                <input type="text" name="tickets_opt_{{ i }}_value" value="{{ o.value or '' }}" placeholder="soporte" maxlength="50" />
-              </div>
-            </div>
-            <div class="field" style="margin-top:8px;margin-bottom:0">
-              <label>Descripción (se ve en el menú)</label>
-              <input type="text" name="tickets_opt_{{ i }}_desc" value="{{ o.description or '' }}" placeholder="Ayuda general del servidor" maxlength="100" />
-            </div>
-          </div>
-        {% endfor %}
+        <div id="optsEmpty">No hay categorías. Pulsa <strong>＋ Añadir categoría</strong>.</div>
+        <div id="optsList"></div>
       </div>
     </div>
 
@@ -220,4 +220,96 @@
   </form>
 
 </div>
+
+<script>
+(function () {
+  const MAX = 25;
+  const list = document.getElementById('optsList');
+  const empty = document.getElementById('optsEmpty');
+  const btnAdd = document.getElementById('btnAddOpt');
+
+  // Opciones guardadas desde el servidor
+  const initial = [
+    {% set opts = config.tickets.options or [] %}
+    {% for o in opts %}
+    {
+      emoji: {{ (o.emoji or '🎫')|tojson }},
+      label: {{ (o.label or '')|tojson }},
+      value: {{ (o.value or '')|tojson }},
+      description: {{ (o.description or '')|tojson }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  function renumber() {
+    const cards = list.querySelectorAll('.opt-card');
+    cards.forEach(function (card, i) {
+      card.querySelector('.opt-num').textContent = 'Categoría ' + (i + 1);
+      card.querySelectorAll('[data-name]').forEach(function (inp) {
+        inp.name = inp.getAttribute('data-name').replace('__I__', String(i));
+      });
+    });
+    empty.classList.toggle('show', cards.length === 0);
+    btnAdd.disabled = cards.length >= MAX;
+    btnAdd.style.opacity = cards.length >= MAX ? '0.5' : '1';
+  }
+
+  function addOpt(data) {
+    data = data || { emoji: '🎫', label: '', value: '', description: '' };
+    if (list.querySelectorAll('.opt-card').length >= MAX) return;
+
+    const card = document.createElement('div');
+    card.className = 'opt-card';
+    card.innerHTML =
+      '<div class="opt-card-h">' +
+        '<h4 class="opt-num">Categoría</h4>' +
+        '<button type="button" class="btn btn-danger btn-rm" title="Quitar">✕ Quitar</button>' +
+      '</div>' +
+      '<div class="opt-grid">' +
+        '<div class="field" style="margin:0">' +
+          '<label>Emoji</label>' +
+          '<input type="text" data-name="tickets_opt___I___emoji" maxlength="8" placeholder="🛠️" />' +
+        '</div>' +
+        '<div class="field" style="margin:0">' +
+          '<label>Nombre (label)</label>' +
+          '<input type="text" data-name="tickets_opt___I___label" maxlength="100" placeholder="Soporte" required />' +
+        '</div>' +
+        '<div class="field" style="margin:0">' +
+          '<label>Valor interno</label>' +
+          '<input type="text" data-name="tickets_opt___I___value" maxlength="50" placeholder="soporte" />' +
+        '</div>' +
+      '</div>' +
+      '<div class="field" style="margin-top:8px;margin-bottom:0">' +
+        '<label>Descripción (se ve en el menú)</label>' +
+        '<input type="text" data-name="tickets_opt___I___desc" maxlength="100" placeholder="Ayuda general del servidor" />' +
+      '</div>';
+
+    const inputs = card.querySelectorAll('input');
+    // order: emoji, label, value, desc
+    inputs[0].value = data.emoji || '🎫';
+    inputs[1].value = data.label || '';
+    inputs[2].value = data.value || '';
+    inputs[3].value = data.description || '';
+
+    card.querySelector('.btn-rm').addEventListener('click', function () {
+      card.remove();
+      renumber();
+    });
+
+    list.appendChild(card);
+    renumber();
+  }
+
+  btnAdd.addEventListener('click', function () { addOpt(); });
+
+  if (initial.length) {
+    initial.forEach(function (o) { addOpt(o); });
+  } else {
+    // por defecto 3 categorías de ejemplo
+    addOpt({ emoji: '🛠️', label: 'Soporte', value: 'soporte', description: 'Ayuda general del servidor' });
+    addOpt({ emoji: '🚨', label: 'Reporte', value: 'reporte', description: 'Reportar a un usuario' });
+    addOpt({ emoji: '🤝', label: 'Alianzas', value: 'alianzas', description: 'Propuestas de alianza' });
+  }
+})();
+</script>
 {% endblock %}
