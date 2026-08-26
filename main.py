@@ -1,4 +1,3 @@
-
 """
 Odette Panel — completo
 - OAuth, dashboard, config, tickets, premium guild+user
@@ -34,6 +33,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
+AVATARS_DIR = DATA_DIR / "avatars"
+AVATARS_DIR.mkdir(exist_ok=True)
 PREMIUM_FILE = DATA_DIR / "premium_guilds.json"
 CONFIG_FILE = DATA_DIR / "guild_configs.json"
 VERIFY_TOKENS_FILE = DATA_DIR / "verify_tokens.json"
@@ -141,6 +142,7 @@ def _public_base() -> str:
 
 _STATIC = BASE_DIR / "static"
 _STATIC.mkdir(exist_ok=True)
+app.mount("/media/avatars", StaticFiles(directory=str(DATA_DIR / "avatars")), name="avatars")
 app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
 
 @app.on_event("startup")
@@ -765,6 +767,61 @@ async def guild_page(request: Request, guild_id: str):
             "free_profile": is_free_profile(),
         },
     )
+
+
+
+@app.post("/guild/{guild_id}/bot-avatar")
+async def guild_bot_avatar_upload(request: Request, guild_id: str):
+    """Sube archivo de avatar del bot para este server (png/jpg/webp)."""
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    guilds = request.session.get("guilds") or []
+    if not (any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)):
+        return RedirectResponse("/dashboard", status_code=303)
+    if not str(guild_id).isdigit():
+        return RedirectResponse("/dashboard", status_code=303)
+    form = await request.form()
+    if not _check_csrf(request, str(form.get("csrf_token") or "")):
+        return RedirectResponse(f"/guild/{guild_id}?err=csrf", status_code=303)
+    ok_g, _ = is_premium(guild_id)
+    ok_u, _ = is_user_premium(user["id"])
+    free_on = is_free_profile()
+    if not (ok_g or ok_u or free_on or is_owner(request)):
+        return RedirectResponse(f"/guild/{guild_id}?err=premium", status_code=303)
+    file = form.get("bot_avatar_file")
+    if file is None or not hasattr(file, "read"):
+        return RedirectResponse(f"/guild/{guild_id}?err=avatar", status_code=303)
+    content = await file.read()
+    if not content or len(content) > 8_000_000:
+        return RedirectResponse(f"/guild/{guild_id}?err=avatar", status_code=303)
+    # guardar como png/jpg segun content-type
+    fname = (getattr(file, "filename", None) or "avatar.png").lower()
+    ext = "png"
+    if fname.endswith(".jpg") or fname.endswith(".jpeg"):
+        ext = "jpg"
+    elif fname.endswith(".webp"):
+        ext = "webp"
+    AVATARS_DIR.mkdir(exist_ok=True)
+    out = AVATARS_DIR / f"{guild_id}.{ext}"
+    # limpia otros formatos viejos
+    for old in AVATARS_DIR.glob(f"{guild_id}.*"):
+        try:
+            old.unlink()
+        except Exception:
+            pass
+    out.write_bytes(content)
+    # URL publica del panel
+    base = (os.getenv("PUBLIC_BASE_URL") or str(request.base_url)).rstrip("/")
+    public_url = f"{base}/media/avatars/{guild_id}.{ext}"
+    cfg = get_guild_config(guild_id)
+    bp = dict(cfg.get("bot_profile") or {})
+    bp["avatar_url"] = public_url
+    cfg["bot_profile"] = bp
+    cfg["_panel_saved"] = True
+    cfg["_saved_at"] = time.time()
+    save_guild_config(guild_id, cfg)
+    return RedirectResponse(f"/guild/{guild_id}?ok=1", status_code=303)
 
 
 @app.post("/guild/{guild_id}/save")
