@@ -1,5 +1,3 @@
-
-
 """
 Odette Panel — completo
 - OAuth, dashboard, config, tickets, premium guild+user
@@ -600,7 +598,7 @@ async def login(request: Request):
         "state": state,
         "prompt": "none",
     }
-    return RedirectResponse(f"{OAUTH_AUTHORIZE}?{urlencode(params, status_code=303)}")
+    return RedirectResponse(f"{OAUTH_AUTHORIZE}?{urlencode(params)}", status_code=303)
 
 
 @app.get("/callback")
