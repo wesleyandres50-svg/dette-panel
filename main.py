@@ -582,6 +582,7 @@ async def home(request: Request):
 
 
 @app.get("/login")
+@app.post("/login")  # evita Method Not Allowed si un form reenvía POST aquí
 async def login(request: Request):
     if not DISCORD_CLIENT_ID or not DISCORD_REDIRECT_URI:
         return templates.TemplateResponse(
@@ -599,13 +600,13 @@ async def login(request: Request):
         "state": state,
         "prompt": "none",
     }
-    return RedirectResponse(f"{OAUTH_AUTHORIZE}?{urlencode(params)}")
+    return RedirectResponse(f"{OAUTH_AUTHORIZE}?{urlencode(params, status_code=303)}")
 
 
 @app.get("/callback")
 async def callback(request: Request, code: str = "", state: str = "", error: str = ""):
     if error:
-        return RedirectResponse("/?error=oauth")
+        return RedirectResponse("/?error=oauth", status_code=303)
     if not code or state != request.session.get("oauth_state"):
         return templates.TemplateResponse(
             "index.html",
@@ -636,7 +637,7 @@ async def callback(request: Request, code: str = "", state: str = "", error: str
             f"{API_BASE}/users/@me/guilds", headers={"Authorization": f"Bearer {access}"}
         )
     if me.status_code != 200:
-        return RedirectResponse("/")
+        return RedirectResponse("/", status_code=303)
     user = me.json()
     request.session["user"] = {
         "id": str(user["id"]),
@@ -656,21 +657,21 @@ async def callback(request: Request, code: str = "", state: str = "", error: str
     request.session.pop("oauth_state", None)
     nxt = request.session.pop("verify_next", None)
     if nxt:
-        return RedirectResponse(nxt)
-    return RedirectResponse("/dashboard")
+        return RedirectResponse(nxt, status_code=303)
+    return RedirectResponse("/dashboard", status_code=303)
 
 
 @app.get("/logout")
 async def logout(request: Request):
     request.session.clear()
-    return RedirectResponse("/")
+    return RedirectResponse("/", status_code=303)
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     user = current_user(request)
     if not user:
-        return RedirectResponse("/login")
+        return RedirectResponse("/login", status_code=303)
     return templates.TemplateResponse(
         "dashboard.html",
         {
@@ -686,13 +687,13 @@ async def dashboard(request: Request):
 async def guild_page(request: Request, guild_id: str):
     user = current_user(request)
     if not user:
-        return RedirectResponse("/login")
+        return RedirectResponse("/login", status_code=303)
     if not str(guild_id).isdigit():
-        return RedirectResponse("/dashboard")
+        return RedirectResponse("/dashboard", status_code=303)
     guilds = request.session.get("guilds") or []
     guild = next((g for g in guilds if str(g["id"]) == str(guild_id)), None)
     if not guild and not is_owner(request):
-        return RedirectResponse("/dashboard")
+        return RedirectResponse("/dashboard", status_code=303)
     if not guild:
         guild = {"id": guild_id, "name": f"Server {guild_id}", "icon": None}
 
@@ -738,15 +739,15 @@ async def guild_page(request: Request, guild_id: str):
 async def guild_save(request: Request, guild_id: str):
     user = current_user(request)
     if not user:
-        return RedirectResponse("/login")
+        return RedirectResponse("/login", status_code=303)
     guilds = request.session.get("guilds") or []
     if not (any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)):
-        return RedirectResponse("/dashboard")
+        return RedirectResponse("/dashboard", status_code=303)
     form = await request.form()
     if not _check_csrf(request, str(form.get("csrf_token") or "")):
         return RedirectResponse(f"/guild/{guild_id}?err=csrf", status_code=303)
     if not str(guild_id).isdigit():
-        return RedirectResponse("/dashboard")
+        return RedirectResponse("/dashboard", status_code=303)
 
     def _int(name, default=0):
         try:
@@ -912,13 +913,13 @@ async def guild_save(request: Request, guild_id: str):
 async def tickets_page(request: Request, guild_id: str):
     user = current_user(request)
     if not user:
-        return RedirectResponse("/login")
+        return RedirectResponse("/login", status_code=303)
     if not str(guild_id).isdigit():
-        return RedirectResponse("/dashboard")
+        return RedirectResponse("/dashboard", status_code=303)
     guilds = request.session.get("guilds") or []
     guild = next((g for g in guilds if str(g["id"]) == str(guild_id)), None)
     if not guild and not is_owner(request):
-        return RedirectResponse("/dashboard")
+        return RedirectResponse("/dashboard", status_code=303)
     if not guild:
         guild = {"id": guild_id, "name": f"Server {guild_id}", "icon": None}
     bot_present = await check_bot_in_guild(guild_id)
@@ -953,15 +954,15 @@ async def tickets_page(request: Request, guild_id: str):
 async def tickets_save(request: Request, guild_id: str):
     user = current_user(request)
     if not user:
-        return RedirectResponse("/login")
+        return RedirectResponse("/login", status_code=303)
     guilds = request.session.get("guilds") or []
     if not (any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)):
-        return RedirectResponse("/dashboard")
+        return RedirectResponse("/dashboard", status_code=303)
     form = await request.form()
     if not _check_csrf(request, str(form.get("csrf_token") or "")):
         return RedirectResponse(f"/guild/{guild_id}/tickets?err=csrf", status_code=303)
     if not str(guild_id).isdigit():
-        return RedirectResponse("/dashboard")
+        return RedirectResponse("/dashboard", status_code=303)
     config = get_guild_config(guild_id)
     options = []
     for i in range(25):
@@ -1017,7 +1018,7 @@ async def verify_start(request: Request, guild_id: str, token: str = ""):
     user = current_user(request)
     if not user:
         request.session["verify_next"] = f"/verify/{guild_id}?token={token}"
-        return RedirectResponse("/login")
+        return RedirectResponse("/login", status_code=303)
 
     cfg = get_guild_config(guild_id)
     vcfg = cfg.get("verify") or {}
@@ -1103,7 +1104,7 @@ async def verify_start(request: Request, guild_id: str, token: str = ""):
 @app.get("/owner", response_class=HTMLResponse)
 async def owner_page(request: Request):
     if not current_user(request):
-        return RedirectResponse("/login")
+        return RedirectResponse("/login", status_code=303)
     if not is_owner(request):
         return templates.TemplateResponse(
             "index.html",
