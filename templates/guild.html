@@ -364,6 +364,7 @@
     </div>
   </div>
   <div class="head-actions">
+    <a class="btn" href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener">💬 Soporte</a>
     <a class="btn" href="/guild/{{ guild.id }}/tickets">🎫 Tickets</a>
     <button type="button" class="btn" onclick="location.reload()">🔄 Recargar</button>
     <a class="btn" href="/dashboard">← Servidores</a>
@@ -385,6 +386,7 @@
   <a href="#sec-utilidad">🛠️ Utilidad</a>
   <a href="#sec-social">🎭 Social / Fun</a>
   <a href="/guild/{{ guild.id }}/tickets">🎫 Tickets</a>
+  <a href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener">💬 Soporte</a>
 </nav>
 
 <form method="post" action="/guild/{{ guild.id }}/save" id="guildForm">
@@ -479,20 +481,35 @@
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Filtros de spam e invitaciones.</p>
+          <p class="mod-desc">Filtros clásicos de spam e invitaciones (sin IA).</p>
           <div class="mod-settings">
             <div class="mod-settings-inner">
               <label class="check-line">
                 <input type="checkbox" name="automod_anti_invite" {% if config.automod.anti_invite %}checked{% endif %} />
                 Bloquear invitaciones discord.gg
               </label>
+              <div class="fields">
+                <div class="field">
+                  <label>Acción</label>
+                  <select name="automod_action">
+                    {% set ama = config.automod.action or 'delete' %}
+                    <option value="delete" {% if ama == 'delete' %}selected{% endif %}>Borrar mensaje</option>
+                    <option value="timeout" {% if ama == 'timeout' %}selected{% endif %}>Timeout</option>
+                    <option value="warn" {% if ama == 'warn' %}selected{% endif %}>Avisar</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Timeout (min)</label>
+                  <input type="number" name="automod_timeout" min="1" max="10080" value="{{ config.automod.timeout_minutes or 10 }}" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="mod {% if config.ia.enabled and premium %}is-on{% endif %} {% if not premium %}prem-lock{% endif %}" data-mod>
+        <div class="mod mod-wide {% if config.ia.enabled and premium %}is-on{% endif %} {% if not premium %}prem-lock{% endif %}" data-mod>
           <div class="mod-top">
-            <div class="mod-title">IA Anti-Raid <span class="badge badge-gold">Premium</span></div>
+            <div class="mod-title">🤖 IA del servidor <span class="badge badge-gold">Premium</span></div>
             <label class="switch">
               <input type="checkbox" name="ia_enabled" data-toggle
                 {% if config.ia.enabled and premium %}checked{% endif %}
@@ -500,13 +517,72 @@
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Decisiones inteligentes con GROQ ante raids.</p>
+          <p class="mod-desc">Control IA (GROQ): anti-raid, automod inteligente, entrenamiento y filtros.</p>
           <div class="mod-settings">
             <div class="mod-settings-inner">
               {% if not premium %}
-                <p class="hint">Requiere premium del servidor o del usuario.</p>
+                <p class="hint">Requiere premium. El anti-raid normal sigue gratis. ¿Dudas? <a href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener" style="color:var(--od-accent)">Servidor de soporte</a>.</p>
               {% else %}
-                <p class="hint">La IA analiza joins y comportamiento sospechoso automáticamente.</p>
+                {% set ia = config.ia or {} %}
+                <p class="hint" style="margin-bottom:10px">La IA analiza mensajes, joins y comportamiento. Entrena con ejemplos y reglas propias.</p>
+
+                <div style="font-size:0.78rem;color:#94a3b8;font-weight:600;margin:8px 0 4px">Módulos</div>
+                <label class="check-line"><input type="checkbox" name="ia_automod" {% if ia.get('automod', true) %}checked{% endif %} /> Automod IA (mensajes tóxicos / scam)</label>
+                <label class="check-line"><input type="checkbox" name="ia_antiraid" {% if ia.get('antiraid', true) %}checked{% endif %} /> Anti-Raid IA (joins sospechosos)</label>
+                <label class="check-line"><input type="checkbox" name="ia_log_decisions" {% if ia.get('log_decisions', true) %}checked{% endif %} /> Registrar decisiones de la IA en logs</label>
+                <label class="check-line"><input type="checkbox" name="ia_block_invites" {% if ia.get('block_invites', true) %}checked{% endif %} /> Bloquear invites (IA)</label>
+                <label class="check-line"><input type="checkbox" name="ia_block_scams" {% if ia.get('block_scams', true) %}checked{% endif %} /> Bloquear estafas / phishing</label>
+                <label class="check-line"><input type="checkbox" name="ia_block_nsfw_sfw" {% if ia.get('block_nsfw_sfw', false) %}checked{% endif %} /> Bloquear NSFW en canales SFW</label>
+                <label class="check-line"><input type="checkbox" name="ia_nick_filter" {% if ia.get('nick_filter', false) %}checked{% endif %} /> Filtro de apodos ofensivos</label>
+                <label class="check-line"><input type="checkbox" name="ia_auto_slowmode" {% if ia.get('auto_slowmode', false) %}checked{% endif %} /> Slowmode automático si el chat se acelera</label>
+                <label class="check-line"><input type="checkbox" name="ia_immune_admins" {% if ia.get('immune_admins', true) %}checked{% endif %} /> Inmunes: administradores</label>
+                <label class="check-line"><input type="checkbox" name="ia_immune_mods" {% if ia.get('immune_mods', true) %}checked{% endif %} /> Inmunes: moderadores</label>
+
+                <div class="fields" style="margin-top:10px">
+                  <div class="field">
+                    <label>Estrictura</label>
+                    {% set st = ia.get('strictness', 'medium') %}
+                    <select name="ia_strictness">
+                      <option value="soft" {% if st == 'soft' %}selected{% endif %}>Suave</option>
+                      <option value="medium" {% if st == 'medium' %}selected{% endif %}>Media</option>
+                      <option value="strict" {% if st == 'strict' %}selected{% endif %}>Estricta</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Acción máxima</label>
+                    {% set ma = ia.get('max_action', 'timeout') %}
+                    <select name="ia_max_action">
+                      <option value="delete" {% if ma == 'delete' %}selected{% endif %}>Borrar</option>
+                      <option value="timeout" {% if ma == 'timeout' %}selected{% endif %}>Timeout</option>
+                      <option value="kick" {% if ma == 'kick' %}selected{% endif %}>Kick</option>
+                      <option value="ban" {% if ma == 'ban' %}selected{% endif %}>Ban</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Timeout IA (min)</label>
+                    <input type="number" name="ia_timeout_minutes" min="1" max="10080" value="{{ ia.get('timeout_minutes', 10) }}" />
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Palabras bloqueadas (una por línea)</label>
+                  <textarea name="ia_block_words" rows="3" placeholder="scam&#10;nitro free&#10;...">{% if ia.get('block_words') %}{{ ia.block_words | join('\n') if ia.block_words is iterable and ia.block_words is not string else ia.block_words }}{% endif %}</textarea>
+                </div>
+                <div class="field">
+                  <label>Palabras permitidas (whitelist, una por línea)</label>
+                  <textarea name="ia_allow_words" rows="2" placeholder="opcional">{% if ia.get('allow_words') %}{{ ia.allow_words | join('\n') if ia.allow_words is iterable and ia.allow_words is not string else ia.allow_words }}{% endif %}</textarea>
+                </div>
+                <div class="field">
+                  <label>Reglas personalizadas (una por línea)</label>
+                  <textarea name="ia_custom_rules" rows="3" placeholder="No permitir anuncios de otros servers&#10;Castigar impersonación de staff">{% if ia.get('custom_rules') %}{{ ia.custom_rules | join('\n') if ia.custom_rules is iterable and ia.custom_rules is not string else ia.custom_rules }}{% endif %}</textarea>
+                  <p class="hint">La IA las usa como instrucciones extra al moderar.</p>
+                </div>
+                <div class="field">
+                  <label>Entrenamiento — ejemplos (uno por línea)</label>
+                  <textarea name="ia_train_examples" rows="4" placeholder="MAL: 'gratis nitro en discord.gg/xxx' → borrar&#10;OK: 'mira este meme' → ignorar&#10;MAL: insultos graves al staff → timeout">{% if ia.get('train_examples') %}{{ ia.train_examples | join('\n') if ia.train_examples is iterable and ia.train_examples is not string else ia.train_examples }}{% endif %}</textarea>
+                  <p class="hint">Ejemplos de cómo quieres que actúe la IA en tu server.</p>
+                </div>
+                <p class="hint">También puedes entrenar con comandos del bot: <code>o!ia train</code> · Soporte: <a href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener" style="color:var(--od-accent)">discord.gg/CfmZtJZ2w</a></p>
               {% endif %}
             </div>
           </div>
@@ -1054,6 +1130,38 @@
   <div class="footer-bar">
     <button type="button" class="btn" onclick="location.reload()">🔄 Recargar</button>
     <a class="btn" href="/dashboard">Cancelar</a>
+    
+      <div class="section-title" style="margin-top:18px">🤝 Alianzas</div>
+      <div class="mod-grid">
+        <div class="mod {% if config.get('alianzas', {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">🤝 Alianzas (tickets)</div>
+            <label class="switch">
+              <input type="checkbox" name="alianzas_enabled" data-toggle {% if config.get('alianzas', {}).get('enabled') %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Publicar plantillas de tickets de alianza en un canal del servidor.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal de alianzas (ID)</label>
+                <input type="text" name="alianzas_channel" value="{{ config.get('alianzas', {}).get('channel_id', '') }}" placeholder="ID del canal #alianzas" />
+              </div>
+              <label class="check-line">
+                <input type="checkbox" name="alianzas_auto_publish" {% if config.get('alianzas', {}).get('auto_publish', true) %}checked{% endif %} />
+                Activar flujo publicar desde ticket
+              </label>
+              <label class="check-line">
+                <input type="checkbox" name="alianzas_require_invite" {% if config.get('alianzas', {}).get('require_invite', true) %}checked{% endif %} />
+                Exigir invite discord.gg en la plantilla
+              </label>
+              <p class="hint">Crea una categoría de ticket con valor <code>alianza</code>. El usuario envía la plantilla; el staff pulsa <strong>Publicar en alianzas</strong>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
     <button class="btn btn-primary" type="submit">💾 Guardar cambios</button>
   </div>
 </form>
