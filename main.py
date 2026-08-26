@@ -1,4 +1,5 @@
 
+
 """
 Odette Panel — completo
 - OAuth, dashboard, config, tickets, premium guild+user
@@ -48,6 +49,10 @@ PUBLIC_BASE_URL = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
 VERIFY_MIN_ACCOUNT_DAYS = int(os.getenv("VERIFY_MIN_ACCOUNT_DAYS") or "7")
 IP_REPUTATION_KEY = (os.getenv("IP_REPUTATION_KEY") or "").strip()
 BLOCK_VPN = (os.getenv("BLOCK_VPN") or "1").strip() not in ("0", "false", "no")
+BOT_TOKEN = (os.getenv("BOT_TOKEN") or os.getenv("DISCORD_BOT_TOKEN") or "").strip()
+# Permisos invite bot (admin-ish: manage guild, roles, channels, messages, etc.)
+BOT_INVITE_PERMISSIONS = (os.getenv("BOT_INVITE_PERMISSIONS") or "8").strip()  # 8 = Administrator
+BOT_CLIENT_ID = (os.getenv("BOT_CLIENT_ID") or DISCORD_CLIENT_ID or "").strip()
 
 API_BASE = "https://discord.com/api/v10"
 OAUTH_AUTHORIZE = "https://discord.com/api/oauth2/authorize"
@@ -138,7 +143,67 @@ def _public_base() -> str:
 _STATIC = BASE_DIR / "static"
 _STATIC.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
+
+@app.on_event("startup")
+async def _validate_templates():
+    needed = ["base.html", "guild.html", "tickets.html", "bot_missing.html", "index.html"]
+    tdir = BASE_DIR / "templates"
+    print(f"[panel] templates dir: {tdir} exists={tdir.is_dir()}")
+    for n in needed:
+        p = tdir / n
+        ok = p.is_file() and _template_is_html(n)
+        print(f"[panel] template {n}: {'OK' if ok else 'MISSING/INVALID'}")
+        if p.is_file() and not ok:
+            head = p.read_text(encoding="utf-8", errors="ignore")[:80].replace("\n", " ")
+            print(f"[panel]   head: {head!r}")
+
+
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+def _template_is_html(name: str) -> bool:
+    """Evita servir por error un .py u otro archivo como plantilla."""
+    path = BASE_DIR / "templates" / name
+    if not path.is_file():
+        return False
+    try:
+        head = path.read_text(encoding="utf-8", errors="ignore")[:200].lstrip()
+    except Exception:
+        return False
+    # Debe ser Jinja/HTML, nunca código Python del bot
+    if head.startswith("import ") or head.startswith("from "):
+        return False
+    if "{%" in head or "<!DOCTYPE" in head.upper() or "<html" in head.lower() or head.startswith("<"):
+        return True
+    return "{%" in path.read_text(encoding="utf-8", errors="ignore")[:2000]
+
+
+def _safe_template_response(name: str, context: dict, status_code: int = 200):
+    if not _template_is_html(name):
+        print(f"[panel] PLANTILLA INVÁLIDA o ausente: templates/{name}")
+        # Fallback HTML mínimo (no depende de archivos corruptos)
+        guild = context.get("guild") or {}
+        invite = context.get("invite_url") or bot_invite_url(str(guild.get("id") or ""))
+        html = f"""<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Odette Panel</title>
+<style>
+body{{font-family:system-ui,sans-serif;background:#0b0e14;color:#e2e8f0;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}}
+.box{{max-width:480px;padding:28px;border-radius:16px;border:1px solid #1e293b;background:#111827;text-align:center}}
+a.btn{{display:inline-block;margin:8px;padding:12px 20px;border-radius:999px;background:#5865F2;color:#fff;text-decoration:none;font-weight:700}}
+a.sec{{background:transparent;border:1px solid #334155;color:#e2e8f0}}
+p{{color:#94a3b8;line-height:1.5}}
+</style></head><body><div class="box">
+<h1>🦢 Plantilla no encontrada</h1>
+<p>El archivo <code>templates/{name}</code> falta o está corrupto en el servidor
+(a veces se sube el .py del bot por error).</p>
+<p>Sube de nuevo <code>guild.html</code>, <code>base.html</code>, <code>tickets.html</code>
+y <code>bot_missing.html</code> a la carpeta <code>templates/</code> en Render.</p>
+<p><a class="btn" href="{invite}" target="_blank" rel="noopener">Invitar bot</a>
+<a class="btn sec" href="/dashboard">Servidores</a></p>
+</div></body></html>"""
+        return HTMLResponse(html, status_code=500)
+    return templates.TemplateResponse(name, context, status_code=status_code)
+
 
 PANEL_API_TOKEN = _clean_secret(
     os.getenv("PANEL_API_TOKEN") or "yZLUyyjWWSuAYU_hB8u22U3-asSG85fIbP4mKJ_gVRQ"
@@ -465,6 +530,47 @@ async def _ip_is_risky(ip: str) -> tuple[bool, str]:
     return False, "ok"
 
 
+
+def bot_invite_url(guild_id: str | None = None) -> str:
+    """Link de invitación del bot (con guild preseleccionado si se pasa)."""
+    cid = BOT_CLIENT_ID or DISCORD_CLIENT_ID
+    if not cid:
+        return "https://discord.com/oauth2/authorize"
+    params = {
+        "client_id": cid,
+        "permissions": BOT_INVITE_PERMISSIONS,
+        "scope": "bot applications.commands",
+    }
+    if guild_id and str(guild_id).isdigit():
+        params["guild_id"] = str(guild_id)
+        params["disable_guild_select"] = "true"
+    return f"{OAUTH_AUTHORIZE}?{urlencode(params)}"
+
+
+async def check_bot_in_guild(guild_id: str) -> bool:
+    """True si el bot está en el servidor. Si no hay token, no bloqueamos (True)."""
+    if not guild_id or not str(guild_id).isdigit():
+        return False
+    if not BOT_TOKEN:
+        # Sin token no podemos comprobar: no bloquear el panel
+        return True
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(
+                f"{API_BASE}/guilds/{guild_id}",
+                headers={"Authorization": f"Bot {BOT_TOKEN}"},
+            )
+            # 200 = bot en el server; 403/404 = no está o sin acceso
+            if r.status_code == 200:
+                return True
+            if r.status_code in (403, 404):
+                return False
+            # otros errores: no bloquear
+            return True
+    except Exception:
+        return True
+
+
 # ───────────────────────── Rutas web ─────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -581,15 +687,37 @@ async def guild_page(request: Request, guild_id: str):
     user = current_user(request)
     if not user:
         return RedirectResponse("/login")
+    if not str(guild_id).isdigit():
+        return RedirectResponse("/dashboard")
     guilds = request.session.get("guilds") or []
     guild = next((g for g in guilds if str(g["id"]) == str(guild_id)), None)
     if not guild and not is_owner(request):
         return RedirectResponse("/dashboard")
     if not guild:
         guild = {"id": guild_id, "name": f"Server {guild_id}", "icon": None}
+
+    bot_present = await check_bot_in_guild(guild_id)
+    invite = bot_invite_url(guild_id)
+    if not bot_present:
+        return _safe_template_response(
+            "bot_missing.html",
+            {
+                "request": request,
+                "user": user,
+                "is_owner": is_owner(request),
+                "guild": guild,
+                "invite_url": invite,
+            },
+        )
+
     ok_g, st_g = is_premium(guild_id)
     ok_u, st_u = is_user_premium(user["id"])
-    return templates.TemplateResponse(
+    try:
+        config = get_guild_config(guild_id)
+    except Exception as e:
+        print(f"[guild_page] config error {guild_id}: {e}")
+        config = _default_config()
+    return _safe_template_response(
         "guild.html",
         {
             "request": request,
@@ -598,8 +726,10 @@ async def guild_page(request: Request, guild_id: str):
             "guild": guild,
             "premium": ok_g or ok_u,
             "premium_status": st_g if ok_g else (st_u if ok_u else "no"),
-            "config": get_guild_config(guild_id),
+            "config": config,
             "csrf_token": _csrf_token(request),
+            "bot_present": True,
+            "invite_url": invite,
         },
     )
 
@@ -783,19 +913,37 @@ async def tickets_page(request: Request, guild_id: str):
     user = current_user(request)
     if not user:
         return RedirectResponse("/login")
+    if not str(guild_id).isdigit():
+        return RedirectResponse("/dashboard")
     guilds = request.session.get("guilds") or []
     guild = next((g for g in guilds if str(g["id"]) == str(guild_id)), None)
     if not guild and not is_owner(request):
         return RedirectResponse("/dashboard")
     if not guild:
         guild = {"id": guild_id, "name": f"Server {guild_id}", "icon": None}
-    return templates.TemplateResponse(
+    bot_present = await check_bot_in_guild(guild_id)
+    if not bot_present:
+        return _safe_template_response(
+            "bot_missing.html",
+            {
+                "request": request,
+                "user": user,
+                "is_owner": is_owner(request),
+                "guild": guild,
+                "invite_url": bot_invite_url(guild_id),
+            },
+        )
+    try:
+        config = get_guild_config(guild_id)
+    except Exception:
+        config = _default_config()
+    return _safe_template_response(
         "tickets.html",
         {
             "request": request,
             "user": user,
             "guild": guild,
-            "config": get_guild_config(guild_id),
+            "config": config,
             "csrf_token": _csrf_token(request),
         },
     )
