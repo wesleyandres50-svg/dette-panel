@@ -832,8 +832,14 @@ async def guild_save(request: Request, guild_id: str):
     guilds = request.session.get("guilds") or []
     if not (any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)):
         return RedirectResponse("/dashboard", status_code=303)
-    form = await request.form()
-    if not _check_csrf(request, str(form.get("csrf_token") or "")):
+    try:
+        form = await request.form()
+    except Exception as e:
+        print(f"[guild_save] form error: {e}")
+        return RedirectResponse(f"/guild/{guild_id}?err=form", status_code=303)
+    token = str(form.get("csrf_token") or "").strip()
+    if not token or not _check_csrf(request, token):
+        print(f"[guild_save] csrf fail guild={guild_id} token_len={len(token)}")
         return RedirectResponse(f"/guild/{guild_id}?err=csrf", status_code=303)
     if not str(guild_id).isdigit():
         return RedirectResponse("/dashboard", status_code=303)
@@ -1037,7 +1043,12 @@ async def guild_save(request: Request, guild_id: str):
         config["ia"]["enabled"] = False
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
-    save_guild_config(guild_id, config)
+    try:
+        save_guild_config(guild_id, config)
+    except Exception as e:
+        print(f"[guild_save] save error {guild_id}: {e}")
+        return RedirectResponse(f"/guild/{guild_id}?err=save", status_code=303)
+    print(f"[guild_save] OK guild={guild_id}")
     return RedirectResponse(f"/guild/{guild_id}?ok=1", status_code=303)
 
 
