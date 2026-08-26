@@ -9,14 +9,12 @@
     --od-accent-2: #818cf8;
     --od-radius: 16px;
     --od-transition: 0.2s ease;
-
     max-width: 1180px;
     margin: 0 auto;
     padding: 0 10px 70px;
     color: var(--od-text);
   }
 
-  /* === TEMAS === */
   #odPage[data-theme="dark"] {
     --od-bg: #070a10;
     --od-surface: rgba(16, 20, 30, 0.82);
@@ -39,7 +37,6 @@
     --od-card-hover: rgba(var(--od-accent-rgb), 0.08);
   }
 
-  /* ===== HEADER ===== */
   .od-header {
     display: flex;
     align-items: flex-start;
@@ -115,7 +112,6 @@
     box-shadow: 0 4px 20px rgba(var(--od-accent-rgb), 0.4);
   }
 
-  /* Botones de icono */
   .od-icon-btn {
     width: 42px;
     height: 42px;
@@ -135,7 +131,6 @@
     background: var(--od-card-hover);
   }
 
-  /* Dropdowns */
   .od-dropdown {
     position: absolute;
     top: calc(100% + 8px);
@@ -169,7 +164,6 @@
     color: var(--od-accent);
   }
 
-  /* Colores */
   .od-color-row {
     display: flex;
     gap: 8px;
@@ -191,7 +185,6 @@
     box-shadow: 0 0 0 2px var(--od-accent), 0 0 12px rgba(var(--od-accent-rgb), 0.6);
   }
 
-  /* Premium */
   .od-premium {
     display: flex;
     align-items: center;
@@ -251,7 +244,6 @@
     border-radius: 999px;
   }
 
-  /* Stats */
   .od-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -305,7 +297,6 @@
     margin-top: 6px;
   }
 
-  /* Toolbar */
   .od-toolbar {
     display: flex;
     gap: 12px;
@@ -355,7 +346,6 @@
     border-color: rgba(var(--od-accent-rgb), 0.4);
   }
 
-  /* Guilds */
   .od-guilds {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
@@ -419,7 +409,6 @@
     background: var(--od-surface);
   }
 
-  /* Info bubble */
   .od-info {
     position: relative;
     display: inline-flex;
@@ -467,7 +456,6 @@
 
 <div id="odPage" data-theme="dark">
 
-  <!-- HEADER -->
   <div class="od-header">
     <div>
       <div class="od-badge" data-i18n="badge">Panel de control</div>
@@ -478,10 +466,8 @@
     </div>
 
     <div class="od-actions">
-      <!-- Tema -->
       <button type="button" class="od-icon-btn" id="btnTheme" title="Tema">🌙</button>
 
-      <!-- Idioma -->
       <div style="position:relative">
         <button type="button" class="od-icon-btn" id="btnLang" title="Idioma">🇪🇸</button>
         <div class="od-dropdown" id="menuLang">
@@ -495,7 +481,6 @@
         </div>
       </div>
 
-      <!-- Color -->
       <div style="position:relative">
         <button type="button" class="od-icon-btn" id="btnColor" title="Color" style="color:var(--od-accent)">🎨</button>
         <div class="od-dropdown" id="menuColor" style="min-width:auto;padding:12px">
@@ -517,7 +502,6 @@
     </div>
   </div>
 
-  <!-- PREMIUM -->
   <div class="od-premium">
     <div class="left">
       <div class="icon">👑</div>
@@ -535,7 +519,6 @@
     <div class="tickets" data-i18n="tickets">Tickets disponibles: 0</div>
   </div>
 
-  <!-- STATS -->
   <div class="od-stats">
     <div class="od-stat">
       <div class="label">📊 <span data-i18n="stat_admin">Administrables</span>
@@ -567,7 +550,6 @@
     </div>
   </div>
 
-  <!-- TOOLBAR -->
   <div class="od-toolbar">
     <div class="od-search">
       <span class="icon">⌕</span>
@@ -580,7 +562,6 @@
     </div>
   </div>
 
-  <!-- LISTA -->
   {% if guilds %}
   <div class="od-guilds" id="guildList">
     {% for g in guilds|sort(attribute='name') %}
@@ -612,52 +593,49 @@
   const page = document.getElementById('odPage');
   if (!page) return;
 
-  // ========== COLORES ==========
   function setColor(c, r, c2) {
     page.style.setProperty('--od-accent', c);
     page.style.setProperty('--od-accent-rgb', r);
     page.style.setProperty('--od-accent-2', c2);
-    document.getElementById('btnColor').style.color = c;
-
-    // Marcar activo
+    const btnColor = document.getElementById('btnColor');
+    if (btnColor) btnColor.style.color = c;
     document.querySelectorAll('.od-color').forEach(el => {
-      el.classList.toggle('active', el.dataset.c === c);
+      el.classList.toggle('active', el.getAttribute('data-c') === c);
     });
-
-    localStorage.setItem('od-accent', JSON.stringify({ c, r, c2 }));
+    localStorage.setItem('od-accent', JSON.stringify({ c: c, r: r, c2: c2 }));
   }
 
-  // Restaurar color
   try {
     const saved = JSON.parse(localStorage.getItem('od-accent') || 'null');
-    if (saved) setColor(saved.c, saved.r, saved.c2);
+    if (saved && saved.c) setColor(saved.c, saved.r, saved.c2);
   } catch (e) {}
 
-  // Clicks en colores
-  document.querySelectorAll('.od-color').forEach(el => {
+  document.querySelectorAll('.od-color').forEach(function (el) {
     el.addEventListener('click', function (e) {
+      e.preventDefault();
       e.stopPropagation();
-      setColor(this.dataset.c, this.dataset.r, this.dataset['2']);
+      setColor(this.getAttribute('data-c'), this.getAttribute('data-r'), this.getAttribute('data-2'));
       document.getElementById('menuColor').classList.remove('show');
     });
   });
 
-  // ========== TEMA ==========
   const btnTheme = document.getElementById('btnTheme');
-  let theme = localStorage.getItem('od-theme') || 'dark';
+  var theme = localStorage.getItem('od-theme') || 'dark';
   page.setAttribute('data-theme', theme);
-  btnTheme.textContent = theme === 'dark' ? '🌙' : '☀️';
+  if (btnTheme) btnTheme.textContent = theme === 'dark' ? '🌙' : '☀️';
 
-  btnTheme.addEventListener('click', function (e) {
-    e.stopPropagation();
-    theme = theme === 'dark' ? 'light' : 'dark';
-    page.setAttribute('data-theme', theme);
-    btnTheme.textContent = theme === 'dark' ? '🌙' : '☀️';
-    localStorage.setItem('od-theme', theme);
-  });
+  if (btnTheme) {
+    btnTheme.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      theme = theme === 'dark' ? 'light' : 'dark';
+      page.setAttribute('data-theme', theme);
+      btnTheme.textContent = theme === 'dark' ? '🌙' : '☀️';
+      localStorage.setItem('od-theme', theme);
+    });
+  }
 
-  // ========== IDIOMA ==========
-  const i18n = {
+  var i18n = {
     es: {
       badge: "Panel de control", hello: "Hola", subtitle: "Elige un servidor para configurar a Odette",
       support: "Soporte", add_server: "+ Añadir a un servidor",
@@ -801,82 +779,91 @@
   };
 
   function applyLang(lang) {
-    const t = i18n[lang] || i18n.es;
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-      const key = el.getAttribute('data-i18n');
+    var t = i18n[lang] || i18n.es;
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n');
       if (t[key]) el.innerHTML = t[key];
     });
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-      const key = el.getAttribute('data-i18n-placeholder');
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-placeholder');
       if (t[key]) el.placeholder = t[key];
     });
     localStorage.setItem('od-lang', lang);
   }
 
-  const btnLang = document.getElementById('btnLang');
-  const menuLang = document.getElementById('menuLang');
-  let currentLang = localStorage.getItem('od-lang') || 'es';
+  var btnLang = document.getElementById('btnLang');
+  var menuLang = document.getElementById('menuLang');
+  var currentLang = localStorage.getItem('od-lang') || 'es';
   applyLang(currentLang);
 
-  // Marcar idioma activo y bandera
-  menuLang.querySelectorAll('.item').forEach(item => {
-    if (item.dataset.lang === currentLang) {
-      item.classList.add('active');
-      btnLang.textContent = item.dataset.flag;
-    } else {
-      item.classList.remove('active');
-    }
-  });
+  if (menuLang) {
+    menuLang.querySelectorAll('.item').forEach(function (item) {
+      if (item.getAttribute('data-lang') === currentLang) {
+        item.classList.add('active');
+        if (btnLang) btnLang.textContent = item.getAttribute('data-flag') || '🇪🇸';
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
 
-  btnLang.addEventListener('click', function (e) {
-    e.stopPropagation();
-    document.getElementById('menuColor').classList.remove('show');
-    menuLang.classList.toggle('show');
-  });
-
-  menuLang.querySelectorAll('.item').forEach(item => {
-    item.addEventListener('click', function (e) {
+  if (btnLang) {
+    btnLang.addEventListener('click', function (e) {
+      e.preventDefault();
       e.stopPropagation();
-      menuLang.querySelectorAll('.item').forEach(i => i.classList.remove('active'));
-      this.classList.add('active');
-      btnLang.textContent = this.dataset.flag;
-      applyLang(this.dataset.lang);
-      menuLang.classList.remove('show');
+      var menuColor = document.getElementById('menuColor');
+      if (menuColor) menuColor.classList.remove('show');
+      if (menuLang) menuLang.classList.toggle('show');
     });
-  });
+  }
 
-  // ========== MENÚ COLOR ==========
-  const btnColor = document.getElementById('btnColor');
-  const menuColor = document.getElementById('menuColor');
+  if (menuLang) {
+    menuLang.querySelectorAll('.item').forEach(function (item) {
+      item.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        menuLang.querySelectorAll('.item').forEach(function (i) { i.classList.remove('active'); });
+        this.classList.add('active');
+        if (btnLang) btnLang.textContent = this.getAttribute('data-flag') || '🇪🇸';
+        applyLang(this.getAttribute('data-lang'));
+        menuLang.classList.remove('show');
+      });
+    });
+  }
 
-  btnColor.addEventListener('click', function (e) {
-    e.stopPropagation();
-    menuLang.classList.remove('show');
-    menuColor.classList.toggle('show');
-  });
+  var btnColor = document.getElementById('btnColor');
+  var menuColor = document.getElementById('menuColor');
 
-  // Cerrar menús al hacer click fuera
+  if (btnColor) {
+    btnColor.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (menuLang) menuLang.classList.remove('show');
+      if (menuColor) menuColor.classList.toggle('show');
+    });
+  }
+
   document.addEventListener('click', function () {
-    menuLang.classList.remove('show');
-    menuColor.classList.remove('show');
+    if (menuLang) menuLang.classList.remove('show');
+    if (menuColor) menuColor.classList.remove('show');
   });
 
-  // ========== BÚSQUEDA ==========
-  document.getElementById('searchGuild').addEventListener('input', function () {
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('.od-guild').forEach(el => {
-      el.style.display = (el.dataset.name || '').includes(q) ? '' : 'none';
+  var search = document.getElementById('searchGuild');
+  if (search) {
+    search.addEventListener('input', function () {
+      var q = this.value.toLowerCase();
+      document.querySelectorAll('.od-guild').forEach(function (el) {
+        el.style.display = (el.getAttribute('data-name') || '').includes(q) ? '' : 'none';
+      });
     });
-  });
+  }
 
-  // Filtros (solo visual por ahora)
-  document.querySelectorAll('.od-filter').forEach(btn => {
+  document.querySelectorAll('.od-filter').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      document.querySelectorAll('.od-filter').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.od-filter').forEach(function (b) { b.classList.remove('active'); });
       this.classList.add('active');
     });
   });
-
 })();
 </script>
 {% endblock %}
