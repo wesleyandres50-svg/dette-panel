@@ -804,14 +804,44 @@ async def tickets_save(request: Request, guild_id: str):
     if not str(guild_id).isdigit():
         return RedirectResponse("/dashboard")
     config = get_guild_config(guild_id)
+    options = []
+    for i in range(8):
+        label = (form.get(f"tickets_opt_{i}_label") or "").strip()[:100]
+        if not label:
+            continue
+        value = (form.get(f"tickets_opt_{i}_value") or "").strip()[:50]
+        if not value:
+            value = "".join(c for c in label.lower().replace(" ", "-") if c.isalnum() or c in "-_")[:50] or f"opt{i}"
+        options.append({
+            "label": label,
+            "emoji": (form.get(f"tickets_opt_{i}_emoji") or "🎫").strip()[:8] or "🎫",
+            "description": (form.get(f"tickets_opt_{i}_desc") or "").strip()[:100],
+            "value": value,
+        })
+    if not options:
+        options = [
+            {"label": "Soporte", "emoji": "🛠️", "description": "Ayuda general", "value": "soporte"},
+            {"label": "Reporte", "emoji": "🚨", "description": "Reportar usuario", "value": "reporte"},
+        ]
+    panel_desc = (form.get("tickets_panel_message") or "").strip()[:1500]
+    welcome = (form.get("tickets_open_message") or "").strip()[:1500]
+    try:
+        tmax = max(1, min(int(form.get("tickets_max") or 1), 10))
+    except Exception:
+        tmax = 1
     config["tickets"] = {
         "enabled": form.get("tickets_enabled") == "on",
         "channel_id": (form.get("tickets_channel") or "").strip(),
         "category_id": (form.get("tickets_category") or "").strip(),
         "support_role_id": (form.get("tickets_support_role") or "").strip(),
-        "panel_message": (form.get("tickets_panel_message") or "").strip()[:1500],
-        "open_message": (form.get("tickets_open_message") or "").strip()[:1500],
-        "button_label": (form.get("tickets_button_label") or "Abrir ticket").strip()[:80] or "Abrir ticket",
+        "panel_title": (form.get("tickets_panel_title") or "🎫 Soporte").strip()[:100],
+        "panel_description": panel_desc,
+        "panel_message": panel_desc,
+        "welcome_message": welcome,
+        "open_message": welcome,
+        "max_open_per_user": tmax,
+        "options": options,
+        "button_label": "Abrir ticket",
     }
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
