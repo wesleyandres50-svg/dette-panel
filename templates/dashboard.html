@@ -1,107 +1,339 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · Odette{% endblock %}
+
 {% block content %}
 <style>
-  .dash-wrap { max-width: 980px; margin: 0 auto; }
-  .dash-h { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
-  .dash-h h1 { margin:0; font-size:1.45rem; }
-  .prem-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: linear-gradient(135deg, rgba(88,101,242,0.15), rgba(15,23,42,0.9) 55%, rgba(0,0,0,0.4));
-    padding: 18px 20px;
-    margin-bottom: 22px;
+  #odPage {
+    --od-accent: #38bdf8;
+    --od-accent-rgb: 56, 189, 248;
+    --od-accent-2: #818cf8;
+    --od-radius: 16px;
+    --od-transition: 0.2s ease;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 4px 60px;
+    color: var(--od-text);
+  }
+
+  #odPage[data-theme="dark"] {
+    --od-bg: #070a10;
+    --od-surface: rgba(16, 20, 30, 0.82);
+    --od-surface-2: rgba(22, 27, 40, 0.95);
+    --od-border: rgba(255,255,255,0.09);
+    --od-text: #f1f5f9;
+    --od-muted: #94a3b8;
+    --od-glow: rgba(var(--od-accent-rgb), 0.18);
+    --od-card-hover: rgba(var(--od-accent-rgb), 0.1);
+  }
+
+  #odPage[data-theme="light"] {
+    --od-bg: #f1f5f9;
+    --od-surface: rgba(255,255,255,0.9);
+    --od-surface-2: #ffffff;
+    --od-border: rgba(15,23,42,0.1);
+    --od-text: #0f172a;
+    --od-muted: #64748b;
+    --od-glow: rgba(var(--od-accent-rgb), 0.14);
+    --od-card-hover: rgba(var(--od-accent-rgb), 0.08);
+  }
+
+  .od-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 16px;
+    margin-bottom: 22px;
     flex-wrap: wrap;
   }
-  .prem-card.is-on {
-    border-color: rgba(250,204,21,0.35);
-    box-shadow: 0 0 28px rgba(250,204,21,0.08);
+  .od-greeting {
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
-  .prem-art {
-    width: 72px; height: 72px;
-    border-radius: 16px;
-    object-fit: cover;
-    flex-shrink: 0;
-    border: 2px solid rgba(125,211,252,0.35);
-    box-shadow: 0 8px 24px rgba(56,189,248,0.2);
+  .od-greeting .name {
+    background: linear-gradient(90deg, var(--od-accent), var(--od-accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
-  .prem-body { flex: 1; min-width: 200px; }
-  .prem-title {
-    display: flex; align-items: center; gap: 8px;
-    font-weight: 700; font-size: 1.05rem; margin: 0 0 4px;
+  .od-sub {
+    color: var(--od-muted);
+    font-size: 0.9rem;
+    margin-top: 4px;
   }
-  .prem-badge {
-    font-size: 0.72rem; padding: 3px 10px; border-radius: 999px;
-    background: rgba(148,163,184,0.2); color: #cbd5e1;
+
+  .od-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
   }
-  .prem-badge.on {
-    background: rgba(250,204,21,0.2); color: #fde68a;
-  }
-  .prem-desc { margin: 0; color: #94a3b8; font-size: 0.88rem; line-height: 1.4; }
-  .prem-meta {
-    margin-left: auto;
-    text-align: right;
-    font-size: 0.82rem;
-    color: #94a3b8;
-  }
-  .prem-meta strong { display:block; color: #e2e8f0; font-size: 1rem; margin-bottom: 2px; }
-  .guild-grid {
+  .od-icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--od-border);
+    background: var(--od-surface);
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    place-items: center;
+    cursor: pointer;
+    font-size: 1.15rem;
+    color: var(--od-text);
+    transition: all var(--od-transition);
+    position: relative;
+  }
+  .od-icon-btn:hover {
+    border-color: rgba(var(--od-accent-rgb), 0.5);
+    background: var(--od-card-hover);
+  }
+
+  .od-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--od-surface-2);
+    border: 1px solid var(--od-border);
+    border-radius: 14px;
+    padding: 8px;
+    min-width: 160px;
+    box-shadow: 0 16px 50px rgba(0,0,0,0.4);
+    display: none;
+    z-index: 300;
+  }
+  .od-dropdown.show { display: block; }
+  .od-dropdown .item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--od-text);
+  }
+  .od-dropdown .item:hover,
+  .od-dropdown .item.active {
+    background: rgba(var(--od-accent-rgb), 0.15);
+    color: var(--od-accent);
+  }
+
+  .od-color-row {
+    display: flex;
+    gap: 8px;
+    padding: 6px 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .od-color {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .od-color:hover { transform: scale(1.15); }
+  .od-color.active {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px var(--od-accent), 0 0 12px rgba(var(--od-accent-rgb), 0.6);
+  }
+
+  /* Premium card */
+  .od-premium {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: var(--od-surface);
+    border: 1px solid var(--od-border);
+    border-radius: var(--od-radius);
+    padding: 16px 18px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    position: relative;
+    overflow: hidden;
+  }
+  .od-premium.is-on {
+    border-color: rgba(250, 204, 21, 0.35);
+    box-shadow: 0 0 28px rgba(250, 204, 21, 0.08);
+  }
+  .od-premium::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 0% 50%, rgba(var(--od-accent-rgb), 0.14), transparent 55%);
+    pointer-events: none;
+  }
+  .od-premium .left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+  }
+  .od-premium .icon-img {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    object-fit: cover;
+    border: 2px solid rgba(var(--od-accent-rgb), 0.4);
+    box-shadow: 0 6px 18px rgba(var(--od-accent-rgb), 0.25);
+    flex-shrink: 0;
+  }
+  .od-premium .title { font-weight: 600; font-size: 1.02rem; }
+  .od-premium .badge-pill {
+    font-size: 0.72rem;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: rgba(148,163,184,0.15);
+    color: var(--od-muted);
+    margin-left: 6px;
+  }
+  .od-premium .badge-pill.on {
+    background: rgba(250, 204, 21, 0.2);
+    color: #fde68a;
+  }
+  .od-premium .desc {
+    font-size: 0.84rem;
+    color: var(--od-muted);
+    margin-top: 2px;
+  }
+  .od-premium .right {
+    font-size: 0.84rem;
+    color: var(--od-muted);
+    text-align: right;
+  }
+  .od-premium .right strong {
+    display: block;
+    color: var(--od-text);
+    font-size: 0.98rem;
+    margin-bottom: 2px;
+  }
+
+  /* Guilds */
+  .od-section-title {
+    font-size: 1.05rem;
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .od-guilds {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 12px;
   }
-  .guild-card {
-    display: flex; align-items: center; gap: 12px;
-    padding: 14px;
+  .od-guild {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
     border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.03);
-    text-decoration: none; color: inherit;
-    transition: border-color .15s, transform .15s;
+    background: var(--od-surface);
+    border: 1px solid var(--od-border);
+    text-decoration: none;
+    color: inherit;
+    transition: all var(--od-transition);
   }
-  .guild-card:hover { border-color: rgba(56,189,248,0.4); transform: translateY(-1px); }
-  .guild-ico {
-    width: 48px; height: 48px; border-radius: 12px;
-    background: #1e293b; object-fit: cover;
+  .od-guild:hover {
+    border-color: rgba(var(--od-accent-rgb), 0.5);
+    background: var(--od-card-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px var(--od-glow);
   }
-  .guild-ico.ph {
-    display:flex; align-items:center; justify-content:center;
-    font-size: 1.2rem; color: #94a3b8;
+  .od-guild img, .od-guild .fallback {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex-shrink: 0;
   }
-  .guild-name { font-weight: 600; }
-  .guild-id { font-size: 0.72rem; color: #64748b; }
-  .empty { color: #94a3b8; text-align: center; padding: 28px; }
+  .od-guild .fallback {
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    font-size: 1.2rem;
+  }
+  #odPage[data-theme="light"] .od-guild .fallback {
+    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+  }
+  .od-guild .meta { flex: 1; min-width: 0; }
+  .od-guild .name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .od-guild .id {
+    font-size: 0.72rem;
+    color: var(--od-muted);
+    font-family: ui-monospace, monospace;
+    margin-top: 2px;
+  }
+
+  .od-empty {
+    text-align: center;
+    padding: 40px 20px;
+    border: 1px dashed var(--od-border);
+    border-radius: var(--od-radius);
+    color: var(--od-muted);
+    background: var(--od-surface);
+  }
 </style>
 
-<div class="dash-wrap">
-  <div class="dash-h">
-    <h1>Dashboard · Odette</h1>
-    {% if is_owner %}<a class="btn" href="/owner">👑 Owner</a>{% endif %}
+<div id="odPage" data-theme="dark">
+
+  <!-- HEADER con botones de personalización -->
+  <div class="od-header">
+    <div>
+      <div class="od-greeting">
+        Dashboard · <span class="name">Odette</span>
+      </div>
+      <div class="od-sub">Elige un servidor para configurar a Odette</div>
+    </div>
+
+    <div class="od-actions">
+      <!-- Tema -->
+      <button type="button" class="od-icon-btn" id="btnTheme" title="Cambiar tema">🌙</button>
+
+      <!-- Color de acento -->
+      <div style="position:relative">
+        <button type="button" class="od-icon-btn" id="btnColor" title="Color del panel" style="color:var(--od-accent)">🎨</button>
+        <div class="od-dropdown" id="menuColor" style="min-width:auto;padding:12px">
+          <div class="od-color-row">
+            <div class="od-color active" data-c="#38bdf8" data-r="56,189,248" data-2="#818cf8" style="background:#38bdf8"></div>
+            <div class="od-color" data-c="#a78bfa" data-r="167,139,250" data-2="#c4b5fd" style="background:#a78bfa"></div>
+            <div class="od-color" data-c="#2dd4bf" data-r="45,212,191" data-2="#5eead4" style="background:#2dd4bf"></div>
+            <div class="od-color" data-c="#4ade80" data-r="74,222,128" data-2="#86efac" style="background:#4ade80"></div>
+            <div class="od-color" data-c="#fbbf24" data-r="251,191,36" data-2="#fcd34d" style="background:#fbbf24"></div>
+            <div class="od-color" data-c="#f472b6" data-r="244,114,182" data-2="#f9a8d4" style="background:#f472b6"></div>
+            <div class="od-color" data-c="#fb7185" data-r="251,113,133" data-2="#fda4af" style="background:#fb7185"></div>
+            <div class="od-color" data-c="#c084fc" data-r="192,132,252" data-2="#d8b4fe" style="background:#c084fc"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="prem-card {% if user_premium %}is-on{% endif %}">
-    <img class="prem-art" src="/static/premium-eye.jpg" alt="Premium" />
-    <div class="prem-body">
-      <div class="prem-title">
-        👑 Tu premium
+  <!-- PREMIUM -->
+  <div class="od-premium {% if user_premium %}is-on{% endif %}">
+    <div class="left">
+      <img class="icon-img" src="/static/premium-eye.jpg" alt="Premium" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid'">
+      <div class="icon-img" style="display:none; place-items:center; background:rgba(var(--od-accent-rgb),0.18); font-size:1.5rem;">👑</div>
+      <div>
+        <div class="title">
+          👑 Tu premium
+          {% if user_premium %}
+            <span class="badge-pill on">Activo</span>
+          {% else %}
+            <span class="badge-pill">Sin premium</span>
+          {% endif %}
+        </div>
         {% if user_premium %}
-          <span class="prem-badge on">Activo</span>
+          <div class="desc">Tienes premium de usuario activo. Funciones premium del panel y del bot están disponibles según el plan.</div>
         {% else %}
-          <span class="prem-badge">Sin premium</span>
+          <div class="desc">El sistema de actividad y otras funciones necesitan premium.</div>
         {% endif %}
       </div>
-      {% if user_premium %}
-        <p class="prem-desc">Tienes premium de usuario activo. Funciones premium del panel y del bot están disponibles según el plan.</p>
-      {% else %}
-        <p class="prem-desc">El sistema de actividad y otras funciones necesitan premium. Si te lo activan, aquí verás el estado y los días restantes automáticamente.</p>
-      {% endif %}
     </div>
-    <div class="prem-meta">
+    <div class="right">
       {% if user_premium %}
         <strong>{{ user_premium_status }}</strong>
         Estado sincronizado con el bot
@@ -112,25 +344,93 @@
     </div>
   </div>
 
-  <h2 style="font-size:1.05rem;margin:0 0 12px">Tus servidores</h2>
+  <!-- SERVIDORES -->
+  <h2 class="od-section-title">Tus servidores</h2>
+
   {% if guilds %}
-  <div class="guild-grid">
+  <div class="od-guilds">
     {% for g in guilds %}
-      <a class="guild-card" href="/guild/{{ g.id }}">
-        {% if g.icon %}
-          <img class="guild-ico" src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=128" alt="" />
-        {% else %}
-          <div class="guild-ico ph">{{ (g.name or '?')[0] }}</div>
-        {% endif %}
-        <div>
-          <div class="guild-name">{{ g.name }}</div>
-          <div class="guild-id">{{ g.id }}</div>
-        </div>
-      </a>
+    <a class="od-guild" href="/guild/{{ g.id }}">
+      {% if g.icon %}
+        <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=96" alt="">
+      {% else %}
+        <div class="fallback">{{ (g.name or '?')[0] }}</div>
+      {% endif %}
+      <div class="meta">
+        <div class="name">{{ g.name }}</div>
+        <div class="id">{{ g.id }}</div>
+      </div>
+    </a>
     {% endfor %}
   </div>
   {% else %}
-    <div class="empty">No hay servidores. Inicia sesión con una cuenta que administre servers.</div>
+  <div class="od-empty">
+    <p style="margin:0 0 6px;font-size:1rem;font-weight:500">No hay servidores donde seas administrador</p>
+    <p style="margin:0;font-size:0.85rem;opacity:0.8">Asegúrate de que Odette esté en el servidor y tú tengas permisos de Administrador.</p>
+  </div>
   {% endif %}
+
 </div>
+
+<script>
+(function () {
+  const page = document.getElementById('odPage');
+  if (!page) return;
+
+  // ===== COLORES =====
+  function setColor(c, r, c2) {
+    page.style.setProperty('--od-accent', c);
+    page.style.setProperty('--od-accent-rgb', r);
+    page.style.setProperty('--od-accent-2', c2);
+    const btn = document.getElementById('btnColor');
+    if (btn) btn.style.color = c;
+    document.querySelectorAll('.od-color').forEach(el => {
+      el.classList.toggle('active', el.dataset.c === c);
+    });
+    localStorage.setItem('od-accent', JSON.stringify({ c, r, c2 }));
+  }
+
+  try {
+    const saved = JSON.parse(localStorage.getItem('od-accent') || 'null');
+    if (saved) setColor(saved.c, saved.r, saved.c2);
+  } catch (e) {}
+
+  document.querySelectorAll('.od-color').forEach(el => {
+    el.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setColor(this.dataset.c, this.dataset.r, this.dataset['2']);
+      document.getElementById('menuColor').classList.remove('show');
+    });
+  });
+
+  const btnColor = document.getElementById('btnColor');
+  if (btnColor) {
+    btnColor.addEventListener('click', function (e) {
+      e.stopPropagation();
+      document.getElementById('menuColor').classList.toggle('show');
+    });
+  }
+
+  // ===== TEMA =====
+  const btnTheme = document.getElementById('btnTheme');
+  let theme = localStorage.getItem('od-theme') || 'dark';
+  page.setAttribute('data-theme', theme);
+  if (btnTheme) btnTheme.textContent = theme === 'dark' ? '🌙' : '☀️';
+
+  if (btnTheme) {
+    btnTheme.addEventListener('click', function (e) {
+      e.stopPropagation();
+      theme = theme === 'dark' ? 'light' : 'dark';
+      page.setAttribute('data-theme', theme);
+      btnTheme.textContent = theme === 'dark' ? '🌙' : '☀️';
+      localStorage.setItem('od-theme', theme);
+    });
+  }
+
+  // Cerrar dropdowns al hacer clic fuera
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.od-dropdown').forEach(d => d.classList.remove('show'));
+  });
+})();
+</script>
 {% endblock %}
