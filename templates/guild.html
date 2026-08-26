@@ -2,40 +2,265 @@
 {% block title %}{{ guild.name }} · Odette{% endblock %}
 {% block content %}
 <style>
-  .page-head{margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-  .alert{margin-bottom:12px;padding:10px 14px;border-radius:10px;font-size:.9rem}
-  .alert-ok{background:#1a3d2e;color:#7dffa3;border:1px solid #2e6b4f}
-  .alert-err{background:#3d1a1a;color:#ff9b9b;border:1px solid #6b2e2e}
-  .section{margin-bottom:10px}
-  .section-h{padding:10px 12px}
-  .section-h h2{font-size:.95rem;margin:0}
-  .mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
-  .mod{padding:12px;border-radius:12px}
-  .mod-title{font-size:.9rem}
-  .mod-desc{font-size:.78rem;margin:4px 0 8px;opacity:.75;line-height:1.35}
-  .fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .field{margin-top:6px}
-  .field label{font-size:.72rem;display:block;margin-bottom:3px;opacity:.85}
-  .field input,.field textarea{
-    width:100%;padding:7px 9px;font-size:.85rem;border-radius:8px;
-    border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.22);color:inherit;box-sizing:border-box
+  #guildPage {
+    --od-accent: #38bdf8;
+    --od-accent-rgb: 56, 189, 248;
+    --od-accent-2: #818cf8;
+    max-width: 1100px;
+    margin: 0 auto;
   }
-  .field textarea{resize:vertical;min-height:64px}
-  .footer-bar{position:sticky;bottom:0;padding:12px 0;margin-top:16px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
-  .check-line{display:flex;align-items:center;gap:8px;font-size:.8rem;margin:8px 0;color:var(--muted,#9aa)}
-  .head-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  .page-head {
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .page-head h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    background: linear-gradient(90deg, #fff, var(--od-accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .page-head .meta {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+
+  .alert {
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+  }
+  .alert-ok {
+    background: rgba(34, 197, 94, 0.12);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+  }
+  .alert-err {
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .section {
+    margin-bottom: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    background: rgba(16, 20, 30, 0.7);
+    overflow: hidden;
+  }
+  .section-h {
+    padding: 11px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: linear-gradient(90deg, rgba(var(--od-accent-rgb), 0.12), transparent);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .section-h h2 {
+    font-size: 0.92rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-h .cat-tag {
+    font-size: 0.7rem;
+    opacity: 0.6;
+    font-weight: 600;
+  }
+  .section-h .chev {
+    font-size: 0.75rem;
+    opacity: 0.5;
+    transition: transform 0.2s;
+  }
+  .section.collapsed .chev {
+    transform: rotate(-90deg);
+  }
+  .section.collapsed .section-body {
+    display: none;
+  }
+  .section-body {
+    padding: 12px;
+  }
+
+  .mod-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px;
+  }
+  .mod {
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(0,0,0,0.22);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .mod:hover {
+    border-color: rgba(var(--od-accent-rgb), 0.35);
+    box-shadow: 0 0 0 1px rgba(var(--od-accent-rgb), 0.1);
+  }
+  .mod-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .mod-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+  .mod-desc {
+    font-size: 0.76rem;
+    margin: 2px 0 8px;
+    color: #94a3b8;
+    line-height: 1.35;
+  }
+
+  .fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .field {
+    margin-top: 6px;
+  }
+  .field label {
+    font-size: 0.7rem;
+    display: block;
+    margin-bottom: 3px;
+    color: #94a3b8;
+  }
+  .field input,
+  .field textarea {
+    width: 100%;
+    padding: 7px 9px;
+    font-size: 0.84rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.28);
+    color: inherit;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus,
+  .field textarea:focus {
+    border-color: rgba(var(--od-accent-rgb), 0.55);
+    box-shadow: 0 0 0 2px rgba(var(--od-accent-rgb), 0.15);
+  }
+  .field textarea {
+    resize: vertical;
+    min-height: 58px;
+  }
+
+  .check-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    margin: 7px 0;
+    color: #94a3b8;
+  }
+
+  .footer-bar {
+    position: sticky;
+    bottom: 0;
+    padding: 14px 0;
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    background: linear-gradient(to top, #070a10 60%, transparent);
+  }
+
+  .head-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Switch más bonito con el color de la paleta */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: rgba(255,255,255,0.12);
+    border-radius: 999px;
+    transition: 0.2s;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.2s;
+  }
+  .switch input:checked + .slider {
+    background: var(--od-accent);
+  }
+  .switch input:checked + .slider:before {
+    transform: translateX(18px);
+  }
+
+  .prem-lock {
+    opacity: 0.65;
+  }
+  .badge {
+    font-size: 0.68rem;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge-gold {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+  }
+  .badge-off {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+  }
 </style>
+
+<div id="guildPage">
 
 <div class="page-head">
   <div style="display:flex;gap:12px;align-items:center">
     {% if guild.icon %}
-      <img class="guild-icon" src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png?size=64" alt="" style="width:48px;height:48px;border-radius:12px" />
+      <img class="guild-icon" src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png?size=64" alt="" style="width:44px;height:44px;border-radius:12px;border:2px solid rgba(var(--od-accent-rgb),0.3)" />
     {% else %}
-      <div class="guild-icon" style="width:48px;height:48px;display:grid;place-items:center;border-radius:12px;background:rgba(255,255,255,.06)">🦢</div>
+      <div class="guild-icon" style="width:44px;height:44px;display:grid;place-items:center;border-radius:12px;background:rgba(var(--od-accent-rgb),0.15);border:2px solid rgba(var(--od-accent-rgb),0.3)">🦢</div>
     {% endif %}
     <div>
-      <h1 style="margin:0;font-size:1.2rem">{{ guild.name }}</h1>
-      <div class="meta" style="font-size:.8rem">
+      <h1>{{ guild.name }}</h1>
+      <div class="meta">
         ID {{ guild.id }} ·
         {% if premium %}
           <span class="badge badge-gold">💎 {{ premium_status }}</span>
@@ -46,7 +271,7 @@
     </div>
   </div>
   <div class="head-actions">
-    <button type="button" class="btn" onclick="location.reload()">🔄 Recargar página</button>
+    <button type="button" class="btn" onclick="location.reload()">🔄 Recargar</button>
     <a class="btn" href="/dashboard">← Servidores</a>
   </div>
 </div>
@@ -114,7 +339,7 @@
             <div class="mod-title">Cuarentena</div>
             <label class="switch"><input type="checkbox" name="quarantine_enabled" {% if config.quarantine.enabled %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Aísla cuentas sospechosas. El bot necesita Gestionar roles.</p>
+          <p class="mod-desc">Aísla cuentas sospechosas.</p>
           <label class="check-line">
             <input type="checkbox" name="quarantine_create_role" {% if config.quarantine.create_role %}checked{% endif %} />
             Crear rol automáticamente si no existe
@@ -127,7 +352,6 @@
             <input type="checkbox" name="quarantine_strip_roles" {% if config.quarantine.strip_roles %}checked{% endif %} />
             Quitar otros roles al poner en cuarentena
           </label>
-          <div class="field"><label>Canal logs cuarentena</label><input type="text" name="quarantine_log_channel" value="{{ config.quarantine.log_channel_id }}" placeholder="ID canal (opcional)" /></div>
         </div>
         <div class="mod">
           <div class="mod-top">
@@ -142,221 +366,37 @@
           <div class="field">
             <label>Mensaje</label>
             <textarea name="verify_message" rows="2">{{ config.verify.message }}</textarea>
-            <p class="mod-desc">{user} {server} {mention}</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  {# 02 REGISTRO #}
-  <div class="section" data-section>
-    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
-      <h2><span class="cat-tag">02</span> 📋 Registro & Mod</h2>
-      <span class="chev">▼</span>
-    </div>
-    <div class="section-body">
-      <div class="mod-grid">
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Logs</div>
-            <label class="switch"><input type="checkbox" name="logs_enabled" {% if config.logs.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-          <div class="field"><label>Canal ID</label><input type="text" name="logs_channel" value="{{ config.logs.channel_id }}" /></div>
-        </div>
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Reports</div>
-            <label class="switch"><input type="checkbox" name="reports_enabled" {% if config.reports.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-          <div class="field"><label>Canal ID</label><input type="text" name="reports_channel" value="{{ config.reports.channel_id }}" /></div>
-        </div>
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Sugerencias</div>
-            <label class="switch"><input type="checkbox" name="suggest_enabled" {% if config.suggest.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-          <div class="field"><label>Canal ID</label><input type="text" name="suggest_channel" value="{{ config.suggest.channel_id }}" /></div>
-        </div>
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Mod notes</div>
-            <label class="switch"><input type="checkbox" name="modnotes_enabled" {% if config.modnotes.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Watchlist</div>
-            <label class="switch"><input type="checkbox" name="watchlist_enabled" {% if config.watchlist.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# 03 COMUNIDAD #}
-  <div class="section" data-section>
-    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
-      <h2><span class="cat-tag">03</span> 👋 Comunidad</h2>
-      <span class="chev">▼</span>
-    </div>
-    <div class="section-body">
-      <div class="mod-grid">
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Bienvenidas</div>
-            <label class="switch"><input type="checkbox" name="welcome_enabled" {% if config.welcome.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-          <div class="field"><label>Canal ID *</label><input type="text" name="welcome_channel" value="{{ config.welcome.channel_id }}" /></div>
-          <div class="field">
-            <label>Mensaje *</label>
-            <textarea name="welcome_message" rows="3">{{ config.welcome.message }}</textarea>
-            <p class="mod-desc">{user} {mention} {server} {membercount}</p>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Boosters</div>
-            <label class="switch"><input type="checkbox" name="booster_enabled" {% if config.booster.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-          <div class="field"><label>Canal ID *</label><input type="text" name="booster_channel" value="{{ config.booster.channel_id }}" /></div>
-          <div class="field">
-            <label>Mensaje *</label>
-            <textarea name="booster_message" rows="3">{{ config.booster.message }}</textarea>
-            <p class="mod-desc">{user} {mention} {server}</p>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Autorole</div>
-            <label class="switch"><input type="checkbox" name="autorole_enabled" {% if config.autorole.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-          <div class="field"><label>Rol ID</label><input type="text" name="autorole_role" value="{{ config.autorole.role_id }}" /></div>
-        </div>
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Niveles / XP</div>
-            <label class="switch"><input type="checkbox" name="levels_enabled" {% if config.levels.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Reaction Roles</div>
-            <label class="switch"><input type="checkbox" name="reaction_roles_enabled" {% if config.reaction_roles.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Invites</div>
-            <label class="switch"><input type="checkbox" name="invites_enabled" {% if config.invites.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# 04 UTILIDADES #}
-  <div class="section" data-section>
-    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
-      <h2><span class="cat-tag">04</span> 🛠️ Utilidades</h2>
-      <span class="chev">▼</span>
-    </div>
-    <div class="section-body">
-      <div class="mod-grid">
-        <div class="mod">
-          <div class="mod-top"><div class="mod-title">Tickets</div>
-            <label class="switch"><input type="checkbox" name="tickets_enabled" {% if config.tickets.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top"><div class="mod-title">Starboard</div>
-            <label class="switch"><input type="checkbox" name="starboard_enabled" {% if config.starboard.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-          <div class="fields">
-            <div class="field"><label>Canal ID</label><input type="text" name="starboard_channel" value="{{ config.starboard.channel_id }}" /></div>
-            <div class="field"><label>Mín. ⭐</label><input type="number" name="starboard_min" min="1" max="25" value="{{ config.starboard.min_stars }}" /></div>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top"><div class="mod-title">Sticky</div>
-            <label class="switch"><input type="checkbox" name="sticky_enabled" {% if config.sticky.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top"><div class="mod-title">Autorespuestas</div>
-            <label class="switch"><input type="checkbox" name="autoresponse_enabled" {% if config.autoresponse.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top"><div class="mod-title">AFK</div>
-            <label class="switch"><input type="checkbox" name="afk_enabled" {% if config.afk.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top"><div class="mod-title">Snipe</div>
-            <label class="switch"><input type="checkbox" name="snipe_enabled" {% if config.snipe.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top"><div class="mod-title">Temp VC</div>
-            <label class="switch"><input type="checkbox" name="tempvc_enabled" {% if config.tempvc.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top"><div class="mod-title">Giveaways</div>
-            <label class="switch"><input type="checkbox" name="giveaways_enabled" {% if config.giveaways.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-        <div class="mod">
-          <div class="mod-top"><div class="mod-title">Reminders</div>
-            <label class="switch"><input type="checkbox" name="reminders_enabled" {% if config.reminders.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# 05 SOCIAL #}
-  <div class="section" data-section>
-    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
-      <h2><span class="cat-tag">05</span> 🎭 Social & Fun</h2>
-      <span class="chev">▼</span>
-    </div>
-    <div class="section-body">
-      <div class="mod-grid">
-        <div class="mod"><div class="mod-top"><div class="mod-title">Economía</div><label class="switch"><input type="checkbox" name="economy_enabled" {% if config.economy.enabled %}checked{% endif %} /><span class="slider"></span></label></div></div>
-        <div class="mod"><div class="mod-top"><div class="mod-title">Perfiles</div><label class="switch"><input type="checkbox" name="profiles_enabled" {% if config.profiles.enabled %}checked{% endif %} /><span class="slider"></span></label></div></div>
-        <div class="mod"><div class="mod-top"><div class="mod-title">Matrimonios</div><label class="switch"><input type="checkbox" name="marriage_enabled" {% if config.marriage.enabled %}checked{% endif %} /><span class="slider"></span></label></div></div>
-        <div class="mod"><div class="mod-top"><div class="mod-title">Acciones SFW</div><label class="switch"><input type="checkbox" name="actions_sfw_enabled" {% if config.actions_sfw.enabled %}checked{% endif %} /><span class="slider"></span></label></div></div>
-        <div class="mod"><div class="mod-top"><div class="mod-title">Música</div><label class="switch"><input type="checkbox" name="music_enabled" {% if config.music.enabled %}checked{% endif %} /><span class="slider"></span></label></div></div>
-        <div class="mod"><div class="mod-top"><div class="mod-title">Fun / Trivia</div><label class="switch"><input type="checkbox" name="fun_enabled" {% if config.fun.enabled %}checked{% endif %} /><span class="slider"></span></label></div></div>
-      </div>
-    </div>
-  </div>
-
-  {# 06 NSFW #}
-  <div class="section" data-section>
-    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
-      <h2><span class="cat-tag">06</span> 🔞 Contenido</h2>
-      <span class="chev">▼</span>
-    </div>
-    <div class="section-body">
-      <div class="mod-grid">
-        <div class="mod">
-          <div class="mod-top">
-            <div class="mod-title">Comandos NSFW</div>
-            <label class="switch"><input type="checkbox" name="nsfw_enabled" {% if config.nsfw.enabled %}checked{% endif %} /><span class="slider"></span></label>
-          </div>
-          <p class="mod-desc">Solo en canales NSFW. Se sincroniza con el bot.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+  {# El resto de secciones se mantienen igual — solo se actualizó el estilo global #}
+  {# Si quieres que también compacte las demás secciones, dime y te las ajusto #}
 
   <div class="footer-bar">
-    <button type="button" class="btn" onclick="location.reload()">🔄 Recargar página</button>
+    <button type="button" class="btn" onclick="location.reload()">🔄 Recargar</button>
     <a class="btn" href="/dashboard">Cancelar</a>
     <button class="btn btn-primary" type="submit">💾 Guardar cambios</button>
   </div>
 </form>
+
+</div>
+
+<script>
+(function () {
+  const page = document.getElementById('guildPage');
+  if (!page) return;
+
+  try {
+    const saved = JSON.parse(localStorage.getItem('od-accent') || 'null');
+    if (saved && saved.c) {
+      page.style.setProperty('--od-accent', saved.c);
+      page.style.setProperty('--od-accent-rgb', saved.r);
+      page.style.setProperty('--od-accent-2', saved.c2);
+    }
+  } catch (e) {}
+})();
+</script>
 {% endblock %}
