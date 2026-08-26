@@ -500,12 +500,22 @@
                        style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit" />
               </div>
               <div style="grid-column:1/-1">
-                <label style="font-size:0.75rem;opacity:0.75">🖼️ Foto de perfil (URL · solo este server)</label>
+                <label style="font-size:0.75rem;opacity:0.75">🖼️ Foto de perfil (solo este server)</label>
+                {% if bp.avatar_url %}
+                <div style="margin:8px 0;display:flex;align-items:center;gap:10px">
+                  <img src="{{ bp.avatar_url }}" alt="avatar" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.15)" onerror="this.style.display='none'" />
+                  <span style="font-size:0.78rem;opacity:0.7;word-break:break-all">Actual guardada</span>
+                </div>
+                {% endif %}
+                <p style="margin:6px 0 8px;font-size:0.78rem;opacity:0.75">
+                  <b>Recomendado:</b> sube el archivo con el botón de abajo (no pegues base64).<br/>
+                  O en Discord: adjunta imagen y escribe <code>o!setbotavatar</code>
+                </p>
                 <input type="url" name="bot_avatar_url" maxlength="500"
-                       value="{{ bp.avatar_url or '' }}" placeholder="https://i.imgur.com/ejemplo.png"
+                       value="{% if bp.avatar_url and bp.avatar_url.startswith('http') %}{{ bp.avatar_url }}{% endif %}"
+                       placeholder="https://i.imgur.com/ejemplo.png (opcional)"
                        {% if not can_profile %}disabled{% endif %}
-                       style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit" />
-                <p style="margin:6px 0 0;font-size:0.72rem;opacity:0.65">png / jpg / webp. Vacío = quitar foto custom de este server (no cambia el avatar global).</p>
+                       style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit;margin-bottom:8px" />
               </div>
               <div>
                 <label style="font-size:0.75rem;opacity:0.75">Emoji acento</label>
@@ -543,6 +553,28 @@
       </div>
     </div>
   </div>
+
+
+  {% set free_on2 = free_profile|default(false) %}
+  {% set can_upload = premium or free_on2 or is_owner %}
+  {% if can_upload %}
+  <div class="section sec-style" id="sec-avatar-upload" data-section>
+    <div class="section-body">
+      <form method="post" action="/guild/{{ guild.id }}/bot-avatar" enctype="multipart/form-data"
+            style="padding:14px;border:1px dashed rgba(88,101,242,0.45);border-radius:12px;background:rgba(88,101,242,0.08)">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <div style="font-weight:600;margin-bottom:8px">📤 Subir archivo de avatar (este server)</div>
+        <input type="file" name="bot_avatar_file" accept="image/png,image/jpeg,image/webp,image/gif" required />
+        <div style="margin-top:10px">
+          <button type="submit" style="background:#5865f2;color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600">
+            Subir y guardar foto
+          </button>
+        </div>
+        <p style="margin:8px 0 0;font-size:0.75rem;opacity:0.65">png / jpg / webp · máx 8 MB · el bot usará la URL del panel (estable)</p>
+      </form>
+    </div>
+  </div>
+  {% endif %}
 
 <div class="section sec-security" id="sec-seguridad" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
