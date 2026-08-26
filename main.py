@@ -231,7 +231,22 @@ def _load_premium() -> dict:
 def _save_premium(data: dict) -> None:
     data.setdefault("guilds", {})
     data.setdefault("users", {})
+    data.setdefault("free_profile", False)
     PREMIUM_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def is_free_profile() -> bool:
+    try:
+        return bool((_load_premium() or {}).get("free_profile"))
+    except Exception:
+        return False
+
+
+def set_free_profile(on: bool) -> bool:
+    data = _load_premium()
+    data["free_profile"] = bool(on)
+    _save_premium(data)
+    return bool(on)
 
 
 def parse_duration(text: str):
@@ -737,6 +752,7 @@ async def guild_page(request: Request, guild_id: str):
             "csrf_token": _csrf_token(request),
             "bot_present": True,
             "invite_url": invite,
+            "free_profile": is_free_profile(),
         },
     )
 
@@ -905,8 +921,48 @@ async def guild_save(request: Request, guild_id: str):
         _raw_color = "#AFD7E6"
     config["embed_color"] = _raw_color.upper()
 
+    # Free profile global (solo dueña)
+    if is_owner(request):
+        set_free_profile(form.get("free_profile") == "on")
+
+    # Perfil del bot por servidor (estilo MEE6)
     ok_g, _ = is_premium(guild_id)
     ok_u, _ = is_user_premium(user["id"])
+    free_on = is_free_profile()
+    can_profile = bool(ok_g or ok_u or free_on or is_owner(request))
+    prev_bp = (prev.get("bot_profile") or {}) if isinstance(prev.get("bot_profile"), dict) else {}
+    if can_profile:
+        _bn = (form.get("bot_nick") or "").strip()
+        _bf = (form.get("bot_footer") or "").strip()[:100]
+        _be = (form.get("bot_emoji") or "🦢").strip()[:8] or "🦢"
+        _bb = (form.get("bot_bio") or "").strip()[:200]
+        _bc = (form.get("bot_embed_color") or config.get("embed_color") or "#AFD7E6").strip()
+        if not _bc.startswith("#"):
+            _bc = "#" + _bc
+        if len(_bc) != 7:
+            _bc = config.get("embed_color") or "#AFD7E6"
+        try:
+            int(_bc[1:], 16)
+        except Exception:
+            _bc = "#AFD7E6"
+        config["bot_profile"] = {
+            "nick": _bn[:32] if _bn else None,
+            "footer": _bf or "Odette • El Lago de los Cisnes",
+            "accent_emoji": _be,
+            "custom_bio": _bb or None,
+            "embed_color": _bc.upper(),
+            "status_note": prev_bp.get("status_note"),
+        }
+    else:
+        config["bot_profile"] = prev_bp or {
+            "nick": None,
+            "footer": "Odette • El Lago de los Cisnes",
+            "accent_emoji": "🦢",
+            "custom_bio": None,
+            "embed_color": "#AFD7E6",
+            "status_note": None,
+        }
+
     if not (ok_g or ok_u):
         config["ia"]["enabled"] = False
     config["_panel_saved"] = True
@@ -1218,6 +1274,31 @@ async def api_ping(request: Request):
     return {"ok": True, "token_ok": True}
 
 
+
+@app.get("/api/global/free_profile")
+async def api_get_free_profile(request: Request):
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+    return {"free_profile": is_free_profile()}
+
+
+@app.post("/api/global/free_profile")
+async def api_set_free_profile(request: Request):
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    on = bool((body or {}).get("free_profile"))
+    set_free_profile(on)
+    return {"ok": True, "free_profile": on}
+
+
 @app.get("/api/guild/{guild_id}/config")
 async def api_guild_config(guild_id: str, request: Request):
     if not str(guild_id).isdigit():
@@ -1228,10 +1309,23 @@ async def api_guild_config(guild_id: str, request: Request):
         return JSONResponse({"error": "No autorizado"}, status_code=401)
     config = get_guild_config(guild_id)
     ok, status = is_premium(guild_id)
+    free = is_free_profile()
+    # asegurar bot_profile en respuesta
+    if not isinstance(config.get("bot_profile"), dict):
+        config["bot_profile"] = {
+            "nick": None,
+            "footer": "Odette • El Lago de los Cisnes",
+            "accent_emoji": "🦢",
+            "custom_bio": None,
+            "embed_color": config.get("embed_color") or "#AFD7E6",
+            "status_note": None,
+        }
+    config["free_profile"] = free
     return {
         "guild_id": str(guild_id),
         "premium": ok,
         "premium_status": status,
+        "free_profile": free,
         "has_saved": bool(config.get("_panel_saved")),
         "config": config,
     }
