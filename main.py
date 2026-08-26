@@ -1,5 +1,4 @@
 
-
 """
 Odette Panel — completo
 - OAuth, dashboard, config, tickets, premium guild+user
@@ -256,7 +255,31 @@ def _default_config() -> dict:
             "min_account_days": VERIFY_MIN_ACCOUNT_DAYS,
             "block_vpn": True,
         },
-        "logs": {"enabled": False, "channel_id": ""},
+        "logs": {
+            "enabled": False,
+            "channel_id": "",
+            "events": {
+                "message_delete": True,
+                "message_edit": True,
+                "message_bulk": True,
+                "member_join": True,
+                "member_leave": True,
+                "member_ban": True,
+                "member_unban": True,
+                "nickname": True,
+                "roles": True,
+                "avatar": True,
+                "username": True,
+                "timeout": True,
+                "voice": False,
+                "channel_create": True,
+                "channel_delete": True,
+                "role_create": False,
+                "role_delete": False,
+                "invite_create": False,
+                "invite_delete": False,
+            },
+        },
         "ia": {"enabled": False},
         "welcome": {
             "enabled": False,
@@ -600,6 +623,27 @@ async def guild_save(request: Request, guild_id: str):
         "logs": {
             "enabled": form.get("logs_enabled") == "on",
             "channel_id": (form.get("logs_channel") or "").strip(),
+            "events": {
+                "message_delete": form.get("log_ev_message_delete") == "on",
+                "message_edit": form.get("log_ev_message_edit") == "on",
+                "message_bulk": form.get("log_ev_message_bulk") == "on",
+                "member_join": form.get("log_ev_member_join") == "on",
+                "member_leave": form.get("log_ev_member_leave") == "on",
+                "member_ban": form.get("log_ev_member_ban") == "on",
+                "member_unban": form.get("log_ev_member_unban") == "on",
+                "nickname": form.get("log_ev_nickname") == "on",
+                "roles": form.get("log_ev_roles") == "on",
+                "avatar": form.get("log_ev_avatar") == "on",
+                "username": form.get("log_ev_username") == "on",
+                "timeout": form.get("log_ev_timeout") == "on",
+                "voice": form.get("log_ev_voice") == "on",
+                "channel_create": form.get("log_ev_channel_create") == "on",
+                "channel_delete": form.get("log_ev_channel_delete") == "on",
+                "role_create": form.get("log_ev_role_create") == "on",
+                "role_delete": form.get("log_ev_role_delete") == "on",
+                "invite_create": form.get("log_ev_invite_create") == "on",
+                "invite_delete": form.get("log_ev_invite_delete") == "on",
+            },
         },
         "ia": {"enabled": form.get("ia_enabled") == "on"},
         "welcome": {
