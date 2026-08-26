@@ -1,100 +1,391 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · Odette{% endblock %}
+
 {% block content %}
 <style>
-  .dash-head{
-    display:flex;align-items:center;justify-content:space-between;
-    gap:12px;flex-wrap:wrap;margin-bottom:20px;
+  /* ===== Dashboard Odette – estilo propio ===== */
+  :root {
+    --od-bg: #0b0e14;
+    --od-card: rgba(18, 22, 32, 0.75);
+    --od-border: rgba(255,255,255,0.07);
+    --od-accent: #7dd3fc;          /* cian suave */
+    --od-accent2: #a78bfa;         /* violeta */
+    --od-text: #e8eef7;
+    --od-muted: #8b9bb8;
+    --od-radius: 16px;
   }
-  .dash-head h1{margin:0;font-size:1.35rem}
-  .dash-actions{display:flex;gap:8px;flex-wrap:wrap}
-  .guild-list{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
-    gap:12px;
+
+  .od-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
   }
-  .guild-card{
-    display:flex;align-items:center;gap:14px;
-    padding:14px 16px;border-radius:14px;
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.08);
-    text-decoration:none;color:inherit;
-    transition:border-color .15s, background .15s, transform .12s;
+
+  .od-greeting {
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
   }
-  .guild-card:hover{
-    border-color:rgba(175,215,230,.45);
-    background:rgba(175,215,230,.06);
-    transform:translateY(-1px);
+  .od-greeting span {
+    background: linear-gradient(90deg, var(--od-accent), var(--od-accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
-  .guild-card img,.guild-card .g-fallback{
-    width:48px;height:48px;border-radius:12px;object-fit:cover;flex-shrink:0;
+
+  .od-sub {
+    color: var(--od-muted);
+    font-size: 0.9rem;
+    margin-top: 4px;
   }
-  .g-fallback{
-    display:grid;place-items:center;
-    background:linear-gradient(135deg,#2a3a4a,#1a2430);
-    font-size:1.2rem;
+
+  .od-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
   }
-  .guild-meta{min-width:0;flex:1}
-  .guild-meta .name{
-    font-weight:600;font-size:.95rem;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+
+  .od-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--od-border);
+    background: rgba(255,255,255,0.04);
+    color: var(--od-text);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
   }
-  .guild-meta .id{
-    font-size:.75rem;opacity:.55;margin-top:2px;
-    font-family:ui-monospace,monospace;
+  .od-btn:hover {
+    background: rgba(125, 211, 252, 0.12);
+    border-color: rgba(125, 211, 252, 0.35);
   }
-  .guild-arrow{opacity:.35;font-size:.9rem}
-  .empty-box{
-    padding:28px;text-align:center;border-radius:14px;
-    border:1px dashed rgba(255,255,255,.12);opacity:.75;
+  .od-btn.primary {
+    background: linear-gradient(135deg, #38bdf8, #818cf8);
+    border: none;
+    color: #0b0e14;
+    font-weight: 600;
   }
-  .count-pill{
-    font-size:.75rem;padding:3px 10px;border-radius:999px;
-    background:rgba(255,255,255,.06);opacity:.8;
+  .od-btn.primary:hover {
+    filter: brightness(1.08);
+  }
+
+  /* ===== Stats cards ===== */
+  .od-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .od-stat {
+    background: var(--od-card);
+    border: 1px solid var(--od-border);
+    border-radius: var(--od-radius);
+    padding: 18px 20px;
+    backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+  }
+  .od-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 100% 0%, rgba(125,211,252,0.08), transparent 60%);
+    pointer-events: none;
+  }
+  .od-stat .label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--od-muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .od-stat .value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+  .od-stat .hint {
+    font-size: 0.78rem;
+    color: var(--od-muted);
+    margin-top: 4px;
+  }
+
+  /* ===== Premium banner ===== */
+  .od-premium {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: linear-gradient(90deg, rgba(167,139,250,0.12), rgba(125,211,252,0.08));
+    border: 1px solid rgba(167,139,250,0.25);
+    border-radius: var(--od-radius);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .od-premium .left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .od-premium .crown {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(167,139,250,0.2);
+    display: grid;
+    place-items: center;
+    font-size: 1.2rem;
+  }
+  .od-premium .title {
+    font-weight: 600;
+  }
+  .od-premium .desc {
+    font-size: 0.85rem;
+    color: var(--od-muted);
+  }
+
+  /* ===== Filtros + búsqueda ===== */
+  .od-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .od-search {
+    flex: 1;
+    min-width: 220px;
+    position: relative;
+  }
+  .od-search input {
+    width: 100%;
+    padding: 11px 14px 11px 40px;
+    border-radius: 12px;
+    border: 1px solid var(--od-border);
+    background: rgba(255,255,255,0.04);
+    color: var(--od-text);
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .od-search input:focus {
+    border-color: rgba(125,211,252,0.5);
+  }
+  .od-search::before {
+    content: "⌕";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.5;
+    font-size: 1rem;
+  }
+
+  .od-filters {
+    display: flex;
+    gap: 6px;
+  }
+  .od-filter {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--od-border);
+    background: transparent;
+    color: var(--od-muted);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .od-filter.active,
+  .od-filter:hover {
+    background: rgba(125,211,252,0.12);
+    color: var(--od-accent);
+    border-color: rgba(125,211,252,0.3);
+  }
+
+  /* ===== Lista de servidores ===== */
+  .od-guilds {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+  }
+
+  .od-guild {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--od-card);
+    border: 1px solid var(--od-border);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.18s ease;
+  }
+  .od-guild:hover {
+    border-color: rgba(125,211,252,0.4);
+    background: rgba(125,211,252,0.06);
+    transform: translateY(-2px);
+  }
+  .od-guild img,
+  .od-guild .fallback {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .od-guild .fallback {
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    font-size: 1.3rem;
+  }
+  .od-guild .meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .od-guild .name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .od-guild .id {
+    font-size: 0.75rem;
+    color: var(--od-muted);
+    font-family: ui-monospace, monospace;
+    margin-top: 2px;
+  }
+  .od-guild .arrow {
+    opacity: 0.35;
+    font-size: 1.1rem;
+  }
+
+  .od-empty {
+    text-align: center;
+    padding: 48px 24px;
+    border: 1px dashed var(--od-border);
+    border-radius: var(--od-radius);
+    color: var(--od-muted);
   }
 </style>
 
-<div class="dash-head">
+<!-- Header -->
+<div class="od-header">
   <div>
-    <h1>Servidores</h1>
-    <div class="meta" style="margin-top:4px">
-      {% if user %}Hola, <strong>{{ user.username }}</strong> · {% endif %}
-      <span class="count-pill">{{ guilds|length }} servidor{{ 'es' if guilds|length != 1 else '' }}</span>
+    <div class="od-greeting">
+      Hola, <span>{{ user.username if user else "Usuario" }}</span>
     </div>
+    <div class="od-sub">Elige un servidor para configurar a Odette</div>
   </div>
-  <div class="dash-actions">
-    <button type="button" class="btn" onclick="location.reload()">🔄 Recargar página</button>
-    {% if is_owner %}
-      <a class="btn" href="/owner">👑 Owner</a>
-    {% endif %}
-    <a class="btn" href="/logout">Salir</a>
+  <div class="od-actions">
+    <a class="od-btn" href="#">Soporte</a>
+    <a class="od-btn primary" href="#">+ Añadir a un servidor</a>
   </div>
 </div>
 
+<!-- Premium banner -->
+<div class="od-premium">
+  <div class="left">
+    <div class="crown">👑</div>
+    <div>
+      <div class="title">Tu premium · <span style="opacity:.7;font-weight:400">Sin premium</span></div>
+      <div class="desc">El sistema de actividad y otras funciones necesitan premium.</div>
+    </div>
+  </div>
+  <div style="font-size:0.85rem;color:var(--od-muted)">
+    Tickets disponibles: 0
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="od-stats">
+  <div class="od-stat">
+    <div class="label">📊 Administrables</div>
+    <div class="value">{{ guilds|length }}</div>
+    <div class="hint">Servidores donde eres admin</div>
+  </div>
+  <div class="od-stat">
+    <div class="label">🦢 Con Odette</div>
+    <div class="value">0</div>
+    <div class="hint">Listos para configurar</div>
+  </div>
+  <div class="od-stat">
+    <div class="label">📭 Sin el bot</div>
+    <div class="value">{{ guilds|length }}</div>
+    <div class="hint">Invita a Odette para empezar</div>
+  </div>
+  <div class="od-stat">
+    <div class="label">🎫 Tickets</div>
+    <div class="value">0</div>
+    <div class="hint">Con novedades para ti</div>
+  </div>
+</div>
+
+<!-- Toolbar -->
+<div class="od-toolbar">
+  <div class="od-search">
+    <input type="text" id="searchGuild" placeholder="Buscar servidor por nombre..." oninput="filterGuilds()">
+  </div>
+  <div class="od-filters">
+    <button class="od-filter active" data-filter="all" onclick="setFilter(this)">Todos</button>
+    <button class="od-filter" data-filter="with" onclick="setFilter(this)">Con Odette</button>
+    <button class="od-filter" data-filter="without" onclick="setFilter(this)">Sin el bot</button>
+  </div>
+</div>
+
+<!-- Lista de servidores -->
 {% if guilds %}
-  <div class="guild-list">
+  <div class="od-guilds" id="guildList">
     {% for g in guilds|sort(attribute='name') %}
-      <a class="guild-card" href="/guild/{{ g.id }}">
+      <a class="od-guild" href="/guild/{{ g.id }}" data-name="{{ g.name|lower }}">
         {% if g.icon %}
-          <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=96" alt="" />
+          <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=96" alt="">
         {% else %}
-          <div class="g-fallback">🦢</div>
+          <div class="fallback">🦢</div>
         {% endif %}
-        <div class="guild-meta">
+        <div class="meta">
           <div class="name">{{ g.name }}</div>
           <div class="id">{{ g.id }}</div>
         </div>
-        <span class="guild-arrow">→</span>
+        <span class="arrow">→</span>
       </a>
     {% endfor %}
   </div>
 {% else %}
-  <div class="empty-box">
-    <p style="margin:0 0 8px">No hay servidores donde seas admin / gestiones el server.</p>
-    <p style="margin:0;font-size:.85rem;opacity:.7">Asegúrate de que Odette esté en el servidor y tú tengas permisos de Administrador o Gestionar servidor.</p>
-    <p style="margin:14px 0 0">
-      <button type="button" class="btn" onclick="location.reload()">🔄 Recargar página</button>
+  <div class="od-empty">
+    <p style="margin:0 0 8px;font-size:1.05rem">No hay servidores donde seas administrador</p>
+    <p style="margin:0;font-size:0.88rem;opacity:0.75">
+      Asegúrate de que Odette esté en el servidor y tú tengas permisos de Administrador o Gestionar servidor.
     </p>
   </div>
 {% endif %}
+
+<script>
+  function filterGuilds() {
+    const q = document.getElementById('searchGuild').value.toLowerCase();
+    document.querySelectorAll('.od-guild').forEach(el => {
+      const name = el.dataset.name || '';
+      el.style.display = name.includes(q) ? '' : 'none';
+    });
+  }
+
+  function setFilter(btn) {
+    document.querySelectorAll('.od-filter').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Aquí más adelante puedes filtrar por “con bot / sin bot” cuando tengas esa data
+  }
+</script>
 {% endblock %}
