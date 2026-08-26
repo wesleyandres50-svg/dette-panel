@@ -760,21 +760,51 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod {% if config.logs.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod mod-wide {% if config.logs.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
-            <div class="mod-title">Logs</div>
+            <div class="mod-title">📋 Logs (Carl / Wick / Dyno)</div>
             <label class="switch">
               <input type="checkbox" name="logs_enabled" data-toggle {% if config.logs.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Canal de logs de moderación y eventos.</p>
+          <p class="mod-desc">Registro bonito de eventos del servidor. Elige qué se envía al canal.</p>
           <div class="mod-settings">
             <div class="mod-settings-inner">
               <div class="field">
-                <label>Canal ID</label>
-                <input type="text" name="logs_channel" value="{{ config.logs.channel_id }}" />
+                <label>Canal de logs (ID)</label>
+                <input type="text" name="logs_channel" value="{{ config.logs.channel_id }}" placeholder="ID del canal #logs" />
               </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px;flex-wrap:wrap;gap:8px">
+                <span style="font-size:0.78rem;color:#94a3b8;font-weight:600">Eventos a registrar</span>
+                <div style="display:flex;gap:8px">
+                  <button type="button" class="btn" id="logSelectAll" style="font-size:0.75rem;padding:5px 10px">✅ Seleccionar todos</button>
+                  <button type="button" class="btn" id="logSelectNone" style="font-size:0.75rem;padding:5px 10px">⬜ Ninguno</button>
+                </div>
+              </div>
+              {% set ev = config.logs.events or {} %}
+              <div class="log-events-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px">
+                <label class="check-line"><input type="checkbox" name="log_ev_message_delete" class="log-ev" {% if ev.get('message_delete', true) %}checked{% endif %} /> 🗑️ Mensaje borrado (+ imágenes)</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_message_edit" class="log-ev" {% if ev.get('message_edit', true) %}checked{% endif %} /> ✏️ Mensaje editado</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_message_bulk" class="log-ev" {% if ev.get('message_bulk', true) %}checked{% endif %} /> 🗑️🗑️ Borrado masivo</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_member_join" class="log-ev" {% if ev.get('member_join', true) %}checked{% endif %} /> 📥 Entrada de miembro</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_member_leave" class="log-ev" {% if ev.get('member_leave', true) %}checked{% endif %} /> 📤 Salida de miembro</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_member_ban" class="log-ev" {% if ev.get('member_ban', true) %}checked{% endif %} /> 🔨 Ban</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_member_unban" class="log-ev" {% if ev.get('member_unban', true) %}checked{% endif %} /> ♻️ Unban</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_nickname" class="log-ev" {% if ev.get('nickname', true) %}checked{% endif %} /> 📝 Cambio de apodo</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_roles" class="log-ev" {% if ev.get('roles', true) %}checked{% endif %} /> 🎭 Roles</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_avatar" class="log-ev" {% if ev.get('avatar', true) %}checked{% endif %} /> 🖼️ Cambio de avatar</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_username" class="log-ev" {% if ev.get('username', true) %}checked{% endif %} /> 👤 Username</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_timeout" class="log-ev" {% if ev.get('timeout', true) %}checked{% endif %} /> ⏱️ Timeout</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_voice" class="log-ev" {% if ev.get('voice', false) %}checked{% endif %} /> 🔊 Voz (join/leave/move)</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_channel_create" class="log-ev" {% if ev.get('channel_create', true) %}checked{% endif %} /> 📁 Canal creado</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_channel_delete" class="log-ev" {% if ev.get('channel_delete', true) %}checked{% endif %} /> 📁 Canal eliminado</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_role_create" class="log-ev" {% if ev.get('role_create', false) %}checked{% endif %} /> 🏷️ Rol creado</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_role_delete" class="log-ev" {% if ev.get('role_delete', false) %}checked{% endif %} /> 🏷️ Rol eliminado</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_invite_create" class="log-ev" {% if ev.get('invite_create', false) %}checked{% endif %} /> 🔗 Invite creada</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_invite_delete" class="log-ev" {% if ev.get('invite_delete', false) %}checked{% endif %} /> 🔗 Invite eliminada</label>
+              </div>
+              <p class="hint">Los embeds usan colores por tipo (rojo borrados, verde joins, etc.), autor, IDs y previews de imágenes borradas.</p>
             </div>
           </div>
         </div>
@@ -1087,6 +1117,16 @@
   page.querySelectorAll('.color-presets button').forEach(function (btn) {
     btn.addEventListener('click', function () { setColor(btn.getAttribute('data-c')); });
   });
+
+
+  // Log events select all / none
+  const logAll = document.getElementById('logSelectAll');
+  const logNone = document.getElementById('logSelectNone');
+  function setLogEvs(on) {
+    page.querySelectorAll('input.log-ev').forEach(function (c) { c.checked = on; });
+  }
+  if (logAll) logAll.addEventListener('click', function () { setLogEvs(true); });
+  if (logNone) logNone.addEventListener('click', function () { setLogEvs(false); });
 
   // Nav smooth scroll
   page.querySelectorAll('.mod-nav a[href^="#"]').forEach(function (a) {
