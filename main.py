@@ -1,5 +1,4 @@
 
-
 """
 Odette Panel — completo
 - OAuth, dashboard, config, tickets, premium guild+user
@@ -325,6 +324,12 @@ def _default_config() -> dict:
         "starboard": {"enabled": False, "channel_id": "", "min_stars": 3},
         "embed_color": "#AFD7E6",
         "nsfw": {"enabled": True},
+        "alianzas": {
+            "enabled": False,
+            "channel_id": "",
+            "auto_publish": True,
+            "require_invite": True,
+        },
         "raidmode": {"enabled": False},
         "antihoist": {"enabled": False},
         "quarantine": {
@@ -709,6 +714,12 @@ async def guild_save(request: Request, guild_id: str):
             "min_stars": max(1, min(_int("starboard_min", 3), 25)),
         },
         "nsfw": {"enabled": form.get("nsfw_enabled") == "on"},
+        "alianzas": {
+            "enabled": form.get("alianzas_enabled") == "on",
+            "channel_id": (form.get("alianzas_channel") or "").strip(),
+            "auto_publish": form.get("alianzas_auto_publish") == "on",
+            "require_invite": form.get("alianzas_require_invite") == "on",
+        },
         "raidmode": {"enabled": form.get("raidmode_enabled") == "on"},
         "antihoist": {"enabled": form.get("antihoist_enabled") == "on"},
         "quarantine": {
@@ -805,7 +816,7 @@ async def tickets_save(request: Request, guild_id: str):
         return RedirectResponse("/dashboard")
     config = get_guild_config(guild_id)
     options = []
-    for i in range(8):
+    for i in range(25):
         label = (form.get(f"tickets_opt_{i}_label") or "").strip()[:100]
         if not label:
             continue
