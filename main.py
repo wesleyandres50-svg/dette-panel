@@ -477,6 +477,8 @@ def _default_config() -> dict:
             "msg_crime_ok": "Crimen exitoso: +{amount} coins",
             "msg_crime_fail": "Te atraparon: -{amount} coins",
         },
+        "shop": {"enabled": False, "items": []},
+        "reports": {"enabled": False, "channel_id": ""},
         "social": {
             "enabled": False,
             "channel_id": "",
@@ -1048,6 +1050,14 @@ async def guild_save(request: Request, guild_id: str):
             "twitch_on": form.get("social_twitch_on") == "on",
             "message": (form.get("social_message") or "🔔 Nuevo en {platform}: **{title}**\n{url}")[:300],
         },
+        "reports": {
+            "enabled": form.get("reports_enabled") == "on",
+            "channel_id": (form.get("reports_channel_id") or "").strip()[:32],
+        },
+        "shop": {
+            "enabled": form.get("shop_enabled") == "on",
+            "items": _parse_shop_items(form.get("shop_items") or ""),
+        },
         "profiles": {"enabled": form.get("profiles_enabled") == "on"},
         "marriage": {"enabled": form.get("marriage_enabled") == "on"},
         "actions_sfw": {"enabled": form.get("actions_sfw_enabled") == "on"},
@@ -1567,6 +1577,24 @@ async def api_user_premium(user_id: str, request: Request):
         "until": entry.get("until"),
         "label": entry.get("label") or status,
     }
+
+
+
+
+@app.get("/api/premium/export")
+async def api_premium_export(request: Request):
+    """Exporta guilds+users premium para que el bot sincronice 1:1."""
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+    data = _load_premium()
+    return JSONResponse({
+        "guilds": data.get("guilds") or {},
+        "users": data.get("users") or {},
+        "free_profile": bool(data.get("free_profile")),
+        "exported_at": __import__("time").time(),
+    })
 
 
 # ==================== BLACKLIST GLOBAL (panel ↔ bot) ====================
