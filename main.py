@@ -331,7 +331,21 @@ def is_user_premium(user_id):
 
 def _default_config() -> dict:
     return {
-        "anti_raid": {"enabled": False, "max_joins": 5, "window": 10},
+        "anti_raid": {
+            "enabled": False,
+            "max_joins": 5,
+            "window": 10,
+            "account_age_days": 3,
+            "action": "kick",
+            "anti_bot": True,
+            "anti_nuke": {
+                "enabled": True,
+                "max_channel_creates": 2,
+                "max_channel_deletes": 2,
+                "interval": 12,
+                "action": "ban",
+            },
+        },
         "automod": {"enabled": False, "anti_invite": True, "action": "delete", "timeout_minutes": 10},
         "verify": {
             "enabled": False,
@@ -448,7 +462,32 @@ def _default_config() -> dict:
         "tempvc": {"enabled": False},
         "giveaways": {"enabled": True},
         "reminders": {"enabled": True},
-        "economy": {"enabled": True},
+        "economy": {
+            "enabled": True,
+            "daily_min": 100,
+            "daily_max": 500,
+            "work_min": 50,
+            "work_max": 250,
+            "crime_min": 100,
+            "crime_max": 400,
+            "crime_fine": 150,
+            "rob_percent": 15,
+            "msg_daily": "Recibiste {amount} coins · racha {streak}",
+            "msg_work": "Trabajaste y ganaste {amount} coins",
+            "msg_crime_ok": "Crimen exitoso: +{amount} coins",
+            "msg_crime_fail": "Te atraparon: -{amount} coins",
+        },
+        "social": {
+            "enabled": False,
+            "channel_id": "",
+            "youtube": "",
+            "twitch": "",
+            "youtube_on": True,
+            "twitch_on": True,
+            "message": "🔔 Nuevo en {platform}: **{title}**\n{url}",
+            "last_youtube_id": "",
+            "last_twitch_live": False,
+        },
         "profiles": {"enabled": True},
         "marriage": {"enabled": True},
         "actions_sfw": {"enabled": True},
@@ -858,6 +897,16 @@ async def guild_save(request: Request, guild_id: str):
             "enabled": form.get("anti_raid_enabled") == "on",
             "max_joins": max(1, min(_int("anti_raid_max_joins", 5), 50)),
             "window": max(5, min(_int("anti_raid_window", 10), 120)),
+            "account_age_days": max(0, min(_int("anti_raid_account_age", 3), 365)),
+            "action": (form.get("anti_raid_action") or "kick").lower()[:16],
+            "anti_bot": form.get("anti_raid_anti_bot") == "on",
+            "anti_nuke": {
+                "enabled": form.get("anti_raid_nuke_enabled") == "on",
+                "max_channel_creates": max(1, min(_int("anti_raid_nuke_channels", 2), 20)),
+                "max_channel_deletes": max(1, min(_int("anti_raid_nuke_channels", 2), 20)),
+                "interval": max(5, min(_int("anti_raid_nuke_interval", 12), 60)),
+                "action": (form.get("anti_raid_nuke_action") or "ban").lower()[:16],
+            },
         },
         "automod": {
             "enabled": form.get("automod_enabled") == "on",
@@ -975,7 +1024,30 @@ async def guild_save(request: Request, guild_id: str):
         "tempvc": {"enabled": form.get("tempvc_enabled") == "on"},
         "giveaways": {"enabled": form.get("giveaways_enabled") == "on"},
         "reminders": {"enabled": form.get("reminders_enabled") == "on"},
-        "economy": {"enabled": form.get("economy_enabled") == "on"},
+        "economy": {
+            "enabled": form.get("economy_enabled") == "on",
+            "daily_min": max(0, _int("economy_daily_min", 100)),
+            "daily_max": max(0, _int("economy_daily_max", 500)),
+            "work_min": max(0, _int("economy_work_min", 50)),
+            "work_max": max(0, _int("economy_work_max", 250)),
+            "crime_min": max(0, _int("economy_crime_min", 100)),
+            "crime_max": max(0, _int("economy_crime_max", 400)),
+            "crime_fine": max(0, _int("economy_crime_fine", 150)),
+            "rob_percent": max(1, min(_int("economy_rob_percent", 15), 50)),
+            "msg_daily": (form.get("economy_msg_daily") or "Recibiste {amount} coins · racha {streak}")[:200],
+            "msg_work": (form.get("economy_msg_work") or "Trabajaste y ganaste {amount} coins")[:200],
+            "msg_crime_ok": (form.get("economy_msg_crime_ok") or "Crimen exitoso: +{amount} coins")[:200],
+            "msg_crime_fail": (form.get("economy_msg_crime_fail") or "Te atraparon: -{amount} coins")[:200],
+        },
+        "social": {
+            "enabled": form.get("social_enabled") == "on",
+            "channel_id": (form.get("social_channel_id") or "").strip()[:32],
+            "youtube": (form.get("social_youtube") or "").strip()[:120],
+            "twitch": (form.get("social_twitch") or "").strip()[:64],
+            "youtube_on": form.get("social_youtube_on") == "on",
+            "twitch_on": form.get("social_twitch_on") == "on",
+            "message": (form.get("social_message") or "🔔 Nuevo en {platform}: **{title}**\n{url}")[:300],
+        },
         "profiles": {"enabled": form.get("profiles_enabled") == "on"},
         "marriage": {"enabled": form.get("marriage_enabled") == "on"},
         "actions_sfw": {"enabled": form.get("actions_sfw_enabled") == "on"},
@@ -1495,3 +1567,76 @@ async def api_user_premium(user_id: str, request: Request):
         "until": entry.get("until"),
         "label": entry.get("label") or status,
     }
+
+
+# ==================== BLACKLIST GLOBAL (panel ↔ bot) ====================
+BLACKLIST_FILE = Path(os.getenv("DATA_DIR") or "data") / "global_blacklist.json"
+
+def _bl_load() -> dict:
+    try:
+        BLACKLIST_FILE.parent.mkdir(parents=True, exist_ok=True)
+        if BLACKLIST_FILE.exists():
+            import json as _json
+            raw = _json.loads(BLACKLIST_FILE.read_text(encoding="utf-8"))
+            if isinstance(raw, dict) and isinstance(raw.get("users"), dict):
+                return raw
+    except Exception as e:
+        print(f"[blacklist] load: {e}")
+    return {"users": {}}
+
+def _bl_save(data: dict):
+    try:
+        BLACKLIST_FILE.parent.mkdir(parents=True, exist_ok=True)
+        import json as _json
+        BLACKLIST_FILE.write_text(_json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception as e:
+        print(f"[blacklist] save: {e}")
+
+@app.get("/api/blacklist")
+async def api_blacklist_list(request: Request):
+    if not is_owner(request):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    return JSONResponse(_bl_load())
+
+@app.post("/api/blacklist")
+async def api_blacklist_add(request: Request):
+    if not is_owner(request):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "json"}, status_code=400)
+    uid = str(body.get("user_id") or "").strip()
+    if not uid.isdigit() or not (16 <= len(uid) <= 22):
+        return JSONResponse({"ok": False, "error": "id inválido"}, status_code=400)
+    reason = str(body.get("reason") or "panel")[:200]
+    data = _bl_load()
+    data.setdefault("users", {})[uid] = {
+        "reason": reason,
+        "source": "panel",
+        "added_by": str((current_user(request) or {}).get("id") or ""),
+        "at": __import__("time").time(),
+    }
+    _bl_save(data)
+    return JSONResponse({"ok": True})
+
+@app.delete("/api/blacklist/{user_id}")
+async def api_blacklist_del(request: Request, user_id: str):
+    if not is_owner(request):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    data = _bl_load()
+    data.get("users", {}).pop(str(user_id), None)
+    _bl_save(data)
+    return JSONResponse({"ok": True})
+
+@app.get("/api/blacklist/export")
+async def api_blacklist_export(request: Request):
+    """El bot puede leer con Bearer PANEL_API_TOKEN."""
+    auth = (request.headers.get("Authorization") or "").replace("Bearer", "").strip()
+    token = (os.getenv("PANEL_API_TOKEN") or "").strip()
+    if not token or auth != token:
+        # también owner sesión
+        if not is_owner(request):
+            return JSONResponse({"error": "unauthorized"}, status_code=401)
+    return JSONResponse(_bl_load())
+
