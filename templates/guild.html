@@ -444,6 +444,7 @@
   <a href="#sec-moderacion">📋 Moderación</a>
   <a href="#sec-utilidad">🛠️ Utilidad</a>
   <a href="#sec-social">🎭 Social / Fun</a>
+  <a href="#sec-shop">🛒 Tienda</a>
   <a href="#sec-economy">💰 Economía</a>
   <a href="#sec-socialnet">📣 Redes</a>
   <a href="#sec-antiraid">🛡️ Anti-Raid+</a>
@@ -1356,6 +1357,57 @@
   
   {# ══════════════ 06 TICKETS / ALIANZAS ══════════════ #}
   
+
+  <!-- SHOP + REPORTS -->
+  <div class="section sec-util" id="sec-shop" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">SH</span> Tienda & Reportes</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% set shop = config.shop or {} %}
+      {% set reps = config.reports or {} %}
+      <div class="mod mod-wide {% if shop.get('enabled') %}is-on{% endif %}" data-mod>
+        <div class="mod-top">
+          <div class="mod-title">🛒 Tienda de roles (coins)</div>
+          <label class="switch">
+            <input type="checkbox" name="shop_enabled" data-toggle {% if shop.get('enabled') %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">Los miembros compran roles con <code>o!shop</code> / <code>o!buy</code>.</p>
+        <div class="mod-settings">
+          <div class="mod-settings-inner">
+            <div class="field">
+              <label>Ítems (una línea por rol)</label>
+              <textarea name="shop_items" rows="5" placeholder="ROLE_ID|PRECIO|Nombre&#10;123456789012345678|500|VIP">{% for it in (shop.get('items') or []) %}{{ it.role_id }}|{{ it.price }}|{{ it.name }}
+{% endfor %}</textarea>
+              <p class="hint">Formato: <code>id_del_rol|precio|nombre</code></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mod mod-wide {% if reps.get('enabled') %}is-on{% endif %}" data-mod>
+        <div class="mod-top">
+          <div class="mod-title">🚨 Reportes de usuarios</div>
+          <label class="switch">
+            <input type="checkbox" name="reports_enabled" data-toggle {% if reps.get('enabled') %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc"><code>o!report @user motivo</code> → canal staff.</p>
+        <div class="mod-settings">
+          <div class="mod-settings-inner">
+            <div class="field">
+              <label>Canal de reportes (ID)</label>
+              <input type="text" name="reports_channel_id" value="{{ reps.get('channel_id','') }}" placeholder="ID canal staff" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== ECONOMÍA ===== -->
   <div class="section sec-economy" id="sec-economy" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
