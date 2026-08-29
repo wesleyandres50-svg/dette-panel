@@ -110,12 +110,64 @@
   .section.collapsed .section-body { display: none; }
   .section-body { padding: 14px; }
 
-  .sec-security .section-h { background: linear-gradient(100deg, rgba(248, 113, 113, 0.14), transparent 55%); }
-  .sec-community .section-h { background: linear-gradient(100deg, rgba(56, 189, 248, 0.14), transparent 55%); }
-  .sec-mod .section-h { background: linear-gradient(100deg, rgba(251, 191, 36, 0.12), transparent 55%); }
-  .sec-fun .section-h { background: linear-gradient(100deg, rgba(167, 139, 250, 0.14), transparent 55%); }
-  .sec-util .section-h { background: linear-gradient(100deg, rgba(74, 222, 128, 0.12), transparent 55%); }
-  .sec-style .section-h { background: linear-gradient(100deg, rgba(244, 114, 182, 0.14), transparent 55%); }
+  /* Estilo plano tipo Dyno/Carl — sin degradados “IA” */
+  .sec-security .section-h,
+  .sec-community .section-h,
+  .sec-mod .section-h,
+  .sec-fun .section-h,
+  .sec-util .section-h,
+  .sec-style .section-h,
+  .sec-economy .section-h,
+  .sec-socialnet .section-h,
+  .sec-owner .section-h {
+    background: #1e1f22;
+    border-bottom: 1px solid #2b2d31;
+  }
+  .section {
+    background: #2b2d31 !important;
+    border: 1px solid #1e1f22 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+  .mod {
+    background: #1e1f22 !important;
+    border: 1px solid #3f4147 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+  .mod-title { font-weight: 600; letter-spacing: 0; }
+  .cat-tag {
+    background: #5865f2 !important;
+    color: #fff !important;
+    border-radius: 4px !important;
+    font-family: ui-monospace, monospace;
+  }
+  .page-head h1 { font-weight: 700; letter-spacing: -0.02em; }
+  .mod-nav {
+    background: #1e1f22;
+    border: 1px solid #3f4147;
+    border-radius: 8px;
+  }
+  .mod-nav a {
+    border-radius: 6px;
+    font-size: 0.82rem;
+  }
+  .btn, button.btn {
+    border-radius: 6px !important;
+    box-shadow: none !important;
+  }
+  .badge-gold { background: #5865f2 !important; color: #fff !important; }
+  #guildPage {
+    --od-accent: #5865f2;
+    --od-accent-rgb: 88, 101, 242;
+    --od-accent-2: #4752c4;
+  }
+  .bl-table { width:100%; border-collapse: collapse; font-size:0.85rem; }
+  .bl-table th, .bl-table td { border-bottom:1px solid #3f4147; padding:8px 6px; text-align:left; }
+  .bl-table th { color:#b5bac1; font-weight:600; }
+  details.ar-more { margin-top:10px; }
+  details.ar-more summary { cursor:pointer; color:#b5bac1; font-size:0.85rem; }
+
 
   .mod-grid {
     display: grid;
@@ -392,6 +444,10 @@
   <a href="#sec-moderacion">📋 Moderación</a>
   <a href="#sec-utilidad">🛠️ Utilidad</a>
   <a href="#sec-social">🎭 Social / Fun</a>
+  <a href="#sec-economy">💰 Economía</a>
+  <a href="#sec-socialnet">📣 Redes</a>
+  <a href="#sec-antiraid">🛡️ Anti-Raid+</a>
+  {% if is_owner %}<a href="#sec-owner">👑 Owner</a>{% endif %}
   <a href="#sec-tickets">🎫 Tickets</a>
   <a href="/guild/{{ guild.id }}/tickets">⚙️ Config tickets</a>
   <a href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener">💬 Soporte</a>
@@ -569,28 +625,76 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod {% if config.anti_raid.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod mod-wide {% if config.anti_raid.enabled %}is-on{% endif %}" data-mod id="sec-antiraid">
           <div class="mod-top">
-            <div class="mod-title">Anti-Raid</div>
+            <div class="mod-title">Anti-Raid + Anti-Nuke</div>
             <label class="switch">
               <input type="checkbox" name="anti_raid_enabled" data-toggle {% if config.anti_raid.enabled %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Limita joins masivos en una ventana de tiempo.</p>
+          <p class="mod-desc">Joins masivos, bots, cuentas nuevas y nuke (canales/roles).</p>
           <div class="mod-settings">
             <div class="mod-settings-inner">
+              {% set ar = config.anti_raid or {} %}
               <div class="fields">
                 <div class="field">
                   <label>Máx. joins</label>
-                  <input type="number" name="anti_raid_max_joins" min="1" max="50" value="{{ config.anti_raid.max_joins }}" />
+                  <input type="number" name="anti_raid_max_joins" min="1" max="50" value="{{ ar.max_joins or 5 }}" />
                 </div>
                 <div class="field">
                   <label>Ventana (s)</label>
-                  <input type="number" name="anti_raid_window" min="5" max="120" value="{{ config.anti_raid.window }}" />
+                  <input type="number" name="anti_raid_window" min="5" max="120" value="{{ ar.window or 10 }}" />
+                </div>
+                <div class="field">
+                  <label>Edad mín. cuenta (días)</label>
+                  <input type="number" name="anti_raid_account_age" min="0" max="365" value="{{ ar.account_age_days or 3 }}" />
+                </div>
+                <div class="field">
+                  <label>Acción</label>
+                  <select name="anti_raid_action">
+                    {% set ara = ar.action or 'kick' %}
+                    <option value="kick" {% if ara == 'kick' %}selected{% endif %}>Kick</option>
+                    <option value="ban" {% if ara == 'ban' %}selected{% endif %}>Ban</option>
+                    <option value="timeout" {% if ara == 'timeout' %}selected{% endif %}>Timeout</option>
+                  </select>
                 </div>
               </div>
-              <p class="hint">Ej: 5 joins en 10s → se activa la protección.</p>
+              <label class="check-line">
+                <input type="checkbox" name="anti_raid_anti_bot" {% if ar.get('anti_bot', True) %}checked{% endif %} />
+                Bloquear bots no autorizados al entrar
+              </label>
+              <details class="ar-more" open>
+                <summary>▸ Anti-Nuke (canales / roles)</summary>
+                <div class="fields" style="margin-top:10px">
+                  <div class="field">
+                    <label>Anti-Nuke</label>
+                    <label class="switch">
+                      <input type="checkbox" name="anti_raid_nuke_enabled" {% if ar.get('anti_nuke', {}).get('enabled', True) %}checked{% endif %} />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                  <div class="field">
+                    <label>Máx. canales creados</label>
+                    <input type="number" name="anti_raid_nuke_channels" min="1" max="20" value="{{ ar.get('anti_nuke', {}).get('max_channel_creates', ar.get('anti_nuke', {}).get('max_channel_deletes', 2)) }}" />
+                  </div>
+                  <div class="field">
+                    <label>Intervalo nuke (s)</label>
+                    <input type="number" name="anti_raid_nuke_interval" min="5" max="60" value="{{ ar.get('anti_nuke', {}).get('interval', 12) }}" />
+                  </div>
+                  <div class="field">
+                    <label>Acción nuke</label>
+                    <select name="anti_raid_nuke_action">
+                      {% set na = ar.get('anti_nuke', {}).get('action', 'ban') %}
+                      <option value="ban" {% if na == 'ban' %}selected{% endif %}>Ban</option>
+                      <option value="kick" {% if na == 'kick' %}selected{% endif %}>Kick</option>
+                      <option value="timeout" {% if na == 'timeout' %}selected{% endif %}>Timeout</option>
+                    </select>
+                  </div>
+                </div>
+                <p class="hint">Si un bot crea varios canales en segundos → ban + blacklist global (Odette).</p>
+              </details>
+              <p class="hint">Los cambios se sincronizan con el bot (~40s o <code>o!panelsync</code>).</p>
             </div>
           </div>
         </div>
@@ -1251,7 +1355,153 @@
 
   
   {# ══════════════ 06 TICKETS / ALIANZAS ══════════════ #}
-  <div class="section sec-tickets" id="sec-tickets" data-section>
+  
+  <!-- ===== ECONOMÍA ===== -->
+  <div class="section sec-economy" id="sec-economy" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">$$</span> Economía</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% set eco = config.economy or {} %}
+      <div class="mod mod-wide {% if eco.get('enabled', True) %}is-on{% endif %}" data-mod>
+        <div class="mod-top">
+          <div class="mod-title">Sistema de economía</div>
+          <label class="switch">
+            <input type="checkbox" name="economy_enabled" data-toggle {% if eco.get('enabled', True) %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">Mensajes y cantidades (estilo UnbelievaBoat). El bot usará estos valores al sincronizar.</p>
+        <div class="mod-settings">
+          <div class="mod-settings-inner">
+            <div class="fields">
+              <div class="field"><label>Daily (mín)</label><input type="number" name="economy_daily_min" min="0" value="{{ eco.get('daily_min', 100) }}" /></div>
+              <div class="field"><label>Daily (máx)</label><input type="number" name="economy_daily_max" min="0" value="{{ eco.get('daily_max', 500) }}" /></div>
+              <div class="field"><label>Work (mín)</label><input type="number" name="economy_work_min" min="0" value="{{ eco.get('work_min', 50) }}" /></div>
+              <div class="field"><label>Work (máx)</label><input type="number" name="economy_work_max" min="0" value="{{ eco.get('work_max', 250) }}" /></div>
+              <div class="field"><label>Crime éxito (mín)</label><input type="number" name="economy_crime_min" min="0" value="{{ eco.get('crime_min', 100) }}" /></div>
+              <div class="field"><label>Crime éxito (máx)</label><input type="number" name="economy_crime_max" min="0" value="{{ eco.get('crime_max', 400) }}" /></div>
+              <div class="field"><label>Crime fallo (multa)</label><input type="number" name="economy_crime_fine" min="0" value="{{ eco.get('crime_fine', 150) }}" /></div>
+              <div class="field"><label>Robo máx %</label><input type="number" name="economy_rob_percent" min="1" max="50" value="{{ eco.get('rob_percent', 15) }}" /></div>
+            </div>
+            <div class="field" style="margin-top:10px">
+              <label>Mensaje daily</label>
+              <input type="text" name="economy_msg_daily" maxlength="200" value="{{ eco.get('msg_daily', 'Recibiste {amount} coins · racha {streak}') }}" />
+            </div>
+            <div class="field">
+              <label>Mensaje work</label>
+              <input type="text" name="economy_msg_work" maxlength="200" value="{{ eco.get('msg_work', 'Trabajaste y ganaste {amount} coins') }}" />
+            </div>
+            <div class="field">
+              <label>Mensaje crime OK</label>
+              <input type="text" name="economy_msg_crime_ok" maxlength="200" value="{{ eco.get('msg_crime_ok', 'Crimen exitoso: +{amount} coins') }}" />
+            </div>
+            <div class="field">
+              <label>Mensaje crime fail</label>
+              <input type="text" name="economy_msg_crime_fail" maxlength="200" value="{{ eco.get('msg_crime_fail', 'Te atraparon: -{amount} coins') }}" />
+            </div>
+            <p class="hint">Placeholders: <code>{amount}</code> <code>{streak}</code> <code>{user}</code></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== REDES SOCIALES ===== -->
+  <div class="section sec-socialnet" id="sec-socialnet" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">IG</span> Redes sociales</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% set soc = config.social or {} %}
+      <div class="mod mod-wide {% if soc.get('enabled') %}is-on{% endif %}" data-mod>
+        <div class="mod-top">
+          <div class="mod-title">Notificaciones de redes</div>
+          <label class="switch">
+            <input type="checkbox" name="social_enabled" data-toggle {% if soc.get('enabled') %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">Avisa en un canal cuando haya contenido nuevo (YouTube / Twitch). Accesible para todos los admins del server.</p>
+        <div class="mod-settings">
+          <div class="mod-settings-inner">
+            <div class="fields">
+              <div class="field">
+                <label>Canal de avisos (ID)</label>
+                <input type="text" name="social_channel_id" placeholder="ID del canal de texto" value="{{ soc.get('channel_id', '') }}" />
+              </div>
+              <div class="field">
+                <label>YouTube (canal o @handle)</label>
+                <input type="text" name="social_youtube" placeholder="@MiCanal o UC..." value="{{ soc.get('youtube', '') }}" />
+              </div>
+              <div class="field">
+                <label>Twitch (usuario)</label>
+                <input type="text" name="social_twitch" placeholder="nombre_twitch" value="{{ soc.get('twitch', '') }}" />
+              </div>
+              <div class="field">
+                <label>Mensaje plantilla</label>
+                <input type="text" name="social_message" maxlength="300" value="{{ soc.get('message', '🔔 Nuevo en {platform}: **{title}**\n{url}') }}" />
+              </div>
+            </div>
+            <label class="check-line">
+              <input type="checkbox" name="social_youtube_on" {% if soc.get('youtube_on', True) %}checked{% endif %} />
+              Activar YouTube
+            </label>
+            <label class="check-line">
+              <input type="checkbox" name="social_twitch_on" {% if soc.get('twitch_on', True) %}checked{% endif %} />
+              Activar Twitch (en directo)
+            </label>
+            <p class="hint">El bot revisa periódicamente y publica en el canal. Usa <code>o!panelsync</code> tras guardar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if is_owner %}
+  <!-- ===== OWNER BLACKLIST ===== -->
+  <div class="section sec-owner" id="sec-owner" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">OW</span> Owner · Blacklist global</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod mod-wide is-on">
+        <div class="mod-top">
+          <div class="mod-title">⛔ Blacklist global</div>
+        </div>
+        <p class="mod-desc">Solo la dueña. Quien esté aquí es baneado al entrar a cualquier server con Odette.</p>
+        <div class="mod-settings" style="display:block">
+          <div class="mod-settings-inner">
+            <div class="fields">
+              <div class="field">
+                <label>User / Bot ID</label>
+                <input type="text" id="blUserId" placeholder="123456789012345678" />
+              </div>
+              <div class="field">
+                <label>Razón</label>
+                <input type="text" id="blReason" placeholder="raid / nuke" value="panel" />
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
+              <button type="button" class="btn" id="blAddBtn" style="background:#ed4245">Añadir a blacklist</button>
+              <button type="button" class="btn" id="blRefreshBtn">Actualizar lista</button>
+            </div>
+            <div id="blStatus" class="hint"></div>
+            <table class="bl-table" id="blTable">
+              <thead><tr><th>ID</th><th>Razón</th><th>Fuente</th><th></th></tr></thead>
+              <tbody id="blBody"><tr><td colspan="4">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+<div class="section sec-tickets" id="sec-tickets" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">06</span> 🎫 Tickets y alianzas</h2>
       <span class="chev">▼</span>
@@ -1418,6 +1668,57 @@
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
+
+  // Owner blacklist
+  (function(){
+    const body = document.getElementById('blBody');
+    if (!body) return;
+    const status = document.getElementById('blStatus');
+    async function loadBl() {
+      try {
+        const r = await fetch('/api/blacklist', { credentials: 'same-origin' });
+        const data = await r.json();
+        const users = data.users || {};
+        const ids = Object.keys(users);
+        if (!ids.length) {
+          body.innerHTML = '<tr><td colspan="4">Lista vacía</td></tr>';
+          return;
+        }
+        body.innerHTML = ids.map(function(id){
+          const e = users[id] || {};
+          return '<tr><td><code>'+id+'</code></td><td>'+(e.reason||'')+'</td><td>'+(e.source||'')+'</td>'
+            +'<td><button type="button" class="btn bl-del" data-id="'+id+'" style="padding:4px 8px;font-size:0.75rem">Quitar</button></td></tr>';
+        }).join('');
+        body.querySelectorAll('.bl-del').forEach(function(btn){
+          btn.addEventListener('click', async function(){
+            const id = btn.getAttribute('data-id');
+            await fetch('/api/blacklist/'+id, { method: 'DELETE', credentials: 'same-origin' });
+            loadBl();
+          });
+        });
+      } catch (e) {
+        body.innerHTML = '<tr><td colspan="4">Error al cargar</td></tr>';
+      }
+    }
+    const addBtn = document.getElementById('blAddBtn');
+    if (addBtn) addBtn.addEventListener('click', async function(){
+      const id = (document.getElementById('blUserId').value || '').trim();
+      const reason = (document.getElementById('blReason').value || 'panel').trim();
+      if (!/^\d{16,20}$/.test(id)) { if(status) status.textContent = 'ID inválido'; return; }
+      const r = await fetch('/api/blacklist', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: id, reason: reason })
+      });
+      const data = await r.json();
+      if (status) status.textContent = data.ok ? 'Añadido.' : (data.error || 'Error');
+      loadBl();
+    });
+    const ref = document.getElementById('blRefreshBtn');
+    if (ref) ref.addEventListener('click', loadBl);
+    loadBl();
+  })();
+
 })();
 </script>
 {% endblock %}
