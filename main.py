@@ -918,6 +918,69 @@ async def guild_bot_avatar_upload(request: Request, guild_id: str):
 
 
 @app.post("/guild/{guild_id}/save")
+
+def _parse_shop_items(raw) -> list:
+    """Parsea items de tienda desde texto del formulario.
+    Formatos aceptados (uno por línea):
+      nombre | precio | descripción
+      nombre;precio;descripción
+    O JSON: [{"name":"...","price":100,"description":"..."}]
+    """
+    if raw is None:
+        return []
+    if hasattr(raw, "filename") and hasattr(raw, "file"):
+        return []
+    text = str(raw).strip()
+    if not text:
+        return []
+    # JSON
+    if text.startswith("["):
+        try:
+            data = json.loads(text)
+            if isinstance(data, list):
+                out = []
+                for it in data[:50]:
+                    if not isinstance(it, dict):
+                        continue
+                    name = str(it.get("name") or it.get("nombre") or "").strip()[:80]
+                    if not name:
+                        continue
+                    try:
+                        price = int(it.get("price") or it.get("precio") or 0)
+                    except Exception:
+                        price = 0
+                    desc = str(it.get("description") or it.get("desc") or "").strip()[:200]
+                    out.append({"name": name, "price": max(0, price), "description": desc})
+                return out
+        except Exception:
+            pass
+    out = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "|" in line:
+            parts = [p.strip() for p in line.split("|")]
+        elif ";" in line:
+            parts = [p.strip() for p in line.split(";")]
+        elif "," in line:
+            parts = [p.strip() for p in line.split(",", 2)]
+        else:
+            parts = [line]
+        name = (parts[0] if parts else "").strip()[:80]
+        if not name:
+            continue
+        try:
+            price = int(parts[1]) if len(parts) > 1 else 0
+        except Exception:
+            price = 0
+        desc = (parts[2] if len(parts) > 2 else "").strip()[:200]
+        out.append({"name": name, "price": max(0, price), "description": desc})
+        if len(out) >= 50:
+            break
+    return out
+
+
 async def guild_save(request: Request, guild_id: str):
     user = current_user(request)
     if not user:
@@ -1112,7 +1175,7 @@ async def guild_save(request: Request, guild_id: str):
         },
         "shop": {
             "enabled": form.get("shop_enabled") == "on",
-            "items": _parse_shop_items(form.get("shop_items") or ""),
+            "items": _parse_shop_items(_form_str(form, "shop_items")),
         },
         "profiles": {"enabled": form.get("profiles_enabled") == "on"},
         "marriage": {"enabled": form.get("marriage_enabled") == "on"},
