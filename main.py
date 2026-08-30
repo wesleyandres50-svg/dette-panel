@@ -374,6 +374,29 @@ def is_user_premium(user_id):
 
 # ───────────────────────── Config ─────────────────────────
 
+
+def _parse_level_roles(form) -> dict:
+    """Compat module-level (guild_save tiene su propia copia local)."""
+    roles = {}
+    try:
+        raw = ""
+        if hasattr(form, "get"):
+            raw = str(form.get("levels_roles_raw") or "").strip()
+        if raw:
+            for part in raw.replace(";", ",").split(","):
+                part = part.strip()
+                if ":" not in part:
+                    continue
+                a, b = part.split(":", 1)
+                try:
+                    roles[str(int(a.strip()))] = str(int(b.strip()))
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return roles
+
+
 def _default_config() -> dict:
     return {
         "anti_raid": {
@@ -1026,6 +1049,31 @@ async def guild_save(request: Request, guild_id: str):
 
     def _int(name, default=0):
         return _form_int(form, name, default)
+
+    def _parse_level_roles(form_obj) -> dict:
+        """roles: levels_roles_raw '5:ID,10:ID' o levels_role_level_N + levels_role_id_N."""
+        roles = {}
+        raw = (_form_str(form_obj, "levels_roles_raw") or "").strip()
+        if raw:
+            for part in raw.replace(";", ",").split(","):
+                part = part.strip()
+                if not part or ":" not in part:
+                    continue
+                a, b = part.split(":", 1)
+                try:
+                    roles[str(int(a.strip()))] = str(int(b.strip()))
+                except Exception:
+                    pass
+        for i in range(1, 21):
+            lv = (_form_str(form_obj, f"levels_role_level_{i}") or "").strip()
+            rid = (_form_str(form_obj, f"levels_role_id_{i}") or "").strip()
+            if not lv or not rid:
+                continue
+            try:
+                roles[str(int(lv))] = str(int(rid))
+            except Exception:
+                pass
+        return roles
 
     try:
         prev = get_guild_config(guild_id)
