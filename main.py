@@ -917,7 +917,6 @@ async def guild_bot_avatar_upload(request: Request, guild_id: str):
     return RedirectResponse(f"/guild/{guild_id}?ok=1", status_code=303)
 
 
-@app.post("/guild/{guild_id}/save")
 
 def _parse_shop_items(raw) -> list:
     """Parsea items de tienda desde texto del formulario.
@@ -981,6 +980,7 @@ def _parse_shop_items(raw) -> list:
     return out
 
 
+@app.post("/guild/{guild_id}/save")
 async def guild_save(request: Request, guild_id: str):
     user = current_user(request)
     if not user:
