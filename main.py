@@ -98,6 +98,27 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+@app.exception_handler(Exception)
+async def _unhandled(request: Request, exc: Exception):
+    """Evita página genérica sin log; no filtra secretos al cliente."""
+    import traceback
+    tb = traceback.format_exc()
+    print(f"[UNHANDLED] {request.method} {request.url.path}: {exc}\n{tb}")
+    if request.url.path.startswith("/api/"):
+        return JSONResponse({"ok": False, "error": "internal_error"}, status_code=500)
+    # Si falló el save, redirigir con error legible
+    if request.method == "POST" and "/guild/" in request.url.path and request.url.path.rstrip("/").endswith("/save"):
+        parts = request.url.path.strip("/").split("/")
+        gid = parts[1] if len(parts) >= 2 else ""
+        if gid.isdigit():
+            return RedirectResponse(f"/guild/{gid}?err=save", status_code=303)
+    return HTMLResponse(
+        "<h1>Error interno</h1><p>Revisa los logs de Render (Console). "
+        "Si guardabas config, recarga e intenta de nuevo.</p>",
+        status_code=500,
+    )
+
+
 
 def _safe_token_eq(a: str, b: str) -> bool:
     try:
@@ -105,6 +126,30 @@ def _safe_token_eq(a: str, b: str) -> bool:
     except Exception:
         return False
 
+
+
+def _form_str(form, name, default=""):
+    try:
+        v = form.get(name)
+    except Exception:
+        return default
+    if v is None:
+        return default
+    if hasattr(v, "filename") and hasattr(v, "file"):
+        return default
+    if isinstance(v, (bytes, bytearray)):
+        try:
+            return v.decode("utf-8", "ignore")
+        except Exception:
+            return default
+    return str(v)
+
+
+def _form_int(form, name, default=0):
+    try:
+        return int(_form_str(form, name, str(default)) or default)
+    except Exception:
+        return default
 
 def _csrf_token(request: Request) -> str:
     tok = request.session.get("_csrf")
@@ -509,7 +554,14 @@ def _load_all_configs() -> dict:
 
 
 def _save_all_configs(data: dict) -> None:
-    CONFIG_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        CONFIG_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        # Marca para que el bot pueda detectar cambios al instante (poll corto)
+        (DATA_DIR / "config_version.txt").write_text(str(time.time()), encoding="utf-8")
+    except Exception as e:
+        print(f"[config] write error: {e}")
+        raise
 
 
 def get_guild_config(guild_id: str) -> dict:
@@ -878,20 +930,24 @@ async def guild_save(request: Request, guild_id: str):
     except Exception as e:
         print(f"[guild_save] form error: {e}")
         return RedirectResponse(f"/guild/{guild_id}?err=form", status_code=303)
-    token = str(form.get("csrf_token") or "").strip()
+    token = str_s("csrf_token").strip()
     if not token or not _check_csrf(request, token):
         print(f"[guild_save] csrf fail guild={guild_id} token_len={len(token)}")
         return RedirectResponse(f"/guild/{guild_id}?err=csrf", status_code=303)
     if not str(guild_id).isdigit():
         return RedirectResponse("/dashboard", status_code=303)
 
-    def _int(name, default=0):
-        try:
-            return int(form.get(name) or default)
-        except Exception:
-            return default
+    def _s(name, default=""):
+        return _form_str(form, name, default)
 
-    prev = get_guild_config(guild_id)
+    def _int(name, default=0):
+        return _form_int(form, name, default)
+
+    try:
+        prev = get_guild_config(guild_id)
+    except Exception as e:
+        print(f"[guild_save] get_guild_config error: {e}")
+        prev = _default_config()
     prev_tickets = prev.get("tickets") or {}
 
     config = {
@@ -918,15 +974,15 @@ async def guild_save(request: Request, guild_id: str):
         },
         "verify": {
             "enabled": form.get("verify_enabled") == "on",
-            "channel_id": (form.get("verify_channel") or "").strip(),
-            "role_id": (form.get("verify_role") or "").strip(),
-            "message": (form.get("verify_message") or "").strip()[:1000],
+            "channel_id": _s("verify_channel").strip(),
+            "role_id": _s("verify_role").strip(),
+            "message": _s("verify_message").strip()[:1000],
             "min_account_days": max(0, min(_int("verify_min_days", VERIFY_MIN_ACCOUNT_DAYS), 365)),
             "block_vpn": form.get("verify_block_vpn") == "on",
         },
         "logs": {
             "enabled": form.get("logs_enabled") == "on",
-            "channel_id": (form.get("logs_channel") or "").strip(),
+            "channel_id": _s("logs_channel").strip(),
             "events": {
                 "message_delete": form.get("log_ev_message_delete") == "on",
                 "message_edit": form.get("log_ev_message_edit") == "on",
@@ -971,29 +1027,29 @@ async def guild_save(request: Request, guild_id: str):
         },
         "welcome": {
             "enabled": form.get("welcome_enabled") == "on",
-            "channel_id": (form.get("welcome_channel") or "").strip(),
-            "message": (form.get("welcome_message") or "").strip()[:1500],
+            "channel_id": _s("welcome_channel").strip(),
+            "message": _s("welcome_message").strip()[:1500],
         },
         "autorole": {
             "enabled": form.get("autorole_enabled") == "on",
-            "role_id": (form.get("autorole_role") or "").strip(),
+            "role_id": _s("autorole_role").strip(),
         },
         "levels": {"enabled": form.get("levels_enabled") == "on"},
         "booster": {
             "enabled": form.get("booster_enabled") == "on",
-            "channel_id": (form.get("booster_channel") or "").strip(),
-            "message": (form.get("booster_message") or "").strip()[:1500],
+            "channel_id": _s("booster_channel").strip(),
+            "message": _s("booster_message").strip()[:1500],
         },
         "tickets": {**prev_tickets, "enabled": form.get("tickets_enabled") == "on"},
         "starboard": {
             "enabled": form.get("starboard_enabled") == "on",
-            "channel_id": (form.get("starboard_channel") or "").strip(),
+            "channel_id": _s("starboard_channel").strip(),
             "min_stars": max(1, min(_int("starboard_min", 3), 25)),
         },
         "nsfw": {"enabled": form.get("nsfw_enabled") == "on"},
         "alianzas": {
             "enabled": form.get("alianzas_enabled") == "on",
-            "channel_id": (form.get("alianzas_channel") or "").strip(),
+            "channel_id": _s("alianzas_channel").strip(),
             "auto_publish": form.get("alianzas_auto_publish") == "on",
             "require_invite": form.get("alianzas_require_invite") == "on",
         },
@@ -1001,19 +1057,19 @@ async def guild_save(request: Request, guild_id: str):
         "antihoist": {"enabled": form.get("antihoist_enabled") == "on"},
         "quarantine": {
             "enabled": form.get("quarantine_enabled") == "on",
-            "role_id": (form.get("quarantine_role") or "").strip(),
+            "role_id": _s("quarantine_role").strip(),
             "create_role": form.get("quarantine_create_role") == "on",
             "role_name": (form.get("quarantine_role_name") or "Cuarentena").strip()[:80] or "Cuarentena",
             "strip_roles": form.get("quarantine_strip_roles") == "on",
-            "log_channel_id": (form.get("quarantine_log_channel") or "").strip(),
+            "log_channel_id": _s("quarantine_log_channel").strip(),
         },
         "reports": {
             "enabled": form.get("reports_enabled") == "on",
-            "channel_id": (form.get("reports_channel") or "").strip(),
+            "channel_id": _s("reports_channel").strip(),
         },
         "suggest": {
             "enabled": form.get("suggest_enabled") == "on",
-            "channel_id": (form.get("suggest_channel") or "").strip(),
+            "channel_id": _s("suggest_channel").strip(),
         },
         "modnotes": {"enabled": form.get("modnotes_enabled") == "on"},
         "watchlist": {"enabled": form.get("watchlist_enabled") == "on"},
@@ -1036,23 +1092,23 @@ async def guild_save(request: Request, guild_id: str):
             "crime_max": max(0, _int("economy_crime_max", 400)),
             "crime_fine": max(0, _int("economy_crime_fine", 150)),
             "rob_percent": max(1, min(_int("economy_rob_percent", 15), 50)),
-            "msg_daily": (form.get("economy_msg_daily") or "Recibiste {amount} coins · racha {streak}")[:200],
-            "msg_work": (form.get("economy_msg_work") or "Trabajaste y ganaste {amount} coins")[:200],
-            "msg_crime_ok": (form.get("economy_msg_crime_ok") or "Crimen exitoso: +{amount} coins")[:200],
-            "msg_crime_fail": (form.get("economy_msg_crime_fail") or "Te atraparon: -{amount} coins")[:200],
+            "msg_daily": _s("economy_msg_daily", "Recibiste {amount} coins · racha {streak}")[:200],
+            "msg_work": _s("economy_msg_work", "Trabajaste y ganaste {amount} coins")[:200],
+            "msg_crime_ok": _s("economy_msg_crime_ok", "Crimen exitoso: +{amount} coins")[:200],
+            "msg_crime_fail": _s("economy_msg_crime_fail", "Te atraparon: -{amount} coins")[:200],
         },
         "social": {
             "enabled": form.get("social_enabled") == "on",
-            "channel_id": (form.get("social_channel_id") or "").strip()[:32],
-            "youtube": (form.get("social_youtube") or "").strip()[:120],
-            "twitch": (form.get("social_twitch") or "").strip()[:64],
+            "channel_id": _s("social_channel_id").strip()[:32],
+            "youtube": _s("social_youtube").strip()[:120],
+            "twitch": _s("social_twitch").strip()[:64],
             "youtube_on": form.get("social_youtube_on") == "on",
             "twitch_on": form.get("social_twitch_on") == "on",
-            "message": (form.get("social_message") or "🔔 Nuevo en {platform}: **{title}**\n{url}")[:300],
+            "message": _s("social_message", "🔔 Nuevo en {platform}: **{title}**\n{url}")[:300],
         },
         "reports": {
             "enabled": form.get("reports_enabled") == "on",
-            "channel_id": (form.get("reports_channel_id") or "").strip()[:32],
+            "channel_id": _s("reports_channel_id").strip()[:32],
         },
         "shop": {
             "enabled": form.get("shop_enabled") == "on",
@@ -1087,10 +1143,10 @@ async def guild_save(request: Request, guild_id: str):
     can_profile = bool(ok_g or ok_u or free_on or is_owner(request))
     prev_bp = (prev.get("bot_profile") or {}) if isinstance(prev.get("bot_profile"), dict) else {}
     if can_profile:
-        _bn = (form.get("bot_nick") or "").strip()
-        _bf = (form.get("bot_footer") or "").strip()[:100]
+        _bn = _s("bot_nick").strip()
+        _bf = _s("bot_footer").strip()[:100]
         _be = (form.get("bot_emoji") or "🦢").strip()[:8] or "🦢"
-        _bb = (form.get("bot_bio") or "").strip()[:200]
+        _bb = _s("bot_bio").strip()[:200]
         _bc = (form.get("bot_embed_color") or config.get("embed_color") or "#AFD7E6").strip()
         if not _bc.startswith("#"):
             _bc = "#" + _bc
@@ -1100,7 +1156,7 @@ async def guild_save(request: Request, guild_id: str):
             int(_bc[1:], 16)
         except Exception:
             _bc = "#AFD7E6"
-        _ba = (form.get("bot_avatar_url") or "").strip()[:500]
+        _ba = _s("bot_avatar_url").strip()[:500]
         config["bot_profile"] = {
             "nick": _bn[:32] if _bn else None,
             "avatar_url": _ba if _ba else None,
@@ -1208,17 +1264,17 @@ async def tickets_save(request: Request, guild_id: str):
             {"label": "Soporte", "emoji": "🛠️", "description": "Ayuda general", "value": "soporte"},
             {"label": "Reporte", "emoji": "🚨", "description": "Reportar usuario", "value": "reporte"},
         ]
-    panel_desc = (form.get("tickets_panel_message") or "").strip()[:1500]
-    welcome = (form.get("tickets_open_message") or "").strip()[:1500]
+    panel_desc = _s("tickets_panel_message").strip()[:1500]
+    welcome = _s("tickets_open_message").strip()[:1500]
     try:
         tmax = max(1, min(int(form.get("tickets_max") or 1), 10))
     except Exception:
         tmax = 1
     config["tickets"] = {
         "enabled": form.get("tickets_enabled") == "on",
-        "channel_id": (form.get("tickets_channel") or "").strip(),
-        "category_id": (form.get("tickets_category") or "").strip(),
-        "support_role_id": (form.get("tickets_support_role") or "").strip(),
+        "channel_id": _s("tickets_channel").strip(),
+        "category_id": _s("tickets_category").strip(),
+        "support_role_id": _s("tickets_support_role").strip(),
         "panel_title": (form.get("tickets_panel_title") or "🎫 Soporte").strip()[:100],
         "panel_description": panel_desc,
         "panel_message": panel_desc,
@@ -1426,6 +1482,21 @@ async def health():
         "panel_token_len": len(PANEL_API_TOKEN or ""),
         "verify_vpn_api": bool(IP_REPUTATION_KEY),
     }
+
+
+@app.get("/api/config-version")
+async def api_config_version(request: Request):
+    """El bot puede consultar esto cada pocos segundos en lugar de cada 40s."""
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+    p = DATA_DIR / "config_version.txt"
+    try:
+        ver = float(p.read_text(encoding="utf-8").strip()) if p.is_file() else 0.0
+    except Exception:
+        ver = 0.0
+    return JSONResponse({"ok": True, "version": ver})
 
 
 @app.get("/api/ping")
