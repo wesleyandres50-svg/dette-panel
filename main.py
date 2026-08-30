@@ -31,8 +31,29 @@ import hmac as _hmac
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
+
+def _pick_data_dir() -> Path:
+    candidates = [
+        BASE_DIR / "data",
+        Path("/tmp") / "odette-panel-data",
+        Path.cwd() / "data",
+    ]
+    for d in candidates:
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+            test = d / ".write_test"
+            test.write_text("ok", encoding="utf-8")
+            test.unlink(missing_ok=True)
+            return d
+        except Exception as e:
+            print(f"[panel] data dir no usable {d}: {e}")
+    # último recurso
+    d = Path("/tmp") / "odette-panel-data"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+DATA_DIR = _pick_data_dir()
+print(f"[panel] DATA_DIR={DATA_DIR}")
 AVATARS_DIR = DATA_DIR / "avatars"
 AVATARS_DIR.mkdir(exist_ok=True)
 PREMIUM_FILE = DATA_DIR / "premium_guilds.json"
@@ -930,7 +951,7 @@ async def guild_save(request: Request, guild_id: str):
     except Exception as e:
         print(f"[guild_save] form error: {e}")
         return RedirectResponse(f"/guild/{guild_id}?err=form", status_code=303)
-    token = str_s("csrf_token").strip()
+    token = _form_str(form, "csrf_token").strip()
     if not token or not _check_csrf(request, token):
         print(f"[guild_save] csrf fail guild={guild_id} token_len={len(token)}")
         return RedirectResponse(f"/guild/{guild_id}?err=csrf", status_code=303)
@@ -956,20 +977,20 @@ async def guild_save(request: Request, guild_id: str):
             "max_joins": max(1, min(_int("anti_raid_max_joins", 5), 50)),
             "window": max(5, min(_int("anti_raid_window", 10), 120)),
             "account_age_days": max(0, min(_int("anti_raid_account_age", 3), 365)),
-            "action": (form.get("anti_raid_action") or "kick").lower()[:16],
+            "action": _form_str(form, "anti_raid_action", "kick").lower()[:16],
             "anti_bot": form.get("anti_raid_anti_bot") == "on",
             "anti_nuke": {
                 "enabled": form.get("anti_raid_nuke_enabled") == "on",
                 "max_channel_creates": max(1, min(_int("anti_raid_nuke_channels", 2), 20)),
                 "max_channel_deletes": max(1, min(_int("anti_raid_nuke_channels", 2), 20)),
                 "interval": max(5, min(_int("anti_raid_nuke_interval", 12), 60)),
-                "action": (form.get("anti_raid_nuke_action") or "ban").lower()[:16],
+                "action": _form_str(form, "anti_raid_nuke_action", "ban").lower()[:16],
             },
         },
         "automod": {
             "enabled": form.get("automod_enabled") == "on",
             "anti_invite": form.get("automod_anti_invite") == "on",
-            "action": (form.get("automod_action") or "delete").strip().lower()[:16],
+            "action": _form_str(form, "automod_action", "delete").strip().lower()[:16],
             "timeout_minutes": max(1, min(_int("automod_timeout", 10), 10080)),
         },
         "verify": {
@@ -1010,8 +1031,8 @@ async def guild_save(request: Request, guild_id: str):
             "automod": form.get("ia_automod") == "on",
             "antiraid": form.get("ia_antiraid") == "on",
             "log_decisions": form.get("ia_log_decisions") == "on",
-            "strictness": (form.get("ia_strictness") or "medium").strip().lower()[:16],
-            "max_action": (form.get("ia_max_action") or "timeout").strip().lower()[:16],
+            "strictness": _form_str(form, "ia_strictness", "medium").strip().lower()[:16],
+            "max_action": _form_str(form, "ia_max_action", "timeout").strip().lower()[:16],
             "timeout_minutes": max(1, min(_int("ia_timeout_minutes", 10), 10080)),
             "block_invites": form.get("ia_block_invites") == "on",
             "block_scams": form.get("ia_block_scams") == "on",
@@ -1020,10 +1041,10 @@ async def guild_save(request: Request, guild_id: str):
             "auto_slowmode": form.get("ia_auto_slowmode") == "on",
             "immune_admins": form.get("ia_immune_admins") == "on",
             "immune_mods": form.get("ia_immune_mods") == "on",
-            "block_words": [x.strip() for x in (form.get("ia_block_words") or "").splitlines() if x.strip()][:80],
-            "allow_words": [x.strip() for x in (form.get("ia_allow_words") or "").splitlines() if x.strip()][:80],
-            "custom_rules": [x.strip() for x in (form.get("ia_custom_rules") or "").splitlines() if x.strip()][:40],
-            "train_examples": [x.strip() for x in (form.get("ia_train_examples") or "").splitlines() if x.strip()][:60],
+            "block_words": [x.strip() for x in _form_str(form, "ia_block_words").splitlines() if x.strip()][:80],
+            "allow_words": [x.strip() for x in _form_str(form, "ia_allow_words").splitlines() if x.strip()][:80],
+            "custom_rules": [x.strip() for x in _form_str(form, "ia_custom_rules").splitlines() if x.strip()][:40],
+            "train_examples": [x.strip() for x in _form_str(form, "ia_train_examples").splitlines() if x.strip()][:60],
         },
         "welcome": {
             "enabled": form.get("welcome_enabled") == "on",
@@ -1059,7 +1080,7 @@ async def guild_save(request: Request, guild_id: str):
             "enabled": form.get("quarantine_enabled") == "on",
             "role_id": _s("quarantine_role").strip(),
             "create_role": form.get("quarantine_create_role") == "on",
-            "role_name": (form.get("quarantine_role_name") or "Cuarentena").strip()[:80] or "Cuarentena",
+            "role_name": _form_str(form, "quarantine_role_name", "Cuarentena").strip()[:80] or "Cuarentena",
             "strip_roles": form.get("quarantine_strip_roles") == "on",
             "log_channel_id": _s("quarantine_log_channel").strip(),
         },
@@ -1121,7 +1142,7 @@ async def guild_save(request: Request, guild_id: str):
         "fun": {"enabled": form.get("fun_enabled") == "on"},
     }
     # Color de embeds del servidor (#RRGGBB)
-    _raw_color = (form.get("embed_color") or "#AFD7E6").strip()
+    _raw_color = _form_str(form, "embed_color", "#AFD7E6").strip()
     if not _raw_color.startswith("#"):
         _raw_color = "#" + _raw_color
     if len(_raw_color) != 7:
@@ -1145,9 +1166,9 @@ async def guild_save(request: Request, guild_id: str):
     if can_profile:
         _bn = _s("bot_nick").strip()
         _bf = _s("bot_footer").strip()[:100]
-        _be = (form.get("bot_emoji") or "🦢").strip()[:8] or "🦢"
+        _be = _form_str(form, "bot_emoji", "🦢").strip()[:8] or "🦢"
         _bb = _s("bot_bio").strip()[:200]
-        _bc = (form.get("bot_embed_color") or config.get("embed_color") or "#AFD7E6").strip()
+        _bc = _form_str(form, "bot_embed_color", config.get("embed_color") or "#AFD7E6").strip()
         if not _bc.startswith("#"):
             _bc = "#" + _bc
         if len(_bc) != 7:
@@ -1182,9 +1203,13 @@ async def guild_save(request: Request, guild_id: str):
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
     try:
-        save_guild_config(guild_id, config)
+        # Asegura tipos JSON-serializables
+        payload = json.loads(json.dumps(config, default=str))
+        save_guild_config(guild_id, payload)
     except Exception as e:
+        import traceback
         print(f"[guild_save] save error {guild_id}: {e}")
+        print(traceback.format_exc())
         return RedirectResponse(f"/guild/{guild_id}?err=save", status_code=303)
     print(f"[guild_save] OK guild={guild_id}")
     return RedirectResponse(f"/guild/{guild_id}?ok=1", status_code=303)
@@ -1240,23 +1265,26 @@ async def tickets_save(request: Request, guild_id: str):
     if not (any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)):
         return RedirectResponse("/dashboard", status_code=303)
     form = await request.form()
-    if not _check_csrf(request, str(form.get("csrf_token") or "")):
+    if not _check_csrf(request, _form_str(form, "csrf_token")):
         return RedirectResponse(f"/guild/{guild_id}/tickets?err=csrf", status_code=303)
+
+    def _s(name, default=""):
+        return _form_str(form, name, default)
     if not str(guild_id).isdigit():
         return RedirectResponse("/dashboard", status_code=303)
     config = get_guild_config(guild_id)
     options = []
     for i in range(25):
-        label = (form.get(f"tickets_opt_{i}_label") or "").strip()[:100]
+        label = _form_str(form, f"tickets_opt_{i}_label").strip()[:100]
         if not label:
             continue
-        value = (form.get(f"tickets_opt_{i}_value") or "").strip()[:50]
+        value = _form_str(form, f"tickets_opt_{i}_value").strip()[:50]
         if not value:
             value = "".join(c for c in label.lower().replace(" ", "-") if c.isalnum() or c in "-_")[:50] or f"opt{i}"
         options.append({
             "label": label,
-            "emoji": (form.get(f"tickets_opt_{i}_emoji") or "🎫").strip()[:8] or "🎫",
-            "description": (form.get(f"tickets_opt_{i}_desc") or "").strip()[:100],
+            "emoji": _form_str(form, f"tickets_opt_{i}_emoji", "🎫").strip()[:8] or "🎫",
+            "description": _form_str(form, f"tickets_opt_{i}_desc").strip()[:100],
             "value": value,
         })
     if not options:
@@ -1275,7 +1303,7 @@ async def tickets_save(request: Request, guild_id: str):
         "channel_id": _s("tickets_channel").strip(),
         "category_id": _s("tickets_category").strip(),
         "support_role_id": _s("tickets_support_role").strip(),
-        "panel_title": (form.get("tickets_panel_title") or "🎫 Soporte").strip()[:100],
+        "panel_title": _form_str(form, "tickets_panel_title", "🎫 Soporte").strip()[:100],
         "panel_description": panel_desc,
         "panel_message": panel_desc,
         "welcome_message": welcome,
