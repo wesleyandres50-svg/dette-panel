@@ -1001,10 +1001,51 @@
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Sistema de niveles por mensajes.</p>
+          <p class="mod-desc">Niveles por mensajes, roles por nivel, ranking y tarjeta visual (banner).</p>
           <div class="mod-settings">
             <div class="mod-settings-inner">
-              <p class="hint">XP por mensaje y cooldowns se configuran también con comandos del bot (o!levelsetup).</p>
+              <div class="grid2">
+                <div>
+                  <label>XP por mensaje</label>
+                  <input type="number" name="levels_xp_per_message" min="1" max="100" value="{{ config.levels.get('xp_per_message', 15) }}" />
+                </div>
+                <div>
+                  <label>Cooldownoldown (segundos)</label>
+                  <input type="number" name="levels_xp_cooldown" min="5" max="600" value="{{ config.levels.get('xp_cooldown', 60) }}" />
+                </div>
+              </div>
+              <div class="grid2">
+                <div>
+                  <label>Canal de anuncios (ID, opcional)</label>
+                  <input type="text" name="levels_channel" value="{{ config.levels.get('channel_id', '') }}" placeholder="vacío = mismo canal" />
+                </div>
+                <div>
+                  <label>Color embed</label>
+                  <input type="text" name="levels_color" value="{{ config.levels.get('color', '#AFD7E6') }}" placeholder="#AFD7E6" />
+                </div>
+              </div>
+              <label>Mensaje al subir de nivel</label>
+              <input type="text" name="levels_message" value="{{ config.levels.get('message', '🎉 {user} subió al **nivel {level}** en **{server}**!') }}" />
+              <p class="hint">Variables: {user} {username} {level} {server}</p>
+              <label>Banner / imagen de la tarjeta (URL)</label>
+              <input type="text" name="levels_banner" value="{{ config.levels.get('banner_url', config.levels.get('image', '')) }}" placeholder="https://..." />
+              <input type="hidden" name="levels_image" value="{{ config.levels.get('image', '') }}" />
+              <label class="check">
+                <input type="checkbox" name="levels_use_embed" {% if config.levels.get('use_embed', true) %}checked{% endif %} />
+                Usar embed en el anuncio
+              </label>
+              <label class="check">
+                <input type="checkbox" name="levels_card_enabled" {% if config.levels.get('card_enabled', true) %}checked{% endif %} />
+                Generar tarjeta visual (avatar + nivel + barra XP)
+              </label>
+              <label class="check">
+                <input type="checkbox" name="levels_stack_roles" {% if config.levels.get('stack_roles', true) %}checked{% endif %} />
+                Roles acumulativos (da todos los roles hasta el nivel actual)
+              </label>
+              <label>Roles por nivel (formato: 5:ROLE_ID, 10:ROLE_ID)</label>
+              {% set _roles = config.levels.get('roles') or {} %}
+              <input type="text" name="levels_roles_raw" value="{% if _roles %}{% for k,v in _roles.items() %}{{ k }}:{{ v }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}" placeholder="5:1234567890, 10:1234567891" />
+              <p class="hint">El ID del rol es opcional por fila; puedes dejar vacío. También: <code>o!niveles rol 5 @Rol</code> · ranking: <code>o!topniveles</code> · rank: <code>o!rank</code></p>
             </div>
           </div>
         </div>
@@ -1599,6 +1640,36 @@
                 <input type="checkbox" name="alianzas_require_invite" {% if config.get('alianzas', {}).get('require_invite', true) %}checked{% endif %} />
                 Exigir invite <code>discord.gg</code> en la plantilla
               </label>
+
+              <div class="grid2">
+                <div>
+                  <label>Canal revisión (ID)</label>
+                  <input type="text" name="alianzas_review_channel" value="{{ config.get('alianzas', {}).get('review_channel_id', '') }}" placeholder="staff revisa capturas" />
+                </div>
+                <div>
+                  <label>Categoría tickets (ID)</label>
+                  <input type="text" name="alianzas_category" value="{{ config.get('alianzas', {}).get('category_id', '') }}" />
+                </div>
+              </div>
+              <div class="grid2">
+                <div>
+                  <label>Rol soporte (ID)</label>
+                  <input type="text" name="alianzas_support_role" value="{{ config.get('alianzas', {}).get('support_role_id', '') }}" />
+                </div>
+                <div>
+                  <label>Color panel</label>
+                  <input type="text" name="alianzas_panel_color" value="{{ config.get('alianzas', {}).get('panel_color', '#AFD7E6') }}" />
+                </div>
+              </div>
+              <label>Título del panel</label>
+              <input type="text" name="alianzas_panel_title" value="{{ config.get('alianzas', {}).get('panel_title', 'Solicitud de Alianza') }}" />
+              <label>Descripción del panel</label>
+              <textarea name="alianzas_panel_description" rows="3">{{ config.get('alianzas', {}).get('panel_description', '') }}</textarea>
+              <label>Imagen del panel (URL)</label>
+              <input type="text" name="alianzas_panel_image" value="{{ config.get('alianzas', {}).get('panel_image', '') }}" placeholder="https://..." />
+              <label>Texto botón</label>
+              <input type="text" name="alianzas_button_label" value="{{ config.get('alianzas', {}).get('button_label', 'Solicitar alianza') }}" />
+              <p class="hint">En el bot: <code>o!panel alianza</code> o <code>o!alianza panel</code> envía el menú. En Tickets usa valor <code>alianza</code>. Staff publica en el canal de alianzas.</p>
               <p class="hint">En Tickets crea una categoría con valor <code>alianza</code>. El usuario envía la plantilla y el staff pulsa <strong>Publicar en alianzas</strong>.</p>
             </div>
           </div>
