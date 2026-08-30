@@ -424,7 +424,7 @@
 </div>
 
 {% if request.query_params.get('ok') %}
-  <div class="alert alert-ok">✅ Guardado. El bot sincroniza en ~40s (o <code>o!panelsync</code>).</div>
+  <div class="alert alert-ok">✅ Guardado. El bot aplica los cambios en el próximo sync (o usa <code>o!panelsync</code> para forzar ya).</div>
 {% endif %}
 {% if request.query_params.get('err') == 'form' %}
 <div class="alert alert-err">No se pudo leer el formulario. Recarga e intenta de nuevo.</div>
@@ -609,7 +609,7 @@
             </div>
             <p class="mod-desc" style="margin-top:10px">
               Deja el apodo vacío y guarda para quitar el nick custom.
-              El bot aplica el cambio en el próximo sync (~40s) o con <code>o!panelsync</code>.
+              El bot aplica el cambio en el próximo sync o con <code>o!panelsync</code>.
             </p>
           </div>
         </div>
@@ -695,7 +695,7 @@
                 </div>
                 <p class="hint">Si un bot crea varios canales en segundos → ban + blacklist global (Odette).</p>
               </details>
-              <p class="hint">Los cambios se sincronizan con el bot (~40s o <code>o!panelsync</code>).</p>
+              <p class="hint">Los cambios se sincronizan con el bot (poll o <code>o!panelsync</code>).</p>
             </div>
           </div>
         </div>
@@ -1505,7 +1505,7 @@
               <input type="checkbox" name="social_twitch_on" {% if soc.get('twitch_on', True) %}checked{% endif %} />
               Activar Twitch (en directo)
             </label>
-            <p class="hint">El bot revisa periódicamente y publica en el canal. Usa <code>o!panelsync</code> tras guardar.</p>
+            <p class="hint">El bot revisa periódicamente y publica en el canal. Tras guardar usa <code>o!panelsync</code> para aplicar ya.</p>
           </div>
         </div>
       </div>
