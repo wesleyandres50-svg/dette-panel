@@ -930,7 +930,7 @@ async def guild_save(request: Request, guild_id: str):
     except Exception as e:
         print(f"[guild_save] form error: {e}")
         return RedirectResponse(f"/guild/{guild_id}?err=form", status_code=303)
-    token = str_s("csrf_token").strip()
+    token = _form_str(form, "csrf_token").strip()
     if not token or not _check_csrf(request, token):
         print(f"[guild_save] csrf fail guild={guild_id} token_len={len(token)}")
         return RedirectResponse(f"/guild/{guild_id}?err=csrf", status_code=303)
