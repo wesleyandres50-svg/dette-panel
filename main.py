@@ -1397,6 +1397,13 @@ async def tickets_save(request: Request, guild_id: str):
         return RedirectResponse(f"/guild/{guild_id}/tickets?err=csrf", status_code=303)
     if not str(guild_id).isdigit():
         return RedirectResponse("/dashboard", status_code=303)
+
+    def _s(name, default=""):
+        return _form_str(form, name, default)
+
+    def _int(name, default=0):
+        return _form_int(form, name, default)
+
     config = get_guild_config(guild_id)
     options = []
     for i in range(25):
