@@ -574,16 +574,30 @@ def _default_config() -> dict:
             "enabled": True,
             "daily_min": 100,
             "daily_max": 500,
+            "weekly_min": 500,
+            "weekly_max": 2000,
             "work_min": 50,
             "work_max": 250,
+            "work_cooldown": 3600,
+            "beg_min": 10,
+            "beg_max": 80,
+            "beg_cooldown": 600,
             "crime_min": 100,
             "crime_max": 400,
             "crime_fine": 150,
             "rob_percent": 15,
             "msg_daily": "Recibiste {amount} coins · racha {streak}",
+            "msg_weekly": "Weekly: +{amount} coins",
             "msg_work": "Trabajaste y ganaste {amount} coins",
+            "msg_beg_ok": "{text}",
+            "msg_beg_fail": "{text}",
             "msg_crime_ok": "Crimen exitoso: +{amount} coins",
             "msg_crime_fail": "Te atraparon: -{amount} coins",
+            "shop_roles": [],
+            "shop_items": [],
+            "log_channel_id": "",
+            "shop_channel_id": "",
+            "shop_message_id": "",
         },
         "shop": {"enabled": False, "items": []},
         "reports": {"enabled": False, "channel_id": ""},
@@ -627,6 +641,28 @@ def _save_all_configs(data: dict) -> None:
         raise
 
 
+
+async def _notify_bot_refresh(guild_id: str) -> None:
+    """Avisa al bot al instante (BOT_CALLBACK_URL). Si no está, el bot usa poll /api/config-version."""
+    import os as _os
+    import httpx
+    base = (_os.getenv("BOT_CALLBACK_URL") or "").strip().rstrip("/")
+    if not base:
+        return
+    token = PANEL_API_TOKEN or ""
+    url = f"{base}/internal/panel-refresh"
+    try:
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            r = await client.post(
+                url,
+                json={"guild_id": str(guild_id)},
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            )
+            print(f"[bot-push] {guild_id} → {r.status_code}")
+    except Exception as e:
+        print(f"[bot-push] fail: {e}")
+
+
 def get_guild_config(guild_id: str) -> dict:
     all_cfg = _load_all_configs()
     cfg = all_cfg.get(str(guild_id))
@@ -643,10 +679,76 @@ def get_guild_config(guild_id: str) -> dict:
     return cfg
 
 
+
+def _parse_shop_roles(form) -> list:
+    """Lee shop_role_id_N + shop_role_price_N + shop_role_name_N (hasta 20)."""
+    roles = []
+    for i in range(1, 21):
+        rid = (form.get(f"shop_role_id_{i}") or "").strip()
+        if not rid:
+            continue
+        try:
+            rid_i = int(rid)
+        except Exception:
+            continue
+        try:
+            price = int(str(form.get(f"shop_role_price_{i}") or "0").strip() or "0")
+        except Exception:
+            price = 0
+        name = (form.get(f"shop_role_name_{i}") or "").strip()[:80]
+        roles.append({"role_id": rid_i, "price": max(0, price), "name": name or f"Rol {rid_i}"})
+    return roles
+
+
+def _parse_shop_items(form) -> list:
+    items = []
+    for i in range(1, 16):
+        name = (form.get(f"shop_item_name_{i}") or "").strip()[:80]
+        if not name:
+            continue
+        try:
+            price = int(str(form.get(f"shop_item_price_{i}") or "0").strip() or "0")
+        except Exception:
+            price = 0
+        items.append({"name": name, "price": max(0, price)})
+    return items
+
 def save_guild_config(guild_id: str, config: dict) -> None:
     all_cfg = _load_all_configs()
     all_cfg[str(guild_id)] = config
     _save_all_configs(all_cfg)
+    # Lista de guilds tocados (el bot hace poll cada ~2s)
+    try:
+        dirty_path = DATA_DIR / "config_dirty.json"
+        import json as _json
+        dirty = {}
+        if dirty_path.is_file():
+            try:
+                dirty = _json.loads(dirty_path.read_text(encoding="utf-8")) or {}
+            except Exception:
+                dirty = {}
+        gids = list(dirty.get("guild_ids") or [])
+        sid = str(guild_id)
+        if sid not in gids:
+            gids.append(sid)
+        # mantener últimos 80
+        dirty = {"guild_ids": gids[-80:], "ts": time.time()}
+        dirty_path.write_text(_json.dumps(dirty), encoding="utf-8")
+    except Exception as e:
+        print(f"[config] dirty mark: {e}")
+    # Push instantáneo al bot si hay BOT_CALLBACK_URL
+    try:
+        import asyncio as _asyncio
+        try:
+            loop = _asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(_notify_bot_refresh(str(guild_id)))
+            else:
+                pass
+        except Exception:
+            pass
+    except Exception:
+        pass
 
 
 def current_user(request: Request):
@@ -1301,16 +1403,30 @@ async def guild_save(request: Request, guild_id: str):
             "enabled": form.get("economy_enabled") == "on",
             "daily_min": max(0, _int("economy_daily_min", 100)),
             "daily_max": max(0, _int("economy_daily_max", 500)),
+            "weekly_min": max(0, _int("economy_weekly_min", 500)),
+            "weekly_max": max(0, _int("economy_weekly_max", 2000)),
             "work_min": max(0, _int("economy_work_min", 50)),
             "work_max": max(0, _int("economy_work_max", 250)),
+            "work_cooldown": max(60, min(_int("economy_work_cd", 3600), 86400)),
+            "beg_min": max(0, _int("economy_beg_min", 10)),
+            "beg_max": max(0, _int("economy_beg_max", 80)),
+            "beg_cooldown": max(30, min(_int("economy_beg_cd", 600), 86400)),
             "crime_min": max(0, _int("economy_crime_min", 100)),
             "crime_max": max(0, _int("economy_crime_max", 400)),
             "crime_fine": max(0, _int("economy_crime_fine", 150)),
             "rob_percent": max(1, min(_int("economy_rob_percent", 15), 50)),
             "msg_daily": _s("economy_msg_daily", "Recibiste {amount} coins · racha {streak}")[:200],
+            "msg_weekly": _s("economy_msg_weekly", "Weekly: +{amount} coins")[:200],
             "msg_work": _s("economy_msg_work", "Trabajaste y ganaste {amount} coins")[:200],
+            "msg_beg_ok": _s("economy_msg_beg_ok", "{text}")[:200],
+            "msg_beg_fail": _s("economy_msg_beg_fail", "{text}")[:200],
             "msg_crime_ok": _s("economy_msg_crime_ok", "Crimen exitoso: +{amount} coins")[:200],
             "msg_crime_fail": _s("economy_msg_crime_fail", "Te atraparon: -{amount} coins")[:200],
+            "log_channel_id": _s("economy_log_channel").strip(),
+            "shop_channel_id": _s("economy_shop_channel").strip(),
+            "shop_message_id": _s("economy_shop_message").strip(),
+            "shop_roles": _parse_shop_roles(form),
+            "shop_items": _parse_shop_items(form),
         },
         "social": {
             "enabled": form.get("social_enabled") == "on",
@@ -1404,6 +1520,10 @@ async def guild_save(request: Request, guild_id: str):
             return JSONResponse({"ok": False, "error": "save"}, status_code=500)
         return RedirectResponse(f"/guild/{guild_id}?err=save", status_code=303)
     print(f"[guild_save] OK guild={guild_id}")
+    try:
+        await _notify_bot_refresh(str(guild_id))
+    except Exception as e:
+        print(f"[guild_save] bot-push: {e}")
     if _wants_json():
         return JSONResponse({
             "ok": True,
@@ -1717,7 +1837,7 @@ async def health():
 
 @app.get("/api/config-version")
 async def api_config_version(request: Request):
-    """El bot puede consultar esto cada pocos segundos en lugar de cada 40s."""
+    """El bot consulta esto cada ~2s. Devuelve version + guilds modificados."""
     auth = request.headers.get("Authorization") or ""
     token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
     if not _safe_token_eq(token, PANEL_API_TOKEN):
@@ -1727,7 +1847,19 @@ async def api_config_version(request: Request):
         ver = float(p.read_text(encoding="utf-8").strip()) if p.is_file() else 0.0
     except Exception:
         ver = 0.0
-    return JSONResponse({"ok": True, "version": ver})
+    guild_ids = []
+    try:
+        dirty_path = DATA_DIR / "config_dirty.json"
+        if dirty_path.is_file():
+            import json as _json
+            dirty = _json.loads(dirty_path.read_text(encoding="utf-8")) or {}
+            guild_ids = list(dirty.get("guild_ids") or [])
+            # Si el bot pide ?ack=1, limpiamos dirty tras leer
+            if request.query_params.get("ack") == "1":
+                dirty_path.write_text(_json.dumps({"guild_ids": [], "ts": time.time()}), encoding="utf-8")
+    except Exception as e:
+        print(f"[config-version] dirty: {e}")
+    return JSONResponse({"ok": True, "version": ver, "guild_ids": guild_ids})
 
 
 @app.get("/api/ping")
