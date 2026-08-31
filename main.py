@@ -1045,23 +1045,43 @@ def _parse_shop_items(raw) -> list:
 
 @app.post("/guild/{guild_id}/save")
 async def guild_save(request: Request, guild_id: str):
+    from fastapi.responses import JSONResponse
+
+    def _wants_json() -> bool:
+        accept = (request.headers.get("accept") or "").lower()
+        xrw = (request.headers.get("x-requested-with") or "").lower()
+        return (
+            "application/json" in accept
+            or xrw == "xmlhttprequest"
+            or request.query_params.get("ajax") == "1"
+        )
+
+    def _err(code: str, status: int = 400):
+        if _wants_json():
+            return JSONResponse({"ok": False, "error": code}, status_code=status)
+        if code == "login":
+            return RedirectResponse("/login", status_code=303)
+        if code == "dashboard":
+            return RedirectResponse("/dashboard", status_code=303)
+        return RedirectResponse(f"/guild/{guild_id}?err={code}", status_code=303)
+
     user = current_user(request)
     if not user:
-        return RedirectResponse("/login", status_code=303)
+        return _err("login", 401)
     guilds = request.session.get("guilds") or []
     if not (any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)):
-        return RedirectResponse("/dashboard", status_code=303)
+        return _err("dashboard", 403)
     try:
         form = await request.form()
     except Exception as e:
         print(f"[guild_save] form error: {e}")
-        return RedirectResponse(f"/guild/{guild_id}?err=form", status_code=303)
+        return _err("form")
     token = _form_str(form, "csrf_token").strip()
     if not token or not _check_csrf(request, token):
         print(f"[guild_save] csrf fail guild={guild_id} token_len={len(token)}")
-        return RedirectResponse(f"/guild/{guild_id}?err=csrf", status_code=303)
+        return _err("csrf", 403)
     if not str(guild_id).isdigit():
-        return RedirectResponse("/dashboard", status_code=303)
+        return _err("dashboard", 400)
 
     def _s(name, default=""):
         return _form_str(form, name, default)
@@ -1380,8 +1400,17 @@ async def guild_save(request: Request, guild_id: str):
         save_guild_config(guild_id, config)
     except Exception as e:
         print(f"[guild_save] save error {guild_id}: {e}")
+        if _wants_json():
+            return JSONResponse({"ok": False, "error": "save"}, status_code=500)
         return RedirectResponse(f"/guild/{guild_id}?err=save", status_code=303)
     print(f"[guild_save] OK guild={guild_id}")
+    if _wants_json():
+        return JSONResponse({
+            "ok": True,
+            "guild_id": str(guild_id),
+            "saved_at": config.get("_saved_at"),
+            "message": "Cambios guardados",
+        })
     return RedirectResponse(f"/guild/{guild_id}?ok=1", status_code=303)
 
 
