@@ -1121,11 +1121,22 @@
 
                 Roles acumulativos (da todos los roles hasta el nivel actual)
               </label>
-              <label>Roles por nivel (formato: 5:ROLE_ID, 10:ROLE_ID)</label>
+                            <label>Roles por nivel</label>
               {% set _roles = config.levels.get('roles') or {} %}
-              <input type="text" name="levels_roles_raw" value="{% if _roles %}{% for k,v in _roles.items() %}{{ k }}:{{ v }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}" placeholder="5:1234567890, 10:1234567891" />
-              <p class="hint">El ID del rol es opcional por fila; puedes dejar vacío. También: <code>o!niveles rol 5 @Rol</code> · ranking: <code>o!topniveles</code> · rank: <code>o!rank</code></p>
-            </div>
+              <div id="levelRolesBox">
+                {% set ns = namespace(i=0) %}
+                {% for k,v in _roles.items() %}
+                {% set ns.i = ns.i + 1 %}
+                <div class="level-role-row" style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-bottom:8px;align-items:end">
+                  <div class="field" style="margin:0"><label>Nivel</label><input type="number" name="levels_role_level_{{ ns.i }}" min="1" max="500" value="{{ k }}" /></div>
+                  <div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="levels_role_id_{{ ns.i }}" value="{{ v }}" placeholder="ID del rol" /></div>
+                  <button type="button" class="btn" onclick="this.closest('.level-role-row').remove()">✕</button>
+                </div>
+                {% endfor %}
+              </div>
+              <button type="button" class="btn" id="btnAddLevelRole" style="margin-top:6px">＋ Añadir rol de nivel</button>
+              <p class="hint">Al alcanzar ese nivel se asigna el rol. El bot necesita <b>Gestionar roles</b> y el rol debe estar bajo el del bot.</p>
+</div>
           </div>
         </div>
 
@@ -1541,6 +1552,9 @@
     </div>
     <div class="section-body">
       {% set eco = config.economy or {} %}
+      {% set shop_roles = eco.get('shop_roles') or [] %}
+      {% set shop_items = eco.get('shop_items') or [] %}
+
       <div class="mod mod-wide {% if eco.get('enabled', True) %}is-on{% endif %}" data-mod>
         <div class="mod-top">
           <div class="mod-title">Sistema de economía</div>
@@ -1549,36 +1563,77 @@
             <span class="slider"></span>
           </label>
         </div>
-        <p class="mod-desc">Mensajes y cantidades (estilo UnbelievaBoat). El bot usará estos valores al sincronizar.</p>
+        <p class="mod-desc">Recompensas, mensajes, juegos (ruleta, slots…) y tienda de roles. Se guarda solo al cambiar.</p>
         <div class="mod-settings">
           <div class="mod-settings-inner">
+            <h4 style="margin:8px 0 6px;opacity:.85">💰 Cantidades</h4>
             <div class="fields">
-              <div class="field"><label>Daily (mín)</label><input type="number" name="economy_daily_min" min="0" value="{{ eco.get('daily_min', 100) }}" /></div>
-              <div class="field"><label>Daily (máx)</label><input type="number" name="economy_daily_max" min="0" value="{{ eco.get('daily_max', 500) }}" /></div>
-              <div class="field"><label>Work (mín)</label><input type="number" name="economy_work_min" min="0" value="{{ eco.get('work_min', 50) }}" /></div>
-              <div class="field"><label>Work (máx)</label><input type="number" name="economy_work_max" min="0" value="{{ eco.get('work_max', 250) }}" /></div>
-              <div class="field"><label>Crime éxito (mín)</label><input type="number" name="economy_crime_min" min="0" value="{{ eco.get('crime_min', 100) }}" /></div>
-              <div class="field"><label>Crime éxito (máx)</label><input type="number" name="economy_crime_max" min="0" value="{{ eco.get('crime_max', 400) }}" /></div>
-              <div class="field"><label>Crime fallo (multa)</label><input type="number" name="economy_crime_fine" min="0" value="{{ eco.get('crime_fine', 150) }}" /></div>
+              <div class="field"><label>Daily mín</label><input type="number" name="economy_daily_min" min="0" value="{{ eco.get('daily_min', 100) }}" /></div>
+              <div class="field"><label>Daily máx</label><input type="number" name="economy_daily_max" min="0" value="{{ eco.get('daily_max', 500) }}" /></div>
+              <div class="field"><label>Weekly mín</label><input type="number" name="economy_weekly_min" min="0" value="{{ eco.get('weekly_min', 500) }}" /></div>
+              <div class="field"><label>Weekly máx</label><input type="number" name="economy_weekly_max" min="0" value="{{ eco.get('weekly_max', 2000) }}" /></div>
+              <div class="field"><label>Work mín</label><input type="number" name="economy_work_min" min="0" value="{{ eco.get('work_min', 50) }}" /></div>
+              <div class="field"><label>Work máx</label><input type="number" name="economy_work_max" min="0" value="{{ eco.get('work_max', 250) }}" /></div>
+              <div class="field"><label>Work cooldown (s)</label><input type="number" name="economy_work_cd" min="60" value="{{ eco.get('work_cooldown', 3600) }}" /></div>
+              <div class="field"><label>Beg mín</label><input type="number" name="economy_beg_min" min="0" value="{{ eco.get('beg_min', 10) }}" /></div>
+              <div class="field"><label>Beg máx</label><input type="number" name="economy_beg_max" min="0" value="{{ eco.get('beg_max', 80) }}" /></div>
+              <div class="field"><label>Beg cooldown (s)</label><input type="number" name="economy_beg_cd" min="30" value="{{ eco.get('beg_cooldown', 600) }}" /></div>
+              <div class="field"><label>Crime éxito mín</label><input type="number" name="economy_crime_min" min="0" value="{{ eco.get('crime_min', 100) }}" /></div>
+              <div class="field"><label>Crime éxito máx</label><input type="number" name="economy_crime_max" min="0" value="{{ eco.get('crime_max', 400) }}" /></div>
+              <div class="field"><label>Crime multa</label><input type="number" name="economy_crime_fine" min="0" value="{{ eco.get('crime_fine', 150) }}" /></div>
               <div class="field"><label>Robo máx %</label><input type="number" name="economy_rob_percent" min="1" max="50" value="{{ eco.get('rob_percent', 15) }}" /></div>
             </div>
-            <div class="field" style="margin-top:10px">
-              <label>Mensaje daily</label>
-              <input type="text" name="economy_msg_daily" maxlength="200" value="{{ eco.get('msg_daily', 'Recibiste {amount} coins · racha {streak}') }}" />
+
+            <h4 style="margin:16px 0 6px;opacity:.85">📝 Mensajes editables</h4>
+            <p class="hint">Placeholders: <code>{amount}</code> <code>{streak}</code> <code>{user}</code> <code>{job}</code> <code>{text}</code></p>
+            <div class="field"><label>Daily</label><input type="text" name="economy_msg_daily" maxlength="200" value="{{ eco.get('msg_daily', 'Recibiste {amount} coins · racha {streak}') }}" /></div>
+            <div class="field"><label>Weekly</label><input type="text" name="economy_msg_weekly" maxlength="200" value="{{ eco.get('msg_weekly', 'Weekly: +{amount} coins') }}" /></div>
+            <div class="field"><label>Work</label><input type="text" name="economy_msg_work" maxlength="200" value="{{ eco.get('msg_work', 'Trabajaste y ganaste {amount} coins') }}" /></div>
+            <div class="field"><label>Beg OK</label><input type="text" name="economy_msg_beg_ok" maxlength="200" value="{{ eco.get('msg_beg_ok', '{text}') }}" /></div>
+            <div class="field"><label>Beg fail</label><input type="text" name="economy_msg_beg_fail" maxlength="200" value="{{ eco.get('msg_beg_fail', '{text}') }}" /></div>
+            <div class="field"><label>Crime OK</label><input type="text" name="economy_msg_crime_ok" maxlength="200" value="{{ eco.get('msg_crime_ok', 'Crimen exitoso: +{amount} coins') }}" /></div>
+            <div class="field"><label>Crime fail</label><input type="text" name="economy_msg_crime_fail" maxlength="200" value="{{ eco.get('msg_crime_fail', 'Te atraparon: -{amount} coins') }}" /></div>
+
+            <h4 style="margin:18px 0 8px;opacity:.85">🎭 Tienda de roles</h4>
+            <p class="hint">Cada fila = un rol comprable con <code>o!buy nombre</code>. Usa el botón para añadir más (no todo en un solo campo).</p>
+            <div id="shopRolesBox">
+              {% for r in shop_roles %}
+              <div class="shop-role-row" style="display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end">
+                <div class="field" style="margin:0"><label>Nombre</label><input type="text" name="shop_role_name_{{ loop.index }}" value="{{ r.get('name','') }}" placeholder="VIP" /></div>
+                <div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="shop_role_id_{{ loop.index }}" value="{{ r.get('role_id','') }}" placeholder="123..." /></div>
+                <div class="field" style="margin:0"><label>Precio</label><input type="number" name="shop_role_price_{{ loop.index }}" value="{{ r.get('price',0) }}" min="0" /></div>
+                <button type="button" class="btn" onclick="this.closest('.shop-role-row').remove()" style="margin-bottom:2px">✕</button>
+              </div>
+              {% endfor %}
             </div>
-            <div class="field">
-              <label>Mensaje work</label>
-              <input type="text" name="economy_msg_work" maxlength="200" value="{{ eco.get('msg_work', 'Trabajaste y ganaste {amount} coins') }}" />
+            <button type="button" class="btn" id="btnAddShopRole" style="margin-top:6px">＋ Añadir rol a la tienda</button>
+
+            <h4 style="margin:18px 0 8px;opacity:.85">📦 Ítems (inventario)</h4>
+            <div id="shopItemsBox">
+              {% for it in shop_items %}
+              <div class="shop-item-row" style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end">
+                <div class="field" style="margin:0"><label>Nombre</label><input type="text" name="shop_item_name_{{ loop.index }}" value="{{ it.get('name','') }}" /></div>
+                <div class="field" style="margin:0"><label>Precio</label><input type="number" name="shop_item_price_{{ loop.index }}" value="{{ it.get('price',0) }}" min="0" /></div>
+                <button type="button" class="btn" onclick="this.closest('.shop-item-row').remove()">✕</button>
+              </div>
+              {% endfor %}
             </div>
-            <div class="field">
-              <label>Mensaje crime OK</label>
-              <input type="text" name="economy_msg_crime_ok" maxlength="200" value="{{ eco.get('msg_crime_ok', 'Crimen exitoso: +{amount} coins') }}" />
+            <button type="button" class="btn" id="btnAddShopItem" style="margin-top:6px">＋ Añadir ítem</button>
+
+            <p class="hint" style="margin-top:14px">
+              
+            <h4 style="margin:18px 0 8px;opacity:.85">📋 Logs y tienda en canal</h4>
+            <div class="fields">
+              <div class="field"><label>Canal logs economía (ID)</label><input type="text" name="economy_log_channel" value="{{ eco.get('log_channel_id','') }}" placeholder="ID del canal" /></div>
+              <div class="field"><label>Canal tienda (ID)</label><input type="text" name="economy_shop_channel" value="{{ eco.get('shop_channel_id','') }}" placeholder="donde está el mensaje" /></div>
+              <div class="field"><label>Mensaje tienda (ID)</label><input type="text" name="economy_shop_message" value="{{ eco.get('shop_message_id','') }}" placeholder="se rellena con o!shop post" /></div>
             </div>
-            <div class="field">
-              <label>Mensaje crime fail</label>
-              <input type="text" name="economy_msg_crime_fail" maxlength="200" value="{{ eco.get('msg_crime_fail', 'Te atraparon: -{amount} coins') }}" />
-            </div>
-            <p class="hint">Placeholders: <code>{amount}</code> <code>{streak}</code> <code>{user}</code></p>
+            <p class="hint">En Discord: <code>o!shop post #canal</code> publica la tienda. Si cambias precios aquí, el bot <b>actualiza ese mensaje solo</b>.</p>
+
+            Comandos: <code>o!bal</code> <code>o!daily</code> <code>o!weekly</code> <code>o!work</code> <code>o!beg</code>
+              <code>o!pay</code> <code>o!shop</code> <code>o!buy</code> <code>o!sell</code> <code>o!inv</code>
+              <code>o!gamble</code> <code>o!slots</code> <code>o!ruleta</code> <code>o!rob</code> <code>o!top coins</code>
+            </p>
           </div>
         </div>
       </div>
@@ -1929,6 +1984,75 @@
 
 
   // ─── Autoguardado + toast ───────────────────────────────────────
+  
+
+  (function () {
+    var box = document.getElementById('levelRolesBox');
+    var btn = document.getElementById('btnAddLevelRole');
+    if (!btn || !box) return;
+    btn.addEventListener('click', function () {
+      var n = 1;
+      box.querySelectorAll('input[name^="levels_role_level_"]').forEach(function (inp) {
+        var m = (inp.name || '').match(/_(\d+)$/);
+        if (m) n = Math.max(n, parseInt(m[1], 10) + 1);
+      });
+      if (n > 20) return alert('Máximo 20 roles de nivel');
+      var div = document.createElement('div');
+      div.className = 'level-role-row';
+      div.style.cssText = 'display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-bottom:8px;align-items:end';
+      div.innerHTML = '<div class="field" style="margin:0"><label>Nivel</label><input type="number" name="levels_role_level_' + n + '" min="1" max="500" value="10" /></div>' +
+        '<div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="levels_role_id_' + n + '" placeholder="ID del rol" /></div>' +
+        '<button type="button" class="btn" onclick="this.closest(\'.level-role-row\').remove()">✕</button>';
+      box.appendChild(div);
+      try { div.querySelector('input').dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    });
+  })();
+
+  // Economía: filas dinámicas tienda
+  (function () {
+    var roleBox = document.getElementById('shopRolesBox');
+    var itemBox = document.getElementById('shopItemsBox');
+    var btnR = document.getElementById('btnAddShopRole');
+    var btnI = document.getElementById('btnAddShopItem');
+    function nextIndex(box, prefix) {
+      var n = 1;
+      if (!box) return 1;
+      box.querySelectorAll('input').forEach(function (inp) {
+        var m = (inp.name || '').match(new RegExp(prefix + '_(\\d+)$'));
+        if (m) n = Math.max(n, parseInt(m[1], 10) + 1);
+      });
+      return Math.min(n, 20);
+    }
+    if (btnR && roleBox) {
+      btnR.addEventListener('click', function () {
+        var i = nextIndex(roleBox, 'shop_role_id');
+        if (i > 20) return alert('Máximo 20 roles');
+        var div = document.createElement('div');
+        div.className = 'shop-role-row';
+        div.style.cssText = 'display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end';
+        div.innerHTML = '<div class="field" style="margin:0"><label>Nombre</label><input type="text" name="shop_role_name_' + i + '" placeholder="VIP" /></div>' +
+          '<div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="shop_role_id_' + i + '" placeholder="123..." /></div>' +
+          '<div class="field" style="margin:0"><label>Precio</label><input type="number" name="shop_role_price_' + i + '" value="1000" min="0" /></div>' +
+          '<button type="button" class="btn" onclick="this.closest(\'.shop-role-row\').remove()">✕</button>';
+        roleBox.appendChild(div);
+        div.querySelector('input').dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+    if (btnI && itemBox) {
+      btnI.addEventListener('click', function () {
+        var i = nextIndex(itemBox, 'shop_item_name');
+        if (i > 15) return alert('Máximo 15 ítems');
+        var div = document.createElement('div');
+        div.className = 'shop-item-row';
+        div.style.cssText = 'display:grid;grid-template-columns:1.5fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end';
+        div.innerHTML = '<div class="field" style="margin:0"><label>Nombre</label><input type="text" name="shop_item_name_' + i + '" /></div>' +
+          '<div class="field" style="margin:0"><label>Precio</label><input type="number" name="shop_item_price_' + i + '" value="100" min="0" /></div>' +
+          '<button type="button" class="btn" onclick="this.closest(\'.shop-item-row\').remove()">✕</button>';
+        itemBox.appendChild(div);
+      });
+    }
+  })();
+
   (function autosaveSetup() {
     const form = document.getElementById('guildForm');
     if (!form) return;
