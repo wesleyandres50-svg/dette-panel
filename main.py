@@ -598,6 +598,26 @@ def _default_config() -> dict:
             "log_channel_id": "",
             "shop_channel_id": "",
             "shop_message_id": "",
+            "currency": "🪙",
+            "start_cash": 0,
+            "start_bank": 0,
+            "max_cash": 0,
+            "max_bank": 0,
+            "slut_min": 20,
+            "slut_max": 120,
+            "slut_fine": 80,
+            "slut_success": 0.55,
+            "slut_cooldown": 900,
+            "crime_success": 0.55,
+            "rob_success": 0.45,
+            "chat_money_min": 0,
+            "chat_money_max": 0,
+            "chat_money_cooldown": 60,
+            "bet_min": 10,
+            "bet_max": 0,
+            "role_income": [],
+            "msg_slut_ok": "💋 +{amount} {currency}",
+            "msg_slut_fail": "😬 -{amount} {currency}",
         },
         "shop": {"enabled": False, "items": []},
         "reports": {"enabled": False, "channel_id": ""},
@@ -679,6 +699,22 @@ def get_guild_config(guild_id: str) -> dict:
     return cfg
 
 
+
+
+def _parse_role_income(form) -> list:
+    out = []
+    for i in range(1, 16):
+        rid = (form.get(f"role_income_id_{i}") or "").strip()
+        if not rid:
+            continue
+        try:
+            rid_i = int(rid)
+            amount = int(str(form.get(f"role_income_amount_{i}") or "0").strip() or "0")
+            hours = float(str(form.get(f"role_income_hours_{i}") or "24").strip() or "24")
+        except Exception:
+            continue
+        out.append({"role_id": rid_i, "amount": max(0, amount), "hours": max(0.5, hours)})
+    return out
 
 def _parse_shop_roles(form) -> list:
     """Lee shop_role_id_N + shop_role_price_N + shop_role_name_N (hasta 20)."""
@@ -1425,6 +1461,26 @@ async def guild_save(request: Request, guild_id: str):
             "log_channel_id": _s("economy_log_channel").strip(),
             "shop_channel_id": _s("economy_shop_channel").strip(),
             "shop_message_id": _s("economy_shop_message").strip(),
+            "currency": (_s("economy_currency") or "🪙").strip()[:16] or "🪙",
+            "start_cash": max(0, _int("economy_start_cash", 0)),
+            "start_bank": max(0, _int("economy_start_bank", 0)),
+            "max_cash": max(0, _int("economy_max_cash", 0)),
+            "max_bank": max(0, _int("economy_max_bank", 0)),
+            "slut_min": max(0, _int("economy_slut_min", 20)),
+            "slut_max": max(0, _int("economy_slut_max", 120)),
+            "slut_fine": max(0, _int("economy_slut_fine", 80)),
+            "slut_success": max(0.05, min(float(form.get("economy_slut_success") or 0.55), 0.95)),
+            "slut_cooldown": max(60, min(_int("economy_slut_cd", 900), 86400)),
+            "crime_success": max(0.05, min(float(form.get("economy_crime_success") or 0.55), 0.95)),
+            "rob_success": max(0.05, min(float(form.get("economy_rob_success") or 0.45), 0.95)),
+            "chat_money_min": max(0, _int("economy_chat_min", 0)),
+            "chat_money_max": max(0, _int("economy_chat_max", 0)),
+            "chat_money_cooldown": max(10, min(_int("economy_chat_cd", 60), 3600)),
+            "bet_min": max(1, _int("economy_bet_min", 10)),
+            "bet_max": max(0, _int("economy_bet_max", 0)),
+            "role_income": _parse_role_income(form),
+            "msg_slut_ok": _s("economy_msg_slut_ok", "💋 +{amount} {currency}")[:200],
+            "msg_slut_fail": _s("economy_msg_slut_fail", "😬 -{amount} {currency}")[:200],
             "shop_roles": _parse_shop_roles(form),
             "shop_items": _parse_shop_items(form),
         },
