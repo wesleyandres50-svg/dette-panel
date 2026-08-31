@@ -944,6 +944,13 @@
               <div class="field">
                 <label>Mensaje</label>
                 <textarea name="welcome_message" rows="3">{{ config.welcome.message }}</textarea>
+                <label style="display:block;margin-top:8px">Título</label>
+                <input type="text" name="welcome_title" value="{{ config.welcome.get('title','¡Bienvenido/a!') if config.welcome else '¡Bienvenido/a!' }}" />
+                <label style="display:block;margin-top:8px">Imagen / banner URL</label>
+                <input type="text" name="welcome_image" value="{{ config.welcome.get('image','') if config.welcome else '' }}" placeholder="https://..." />
+                <input type="text" name="welcome_banner" value="{{ config.welcome.get('banner_url','') if config.welcome else '' }}" placeholder="Banner URL" style="margin-top:4px" />
+                <label class="check-line" style="margin-top:8px"><input type="checkbox" name="welcome_card_enabled" {% if config.welcome.get('card_enabled') %}checked{% endif %} /> Tarjeta editable (avatar + nombre + fondo)</label>
+
               </div>
               <p class="hint">Variables: {user} {server} {membercount}</p>
             </div>
@@ -964,6 +971,13 @@
               <div class="field">
                 <label>Rol ID</label>
                 <input type="text" name="autorole_role" value="{{ config.autorole.role_id }}" />
+                <label style="display:block;margin-top:8px">Más roles (IDs separados por coma)</label>
+                <input type="text" name="autorole_roles" value="{{ (config.autorole.get('role_ids') or [])|join(',') if config.autorole else '' }}" placeholder="id1,id2,id3" />
+                <label style="display:block;margin-top:8px">Rol para bots (ID)</label>
+                <input type="text" name="autorole_bot_role" value="{{ config.autorole.get('bot_role_id','') if config.autorole else '' }}" />
+                <label style="display:block;margin-top:8px">Más roles bots (IDs coma)</label>
+                <input type="text" name="autorole_bot_roles" value="{{ (config.autorole.get('bot_role_ids') or [])|join(',') if config.autorole else '' }}" />
+
               </div>
             </div>
           </div>
@@ -987,6 +1001,10 @@
               <div class="field">
                 <label>Mensaje</label>
                 <textarea name="booster_message" rows="2">{{ config.booster.message }}</textarea>
+                <label class="check-line" style="margin-top:8px"><input type="checkbox" name="booster_image_enabled" {% if config.booster.get('image_enabled', true) %}checked{% endif %} /> Imagen personalizada (tarjeta)</label>
+                <label style="display:block;margin-top:8px">URL imagen custom (opcional)</label>
+                <input type="text" name="booster_custom_image" value="{{ config.booster.get('custom_image','') }}" placeholder="https://..." />
+
               </div>
               <p class="hint">Variables: {user} {server}</p>
             </div>
@@ -1040,6 +1058,12 @@
               </label>
               <label class="check">
                 <input type="checkbox" name="levels_stack_roles" {% if config.levels.get('stack_roles', true) %}checked{% endif %} />
+                <label class="check-line" style="margin-top:10px"><input type="checkbox" name="levels_top_roles_enabled" {% if config.levels.get('top_roles_enabled') %}checked{% endif %} /> Roles Top chat (actividad)</label>
+                <label style="display:block;margin-top:6px">Rol Top 1 chat (ID)</label>
+                <input type="text" name="levels_top1_role" value="{{ config.levels.get('top1_role_id','') if config.levels else '' }}" />
+                <label style="display:block;margin-top:6px">Rol Top 10 chat (ID)</label>
+                <input type="text" name="levels_top10_role" value="{{ config.levels.get('top10_role_id','') if config.levels else '' }}" />
+
                 Roles acumulativos (da todos los roles hasta el nivel actual)
               </label>
               <label>Roles por nivel (formato: 5:ROLE_ID, 10:ROLE_ID)</label>
@@ -1069,6 +1093,11 @@
                 <div class="field">
                   <label>Mín. estrellas</label>
                   <input type="number" name="starboard_min" min="1" max="50" value="{{ config.starboard.min_stars or 3 }}" />
+                <label style="display:block;margin-top:8px">Emoji</label>
+                <input type="text" name="starboard_emoji" value="{{ config.starboard.get('emoji', '⭐') if config.starboard else '⭐' }}" placeholder="⭐" />
+                <label class="check-line" style="margin-top:8px"><input type="checkbox" name="starboard_self_star" {% if config.starboard.get('self_star') %}checked{% endif %} /> Permitir self-star</label>
+                <label class="check-line"><input type="checkbox" name="starboard_allow_images" {% if config.starboard.get('allow_images', true) %}checked{% endif %} /> Permitir imágenes</label>
+
                 </div>
               </div>
             </div>
