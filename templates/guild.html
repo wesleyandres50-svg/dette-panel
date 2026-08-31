@@ -117,6 +117,7 @@
   .sec-fun .section-h,
   .sec-util .section-h,
   .sec-style .section-h,
+  .sec-levels .section-h,
   .sec-economy .section-h,
   .sec-socialnet .section-h,
   .sec-owner .section-h {
@@ -501,6 +502,7 @@
   <a href="#sec-social">🎭 Social / Fun</a>
   <a href="#sec-shop">🛒 Tienda</a>
   <a href="#sec-economy">💰 Economía</a>
+  <a href="#sec-levels">⭐ Niveles</a>
   <a href="#sec-socialnet">📣 Redes</a>
   <a href="#sec-antiraid">🛡️ Anti-Raid+</a>
   {% if is_owner %}<a href="#sec-owner">👑 Owner</a>{% endif %}
@@ -1069,74 +1071,11 @@
         <div class="mod {% if config.levels.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Niveles / XP</div>
-            <label class="switch">
-              <input type="checkbox" name="levels_enabled" data-toggle {% if config.levels.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <span style="font-size:0.78rem;opacity:0.75">{% if config.levels.enabled %}🟢 ON{% else %}🔴 OFF{% endif %}</span>
           </div>
-          <p class="mod-desc">Niveles por mensajes, roles por nivel, ranking y tarjeta visual (banner).</p>
-          <div class="mod-settings">
-            <div class="mod-settings-inner">
-              <div class="grid2">
-                <div>
-                  <label>XP por mensaje</label>
-                  <input type="number" name="levels_xp_per_message" min="1" max="100" value="{{ config.levels.get('xp_per_message', 15) }}" />
-                </div>
-                <div>
-                  <label>Cooldownoldown (segundos)</label>
-                  <input type="number" name="levels_xp_cooldown" min="5" max="600" value="{{ config.levels.get('xp_cooldown', 60) }}" />
-                </div>
-              </div>
-              <div class="grid2">
-                <div>
-                  <label>Canal de anuncios (ID, opcional)</label>
-                  <input type="text" name="levels_channel" value="{{ config.levels.get('channel_id', '') }}" placeholder="vacío = mismo canal" />
-                </div>
-                <div>
-                  <label>Color embed</label>
-                  <input type="text" name="levels_color" value="{{ config.levels.get('color', '#AFD7E6') }}" placeholder="#AFD7E6" />
-                </div>
-              </div>
-              <label>Mensaje al subir de nivel</label>
-              <input type="text" name="levels_message" value="{{ config.levels.get('message', '🎉 {user} subió al **nivel {level}** en **{server}**!') }}" />
-              <p class="hint">Variables: {user} {username} {level} {server}</p>
-              <label>Banner / imagen de la tarjeta (URL)</label>
-              <input type="text" name="levels_banner" value="{{ config.levels.get('banner_url', config.levels.get('image', '')) }}" placeholder="https://..." />
-              <input type="hidden" name="levels_image" value="{{ config.levels.get('image', '') }}" />
-              <label class="check">
-                <input type="checkbox" name="levels_use_embed" {% if config.levels.get('use_embed', true) %}checked{% endif %} />
-                Usar embed en el anuncio
-              </label>
-              <label class="check">
-                <input type="checkbox" name="levels_card_enabled" {% if config.levels.get('card_enabled', true) %}checked{% endif %} />
-                Generar tarjeta visual (avatar + nivel + barra XP)
-              </label>
-              <label class="check">
-                <input type="checkbox" name="levels_stack_roles" {% if config.levels.get('stack_roles', true) %}checked{% endif %} />
-                <label class="check-line" style="margin-top:10px"><input type="checkbox" name="levels_top_roles_enabled" {% if config.levels.get('top_roles_enabled') %}checked{% endif %} /> Roles Top chat (actividad)</label>
-                <label style="display:block;margin-top:6px">Rol Top 1 chat (ID)</label>
-                <input type="text" name="levels_top1_role" value="{{ config.levels.get('top1_role_id','') if config.levels else '' }}" />
-                <label style="display:block;margin-top:6px">Rol Top 10 chat (ID)</label>
-                <input type="text" name="levels_top10_role" value="{{ config.levels.get('top10_role_id','') if config.levels else '' }}" />
-
-                Roles acumulativos (da todos los roles hasta el nivel actual)
-              </label>
-                            <label>Roles por nivel</label>
-              {% set _roles = config.levels.get('roles') or {} %}
-              <div id="levelRolesBox">
-                {% set ns = namespace(i=0) %}
-                {% for k,v in _roles.items() %}
-                {% set ns.i = ns.i + 1 %}
-                <div class="level-role-row" style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-bottom:8px;align-items:end">
-                  <div class="field" style="margin:0"><label>Nivel</label><input type="number" name="levels_role_level_{{ ns.i }}" min="1" max="500" value="{{ k }}" /></div>
-                  <div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="levels_role_id_{{ ns.i }}" value="{{ v }}" placeholder="ID del rol" /></div>
-                  <button type="button" class="btn" onclick="this.closest('.level-role-row').remove()">✕</button>
-                </div>
-                {% endfor %}
-              </div>
-              <button type="button" class="btn" id="btnAddLevelRole" style="margin-top:6px">＋ Añadir rol de nivel</button>
-              <p class="hint">Al alcanzar ese nivel se asigna el rol. El bot necesita <b>Gestionar roles</b> y el rol debe estar bajo el del bot.</p>
-</div>
+          <p class="mod-desc">XP por mensajes, roles por nivel y ranking.</p>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07)">
+            <a href="#sec-levels" class="btn" style="display:inline-block;text-decoration:none;padding:10px 14px">⭐ Configurar niveles y roles →</a>
           </div>
         </div>
 
@@ -1545,6 +1484,76 @@
   </div>
 
   <!-- ===== ECONOMÍA ===== -->
+
+  <!-- ===== NIVELES ===== -->
+  <div class="section sec-levels" id="sec-levels" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">XP</span> Niveles</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% set lv = config.levels or {} %}
+      {% set _roles = lv.get('roles') or {} %}
+
+      <div class="mod mod-wide is-on" data-mod>
+        <div class="mod-top">
+          <div class="mod-title">⭐ Sistema de niveles</div>
+          <label class="switch">
+            <input type="checkbox" name="levels_enabled" data-toggle {% if lv.get('enabled') %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">XP, mensajes de subida y roles por nivel. Se guarda solo al cambiar.</p>
+        <div class="mod-settings" style="display:block">
+          <div class="mod-settings-inner">
+            <h4 style="margin:4px 0 10px;opacity:.9">⚙️ XP y anuncios</h4>
+            <div class="fields">
+              <div class="field"><label>XP por mensaje</label><input type="number" name="levels_xp_per_message" min="1" max="100" value="{{ lv.get('xp_per_message', 15) }}" /></div>
+              <div class="field"><label>Cooldownoldown (s)</label><input type="number" name="levels_xp_cooldown" min="5" max="600" value="{{ lv.get('xp_cooldown', 60) }}" /></div>
+              <div class="field"><label>Canal anuncios (ID)</label><input type="text" name="levels_channel" value="{{ lv.get('channel_id', '') }}" placeholder="vacío = mismo canal" /></div>
+              <div class="field"><label>Color embed</label><input type="text" name="levels_color" value="{{ lv.get('color', '#AFD7E6') }}" /></div>
+            </div>
+            <div class="field"><label>Mensaje al subir de nivel</label>
+              <input type="text" name="levels_message" value="{{ lv.get('message', '🎉 {user} subió al **nivel {level}** en **{server}**!') }}" />
+            </div>
+            <p class="hint">Variables: {user} {username} {level} {server}</p>
+            <div class="field"><label>Banner / imagen (URL)</label>
+              <input type="text" name="levels_banner" value="{{ lv.get('banner_url', lv.get('image', '')) }}" placeholder="https://..." />
+              <input type="hidden" name="levels_image" value="{{ lv.get('image', '') }}" />
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px">
+              <label class="check-line"><input type="checkbox" name="levels_use_embed" {% if lv.get('use_embed', true) %}checked{% endif %} /> Usar embed</label>
+              <label class="check-line"><input type="checkbox" name="levels_card_enabled" {% if lv.get('card_enabled', true) %}checked{% endif %} /> Tarjeta visual</label>
+              <label class="check-line"><input type="checkbox" name="levels_stack_roles" {% if lv.get('stack_roles', true) %}checked{% endif %} /> Acumular roles</label>
+            </div>
+
+            <h4 style="margin:22px 0 8px;opacity:.9">🎭 Roles por nivel</h4>
+            <p class="hint">Añade filas con el botón. Cada una: nivel + ID del rol (sin escribir <code>10:ID,20:ID</code>).</p>
+            <div id="levelRolesBox" style="margin-top:12px">
+              {% for k, v in _roles.items() %}
+              <div class="level-role-row" style="display:grid;grid-template-columns:110px 1fr auto;gap:10px;margin-bottom:10px;align-items:end;padding:12px;border-radius:12px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.07)">
+                <div class="field" style="margin:0"><label>Nivel</label><input type="number" name="levels_role_level_{{ loop.index }}" min="1" max="500" value="{{ k }}" /></div>
+                <div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="levels_role_id_{{ loop.index }}" value="{{ v }}" placeholder="ID del rol" /></div>
+                <button type="button" class="btn" onclick="this.closest('.level-role-row').remove()">✕</button>
+              </div>
+              {% else %}
+              <p class="hint" id="levelRolesEmpty">Todavía no hay roles. Pulsa <b>＋ Añadir rol de nivel</b>.</p>
+              {% endfor %}
+            </div>
+            <button type="button" class="btn" id="btnAddLevelRole" style="margin-top:10px;padding:12px 18px;font-weight:600;font-size:0.95rem">＋ Añadir rol de nivel</button>
+
+            <h4 style="margin:24px 0 8px;opacity:.9">🏆 Top chat</h4>
+            <label class="check-line"><input type="checkbox" name="levels_top_roles_enabled" {% if lv.get('top_roles_enabled') %}checked{% endif %} /> Roles Top 1 / Top 10 por actividad</label>
+            <div class="fields" style="margin-top:8px">
+              <div class="field"><label>Rol Top 1 (ID)</label><input type="text" name="levels_top1_role" value="{{ lv.get('top1_role_id','') }}" /></div>
+              <div class="field"><label>Rol Top 10 (ID)</label><input type="text" name="levels_top10_role" value="{{ lv.get('top10_role_id','') }}" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="section sec-economy" id="sec-economy" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">$$</span> Economía</h2>
@@ -1583,6 +1592,50 @@
               <div class="field"><label>Crime multa</label><input type="number" name="economy_crime_fine" min="0" value="{{ eco.get('crime_fine', 150) }}" /></div>
               <div class="field"><label>Robo máx %</label><input type="number" name="economy_rob_percent" min="1" max="50" value="{{ eco.get('rob_percent', 15) }}" /></div>
             </div>
+
+
+            <h4 style="margin:16px 0 6px;opacity:.85">🪙 Moneda y límites</h4>
+            <div class="fields">
+              <div class="field"><label>Símbolo moneda</label><input type="text" name="economy_currency" maxlength="16" value="{{ eco.get('currency', '🪙') }}" /></div>
+              <div class="field"><label>Inicio cash</label><input type="number" name="economy_start_cash" min="0" value="{{ eco.get('start_cash', 0) }}" /></div>
+              <div class="field"><label>Inicio bank</label><input type="number" name="economy_start_bank" min="0" value="{{ eco.get('start_bank', 0) }}" /></div>
+              <div class="field"><label>Máx cash (0=∞)</label><input type="number" name="economy_max_cash" min="0" value="{{ eco.get('max_cash', 0) }}" /></div>
+              <div class="field"><label>Máx bank (0=∞)</label><input type="number" name="economy_max_bank" min="0" value="{{ eco.get('max_bank', 0) }}" /></div>
+              <div class="field"><label>Apuesta mín</label><input type="number" name="economy_bet_min" min="1" value="{{ eco.get('bet_min', 10) }}" /></div>
+              <div class="field"><label>Apuesta máx (0=∞)</label><input type="number" name="economy_bet_max" min="0" value="{{ eco.get('bet_max', 0) }}" /></div>
+            </div>
+            <h4 style="margin:16px 0 6px;opacity:.85">💋 Slut / riesgos</h4>
+            <div class="fields">
+              <div class="field"><label>Slut mín</label><input type="number" name="economy_slut_min" min="0" value="{{ eco.get('slut_min', 20) }}" /></div>
+              <div class="field"><label>Slut máx</label><input type="number" name="economy_slut_max" min="0" value="{{ eco.get('slut_max', 120) }}" /></div>
+              <div class="field"><label>Slut multa</label><input type="number" name="economy_slut_fine" min="0" value="{{ eco.get('slut_fine', 80) }}" /></div>
+              <div class="field"><label>Slut éxito (0-1)</label><input type="number" step="0.05" name="economy_slut_success" min="0.05" max="0.95" value="{{ eco.get('slut_success', 0.55) }}" /></div>
+              <div class="field"><label>Slut cooldown (s)</label><input type="number" name="economy_slut_cd" min="60" value="{{ eco.get('slut_cooldown', 900) }}" /></div>
+              <div class="field"><label>Crime éxito</label><input type="number" step="0.05" name="economy_crime_success" min="0.05" max="0.95" value="{{ eco.get('crime_success', 0.55) }}" /></div>
+              <div class="field"><label>Rob éxito</label><input type="number" step="0.05" name="economy_rob_success" min="0.05" max="0.95" value="{{ eco.get('rob_success', 0.45) }}" /></div>
+            </div>
+            <h4 style="margin:16px 0 6px;opacity:.85">💬 Chat money</h4>
+            <div class="fields">
+              <div class="field"><label>Mín por mensaje</label><input type="number" name="economy_chat_min" min="0" value="{{ eco.get('chat_money_min', 0) }}" /></div>
+              <div class="field"><label>Máx (0=off)</label><input type="number" name="economy_chat_max" min="0" value="{{ eco.get('chat_money_max', 0) }}" /></div>
+              <div class="field"><label>Cooldownoldown (s)</label><input type="number" name="economy_chat_cd" min="10" value="{{ eco.get('chat_money_cooldown', 60) }}" /></div>
+            </div>
+            <div class="field"><label>Mensaje slut OK</label><input type="text" name="economy_msg_slut_ok" value="{{ eco.get('msg_slut_ok', '💋 +{amount} {currency}') }}" /></div>
+            <div class="field"><label>Mensaje slut fail</label><input type="text" name="economy_msg_slut_fail" value="{{ eco.get('msg_slut_fail', '😬 -{amount} {currency}') }}" /></div>
+
+            <h4 style="margin:16px 0 6px;opacity:.85">💼 Role income</h4>
+            <p class="hint">Salario periódico por rol. El usuario usa <code>o!collect-income</code>.</p>
+            <div id="roleIncomeBox">
+              {% for ri in (eco.get('role_income') or []) %}
+              <div class="role-income-row" style="display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end">
+                <div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="role_income_id_{{ loop.index }}" value="{{ ri.get('role_id','') }}" /></div>
+                <div class="field" style="margin:0"><label>Cantidad</label><input type="number" name="role_income_amount_{{ loop.index }}" value="{{ ri.get('amount',0) }}" min="0" /></div>
+                <div class="field" style="margin:0"><label>Horas</label><input type="number" step="0.5" name="role_income_hours_{{ loop.index }}" value="{{ ri.get('hours',24) }}" min="0.5" /></div>
+                <button type="button" class="btn" onclick="this.closest('.role-income-row').remove()">✕</button>
+              </div>
+              {% endfor %}
+            </div>
+            <button type="button" class="btn" id="btnAddRoleIncome" style="margin-top:6px">＋ Añadir role-income</button>
 
             <h4 style="margin:16px 0 6px;opacity:.85">📝 Mensajes editables</h4>
             <p class="hint">Placeholders: <code>{amount}</code> <code>{streak}</code> <code>{user}</code> <code>{job}</code> <code>{text}</code></p>
@@ -1630,7 +1683,7 @@
             </div>
             <p class="hint">En Discord: <code>o!shop post #canal</code> publica la tienda. Si cambias precios aquí, el bot <b>actualiza ese mensaje solo</b>.</p>
 
-            Comandos: <code>o!bal</code> <code>o!daily</code> <code>o!weekly</code> <code>o!work</code> <code>o!beg</code>
+            Comandos: <code>o!money</code> <code>o!bal</code> <code>o!work</code> <code>o!crime</code> <code>o!slut</code> <code>o!rob</code> <code>o!heist</code> <code>o!blackjack</code> <code>o!slots</code> <code>o!ruleta</code> <code>o!shop</code> <code>o!add-money</code> <code>o!bal</code> <code>o!daily</code> <code>o!weekly</code> <code>o!work</code> <code>o!beg</code>
               <code>o!pay</code> <code>o!shop</code> <code>o!buy</code> <code>o!sell</code> <code>o!inv</code>
               <code>o!gamble</code> <code>o!slots</code> <code>o!ruleta</code> <code>o!rob</code> <code>o!top coins</code>
             </p>
@@ -1986,6 +2039,9 @@
   // ─── Autoguardado + toast ───────────────────────────────────────
   
 
+  
+
+  
   (function () {
     var box = document.getElementById('levelRolesBox');
     var btn = document.getElementById('btnAddLevelRole');
@@ -1997,14 +2053,39 @@
         if (m) n = Math.max(n, parseInt(m[1], 10) + 1);
       });
       if (n > 20) return alert('Máximo 20 roles de nivel');
+      var empty = document.getElementById('levelRolesEmpty');
+      if (empty) empty.remove();
       var div = document.createElement('div');
       div.className = 'level-role-row';
-      div.style.cssText = 'display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-bottom:8px;align-items:end';
-      div.innerHTML = '<div class="field" style="margin:0"><label>Nivel</label><input type="number" name="levels_role_level_' + n + '" min="1" max="500" value="10" /></div>' +
+      div.style.cssText = 'display:grid;grid-template-columns:110px 1fr auto;gap:10px;margin-bottom:10px;align-items:end;padding:12px;border-radius:12px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.07)';
+      div.innerHTML = '<div class="field" style="margin:0"><label>Nivel</label><input type="number" name="levels_role_level_' + n + '" min="1" max="500" value="' + (n * 10) + '" /></div>' +
         '<div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="levels_role_id_' + n + '" placeholder="ID del rol" /></div>' +
         '<button type="button" class="btn" onclick="this.closest(\'.level-role-row\').remove()">✕</button>';
       box.appendChild(div);
       try { div.querySelector('input').dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    });
+  })();
+
+  
+  (function () {
+    var box = document.getElementById('roleIncomeBox');
+    var btn = document.getElementById('btnAddRoleIncome');
+    if (!btn || !box) return;
+    btn.addEventListener('click', function () {
+      var n = 1;
+      box.querySelectorAll('input[name^="role_income_id_"]').forEach(function (inp) {
+        var m = (inp.name || '').match(/_(\d+)$/);
+        if (m) n = Math.max(n, parseInt(m[1], 10) + 1);
+      });
+      if (n > 15) return alert('Máximo 15');
+      var div = document.createElement('div');
+      div.className = 'role-income-row';
+      div.style.cssText = 'display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end';
+      div.innerHTML = '<div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="role_income_id_' + n + '" /></div>' +
+        '<div class="field" style="margin:0"><label>Cantidad</label><input type="number" name="role_income_amount_' + n + '" value="100" min="0" /></div>' +
+        '<div class="field" style="margin:0"><label>Horas</label><input type="number" step="0.5" name="role_income_hours_' + n + '" value="24" min="0.5" /></div>' +
+        '<button type="button" class="btn" onclick="this.closest(\'.role-income-row\').remove()">✕</button>';
+      box.appendChild(div);
     });
   })();
 
