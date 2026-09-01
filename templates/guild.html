@@ -497,6 +497,7 @@
   <a href="#sec-perfilbot">🏷️ Perfil bot</a>
   <a href="#sec-seguridad">🛡️ Seguridad</a>
   <a href="#sec-comunidad">👋 Comunidad</a>
+  <a href="#sec-selfroles">🎭 Self-roles</a>
   <a href="#sec-moderacion">📋 Moderación</a>
   <a href="#sec-utilidad">🛠️ Utilidad</a>
   <a href="#sec-social">🎭 Social / Fun</a>
@@ -1040,7 +1041,41 @@
           </div>
         </div>
 
-        <div class="mod {% if config.booster.enabled %}is-on{% endif %}" data-mod>
+        
+        <div class="mod mod-wide is-on" data-mod id="sec-selfroles" style="border:1px solid rgba(129,140,248,.45);grid-column:1/-1">
+          <div class="mod-top">
+            <div class="mod-title">🎭 Self-roles / Autoroles (colores, pings…)</div>
+            <label class="switch">
+              <input type="checkbox" name="selfroles_enabled" data-toggle {% if (config.selfroles or {}).get('enabled') %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Varios módulos de roles que el miembro puede coger y quitarse con botones. Ideal para colores, pings, géneros…</p>
+          <div class="mod-settings" style="display:block !important;border-top:1px solid rgba(255,255,255,.06)">
+            <div class="mod-settings-inner">
+              <div class="fields">
+                <div class="field">
+                  <label>Canal del panel (ID)</label>
+                  <input type="text" name="selfroles_channel" value="{{ (config.selfroles or {}).get('channel_id','') }}" placeholder="ID del canal" />
+                </div>
+              </div>
+              <div class="field" style="margin-top:10px">
+                <label>Módulos (formato abajo)</label>
+                <textarea name="selfroles_modules" rows="12" style="width:100%;font-family:ui-monospace,monospace;font-size:13px" placeholder="## Colores&#10;Rojo:ID_ROL&#10;Azul:ID_ROL&#10;&#10;## Pings&#10;Anuncios:ID_ROL">{% if (config.selfroles or {}).get('modules_raw') %}{{ (config.selfroles or {}).get('modules_raw') }}{% endif %}</textarea>
+                <p class="hint" style="margin-top:8px">
+                  <strong>Formato:</strong> <code>## Nombre módulo</code> y líneas <code>Etiqueta:ID_DEL_ROL</code>.<br>
+                  Guarda aquí y en Discord: <code>o!selfroles post</code>
+                </p>
+              </div>
+              <label class="check-line">
+                <input type="checkbox" name="selfroles_unique" {% if (config.selfroles or {}).get('unique_in_module', true) %}checked{% endif %} />
+                Solo un rol por módulo (ej. un color a la vez)
+              </label>
+            </div>
+          </div>
+        </div>
+
+<div class="mod {% if config.booster.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Booster</div>
             <label class="switch">
@@ -1257,37 +1292,7 @@
           </div>
         </div>
 
-        <div class="mod mod-wide {% if (config.selfroles or {}).get('enabled') or config.reaction_roles.enabled %}is-on{% endif %}" data-mod>
-          <div class="mod-top">
-            <div class="mod-title">🎭 Self-roles / Autoroles (colores, pings, etc.)</div>
-            <label class="switch">
-              <input type="checkbox" name="selfroles_enabled" data-toggle {% if (config.selfroles or {}).get('enabled') or config.reaction_roles.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <p class="mod-desc">Varios módulos de roles que el miembro puede coger y quitarse (botones o reacciones). Ideal para colores, pings, géneros…</p>
-          <div class="mod-settings">
-            <div class="mod-settings-inner">
-              <div class="field">
-                <label>Canal del panel (ID)</label>
-                <input type="text" name="selfroles_channel" value="{{ (config.selfroles or {}).get('channel_id','') }}" placeholder="donde se publicará el panel" />
-              </div>
-              <div class="field" style="margin-top:10px">
-                <label>Módulos (uno por bloque)</label>
-                <textarea name="selfroles_modules" rows="10" placeholder="## Colores&#10;Rojo:1234567890&#10;Azul:0987654321&#10;&#10;## Pings&#10;Anuncios:111&#10;Eventos:222">{% if (config.selfroles or {}).get('modules_raw') %}{{ (config.selfroles or {}).get('modules_raw') }}{% endif %}</textarea>
-                <p class="hint">
-                  Formato: línea <code>## Nombre del módulo</code> y luego <code>Etiqueta:ID_ROL</code> por línea.<br>
-                  Tras guardar: en Discord usa <code>o!selfroles post</code> para publicar los botones (toggle on/off del rol).
-                </p>
-              </div>
-              <label class="check-line" style="margin-top:8px">
-                <input type="checkbox" name="selfroles_unique" {% if (config.selfroles or {}).get('unique_in_module', true) %}checked{% endif %} />
-                Solo un rol por módulo (ej. un color a la vez)
-              </label>
-              <input type="hidden" name="reaction_roles_enabled" value="on" />
-            </div>
-          </div>
-        </div>
+        
 
       </div>
     </div>
@@ -1328,22 +1333,24 @@
 <div class="mod mod-wide {% if config.invites.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             
+        
         <div class="mod mod-wide is-on" data-mod>
           <div class="mod-top">
             <div class="mod-title">⛔ Comandos desactivados</div>
             <label class="switch"><input type="checkbox" checked disabled /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Lista de comandos del bot que no se podrán usar en este servidor (uno por línea o separados por coma).</p>
+          <p class="mod-desc">Comandos del bot desactivados en este servidor (uno por línea).</p>
           <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
-            <textarea name="disabled_commands" rows="4" placeholder="nsfw&#10;slots&#10;gamble&#10;bankheist">{{ (config.disabled_commands or [])|join('
-') if config.disabled_commands else '' }}</textarea>
-            <p class="hint">Ejemplos: <code>slots</code>, <code>nsfw</code>, <code>bankheist</code>, <code>rob</code>. El dueño del bot siempre puede usarlos.</p>
+            <textarea name="disabled_commands" rows="4" placeholder="nsfw&#10;slots&#10;gamble">{% if config.disabled_commands %}{{ config.disabled_commands|join('\n') }}{% endif %}</textarea>
           </div></div>
         </div>
-<div class="mod-title">📨 Invite tracker</div>
+
+        <div class="mod mod-wide {% if (config.invites or {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">📨 Invite tracker</div>
             <label class="switch"><input type="checkbox" name="invites_enabled" data-toggle {% if (config.invites or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Anuncia quién invitó a cada miembro nuevo (estilo captura de invites).</p>
+          <p class="mod-desc">Anuncia quién invitó a cada miembro nuevo.</p>
           <div class="mod-settings"><div class="mod-settings-inner">
             <div class="fields">
               <div class="field"><label>Canal de anuncios (ID)</label>
@@ -1351,13 +1358,12 @@
               </div>
             </div>
             <div class="field" style="margin-top:10px"><label>Mensaje personalizable</label>
-              <textarea name="invites_message" rows="3" placeholder="Nuevo miembro: {user}…">{{ (config.invites or {}).get('message', '📨 {user} entró con la invitación de {inviter} (`{code}` · usos {uses})') }}</textarea>
-              <p class="hint">Placeholders: <code>{user}</code> <code>{inviter}</code> <code>{code}</code> <code>{uses}</code> <code>{server}</code> <code>{membercount}</code></p>
+              <textarea name="invites_message" rows="3">{{ (config.invites or {}).get('message', '📨 {user} entró con la invitación de {inviter} (`{code}` · usos {uses})') }}</textarea>
+              <p class="hint">Placeholders: {user} {inviter} {code} {uses} {server} {membercount}</p>
             </div>
           </div></div>
         </div>
-
-        <div class="mod {% if config.sticky.enabled %}is-on{% endif %}" data-mod>
+<div class="mod {% if config.sticky.enabled %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Sticky messages</div>
             <label class="switch"><input type="checkbox" name="sticky_enabled" data-toggle {% if config.sticky.enabled %}checked{% endif %} /><span class="slider"></span></label>
