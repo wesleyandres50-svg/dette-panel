@@ -2150,6 +2150,46 @@ async def api_premium_export(request: Request):
     })
 
 
+@app.post("/api/premium/import")
+async def api_premium_import(request: Request):
+    """El bot empuja su lista de premium (merge). force=true reemplaza buckets enviados."""
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "JSON invalido"}, status_code=400)
+    if not isinstance(body, dict):
+        return JSONResponse({"error": "body invalido"}, status_code=400)
+    force = bool(body.get("force"))
+    data = _load_premium()
+    if "guilds" in body and isinstance(body["guilds"], dict):
+        if force:
+            data["guilds"] = {str(k): v for k, v in body["guilds"].items()}
+        else:
+            data.setdefault("guilds", {})
+            for k, v in body["guilds"].items():
+                data["guilds"][str(k)] = v
+    if "users" in body and isinstance(body["users"], dict):
+        if force:
+            data["users"] = {str(k): v for k, v in body["users"].items()}
+        else:
+            data.setdefault("users", {})
+            for k, v in body["users"].items():
+                data["users"][str(k)] = v
+    if "free_profile" in body:
+        data["free_profile"] = bool(body.get("free_profile"))
+    _save_premium(data)
+    return JSONResponse({
+        "ok": True,
+        "guilds": len(data.get("guilds") or {}),
+        "users": len(data.get("users") or {}),
+        "free_profile": bool(data.get("free_profile")),
+    })
+
+
 # ==================== BLACKLIST GLOBAL (panel ↔ bot) ====================
 BLACKLIST_FILE = Path(os.getenv("DATA_DIR") or "data") / "global_blacklist.json"
 
