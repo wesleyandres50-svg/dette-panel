@@ -1734,96 +1734,146 @@ async def tickets_save(request: Request, guild_id: str):
     return RedirectResponse(f"/guild/{guild_id}/tickets?ok=1", status_code=303)
 
 
+
+
+def _render_verify_result(request: Request, ok: bool, message: str):
+    """HTML de resultado de verify. No depende de plantilla rota."""
+    # Intentar plantilla correcta
+    try:
+        p = BASE_DIR / "templates" / "verify_result.html"
+        if p.is_file():
+            return templates.TemplateResponse(
+                "verify_result.html",
+                {"request": request, "ok": ok, "message": message},
+            )
+    except Exception as e:
+        print(f"[verify] template: {e}")
+    color = "#86efac" if ok else "#fca5a5"
+    title = "Verificado" if ok else "No verificado"
+    icon = "OK" if ok else "X"
+    # escapar mensaje para HTML
+    safe = (
+        str(message or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+    html = (
+        "<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>Verificacion · Odette</title><style>"
+        "body{font-family:system-ui,sans-serif;background:#0b0e14;color:#e2e8f0;"
+        "margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center}"
+        ".box{max-width:480px;padding:28px 24px;border-radius:16px;border:1px solid #1e293b;"
+        "background:#111827;text-align:center}"
+        "h1{margin:0 0 12px;font-size:1.45rem;color:" + color + "}"
+        "p{color:#94a3b8;line-height:1.55;margin:0 0 22px}"
+        "a{display:inline-block;padding:12px 22px;border-radius:999px;"
+        "background:linear-gradient(135deg,#818cf8,#c084fc);color:#0b1220;"
+        "font-weight:700;text-decoration:none}"
+        "</style></head><body><div class='box'>"
+        "<h1>" + icon + " " + title + "</h1>"
+        "<p>" + safe + "</p>"
+        "<a href='/dashboard'>Ir al panel</a>"
+        "</div></body></html>"
+    )
+    return HTMLResponse(html)
+
+
 # ── Verificación web ──
 
 @app.get("/verify/{guild_id}", response_class=HTMLResponse)
 async def verify_start(request: Request, guild_id: str, token: str = ""):
-    if not str(guild_id).isdigit():
-        return HTMLResponse("Servidor inválido", status_code=400)
-    user = current_user(request)
-    if not user:
-        request.session["verify_next"] = f"/verify/{guild_id}?token={token}"
-        return RedirectResponse("/login", status_code=303)
+    """Verificación web: edad de cuenta + VPN opcional. Sin plantilla obligatoria."""
+    try:
+        if not str(guild_id).isdigit():
+            return HTMLResponse("Servidor invalido", status_code=400)
+        user = current_user(request)
+        if not user:
+            request.session["verify_next"] = f"/verify/{guild_id}?token={token}"
+            return RedirectResponse("/login", status_code=303)
 
-    cfg = get_guild_config(guild_id)
-    vcfg = cfg.get("verify") or {}
-    min_days = int(vcfg.get("min_account_days") or VERIFY_MIN_ACCOUNT_DAYS)
-    block_vpn = bool(vcfg.get("block_vpn", True)) if "block_vpn" in vcfg else BLOCK_VPN
+        cfg = get_guild_config(guild_id)
+        vcfg = cfg.get("verify") or {}
+        min_days = int(vcfg.get("min_account_days") or VERIFY_MIN_ACCOUNT_DAYS)
+        block_vpn = bool(vcfg.get("block_vpn", True)) if "block_vpn" in vcfg else BLOCK_VPN
 
-    tokens = _load_verify_tokens()
-    key = f"{guild_id}:{token}"
-    entry = tokens.get(key)
-    if not token or not entry or entry.get("used"):
-        return templates.TemplateResponse(
-            "verify_result.html",
-            {
-                "request": request,
-                "ok": False,
-                "message": "Enlace inválido o ya usado. Pide uno nuevo en Discord.",
-            },
-        )
-    if float(entry.get("exp", 0)) < time.time():
-        return templates.TemplateResponse(
-            "verify_result.html",
-            {"request": request, "ok": False, "message": "Enlace caducado. Pide uno nuevo."},
-        )
-    for_user = entry.get("for_user")
-    if for_user and str(for_user) != str(user["id"]):
-        return templates.TemplateResponse(
-            "verify_result.html",
-            {"request": request, "ok": False, "message": "Este enlace es para otra cuenta de Discord."},
-        )
-
-    created = _discord_snowflake_created(user["id"])
-    if created and min_days > 0:
-        age_days = (datetime.now(timezone.utc) - created).days
-        if age_days < min_days:
-            return templates.TemplateResponse(
-                "verify_result.html",
-                {
-                    "request": request,
-                    "ok": False,
-                    "message": f"Cuenta demasiado nueva ({age_days} días). Mínimo: {min_days} días.",
-                },
+        tokens = _load_verify_tokens()
+        key = f"{guild_id}:{token}"
+        entry = tokens.get(key)
+        if not token or not entry or entry.get("used"):
+            return _render_verify_result(
+                request, False, "Enlace invalido o ya usado. Pide uno nuevo en Discord."
+            )
+        if float(entry.get("exp", 0)) < time.time():
+            return _render_verify_result(request, False, "Enlace caducado. Pide uno nuevo.")
+        for_user = entry.get("for_user")
+        if for_user and str(for_user) != str(user["id"]):
+            return _render_verify_result(
+                request, False, "Este enlace es para otra cuenta de Discord."
             )
 
-    ip = _client_ip(request)
-    if block_vpn and IP_REPUTATION_KEY:
-        risky, reason = await _ip_is_risky(ip)
-        if risky:
-            return templates.TemplateResponse(
-                "verify_result.html",
-                {
-                    "request": request,
-                    "ok": False,
-                    "message": "No se permiten VPN/proxy para verificar. Desactívala e inténtalo de nuevo.",
-                },
-            )
+        created = _discord_snowflake_created(user["id"])
+        if created and min_days > 0:
+            age_days = (datetime.now(timezone.utc) - created).days
+            if age_days < min_days:
+                return _render_verify_result(
+                    request,
+                    False,
+                    f"Cuenta demasiado nueva ({age_days} dias). Minimo: {min_days} dias.",
+                )
 
-    entry["used"] = True
-    entry["user_id"] = user["id"]
-    entry["ip_hash"] = hashlib.sha256(ip.encode()).hexdigest()[:16]
-    entry["verified_at"] = time.time()
-    tokens[key] = entry
-    _save_verify_tokens(tokens)
+        ip = _client_ip(request)
+        if block_vpn and IP_REPUTATION_KEY:
+            risky, reason = await _ip_is_risky(ip)
+            if risky:
+                return _render_verify_result(
+                    request,
+                    False,
+                    "No se permiten VPN/proxy para verificar. Desactivala e intentalo de nuevo.",
+                )
 
-    vdata = _load_verified_users()
-    g = vdata.setdefault(str(guild_id), {})
-    g[str(user["id"])] = {
-        "at": time.time(),
-        "ip_hash": entry["ip_hash"],
-        "username": user.get("username"),
-    }
-    _save_verified_users(vdata)
+        entry["used"] = True
+        entry["user_id"] = user["id"]
+        entry["ip_hash"] = hashlib.sha256(ip.encode()).hexdigest()[:16]
+        entry["verified_at"] = time.time()
+        tokens[key] = entry
+        _save_verify_tokens(tokens)
 
-    return templates.TemplateResponse(
-        "verify_result.html",
-        {
-            "request": request,
-            "ok": True,
-            "message": "Verificación completada. Vuelve a Discord; el bot te asignará el rol en unos segundos.",
-        },
-    )
+        vdata = _load_verified_users()
+        g = vdata.setdefault(str(guild_id), {})
+        g[str(user["id"])] = {
+            "at": time.time(),
+            "ip_hash": entry["ip_hash"],
+            "username": user.get("username"),
+        }
+        _save_verified_users(vdata)
+
+        return _render_verify_result(
+            request,
+            True,
+            "Verificacion completada. Vuelve a Discord; el bot te asignara el rol en unos segundos.",
+        )
+    except Exception as e:
+        import traceback
+        print(f"[verify] ERROR {guild_id}: {e}\n{traceback.format_exc()}")
+        err = (
+            str(e).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        )[:200]
+        html = (
+            "<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'>"
+            "<title>Verificacion</title>"
+            "<style>body{font-family:system-ui;background:#0b0e14;color:#e2e8f0;"
+            "display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}"
+            ".box{max-width:520px;padding:24px;border-radius:14px;border:1px solid #334155;"
+            "background:#111827}code{color:#fca5a5}</style></head><body><div class='box'>"
+            "<h1>Error en verificacion</h1>"
+            "<p>El panel fallo al procesar el enlace. Pide uno nuevo en Discord.</p>"
+            "<p><code>" + type(e).__name__ + ": " + err + "</code></p>"
+            "<p><a href='/dashboard' style='color:#a5b4fc'>Ir al panel</a></p>"
+            "</div></body></html>"
+        )
+        return HTMLResponse(html, status_code=500)
 
 
 @app.get("/owner", response_class=HTMLResponse)
