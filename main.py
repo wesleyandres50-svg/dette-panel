@@ -603,7 +603,23 @@ def _default_config() -> dict:
         "autoresponse": {"enabled": False},
         "afk": {"enabled": True},
         "snipe": {"enabled": True},
-        "tempvc": {"enabled": False},
+        "tempvc": {
+            "enabled": False,
+            "hub_channel_id": "",
+            "category_id": "",
+            "name_template": "🔊 {user}",
+            "user_limit": 0,
+            "create_text": True,
+            "lock_on_owner_leave": True,
+            "auto_delete": True,
+        },
+        "moderation": {
+            "enabled": True,
+            "staff_role_id": "",
+            "immune_role_id": "",
+            "sanction_channel_id": "",
+        },
+        "disabled_commands": [],
         "giveaways": {"enabled": True},
         "reminders": {"enabled": True},
         "economy": {
@@ -1469,7 +1485,27 @@ async def guild_save(request: Request, guild_id: str):
         "autoresponse": {"enabled": form.get("autoresponse_enabled") == "on"},
         "afk": {"enabled": form.get("afk_enabled") == "on"},
         "snipe": {"enabled": form.get("snipe_enabled") == "on"},
-        "tempvc": {"enabled": form.get("tempvc_enabled") == "on"},
+        "tempvc": {
+            "enabled": form.get("tempvc_enabled") == "on",
+            "hub_channel_id": _s("tempvc_hub").strip(),
+            "category_id": _s("tempvc_category").strip(),
+            "name_template": (_s("tempvc_name") or "🔊 {user}").strip()[:80],
+            "user_limit": max(0, min(_int("tempvc_limit", 0), 99)),
+            "create_text": form.get("tempvc_text") == "on",
+            "lock_on_owner_leave": form.get("tempvc_lock_empty") == "on",
+            "auto_delete": form.get("tempvc_auto_delete") == "on",
+        },
+        "moderation": {
+            "enabled": form.get("moderation_enabled") == "on",
+            "staff_role_id": _s("mod_staff_role").strip(),
+            "immune_role_id": _s("mod_immune_role").strip(),
+            "sanction_channel_id": _s("mod_sanction_channel").strip(),
+        },
+        "disabled_commands": [
+            x.strip().lower()
+            for x in (_s("disabled_commands") or "").replace(",", "\n").splitlines()
+            if x.strip()
+        ][:80],
         "giveaways": {"enabled": form.get("giveaways_enabled") == "on"},
         "reminders": {"enabled": form.get("reminders_enabled") == "on"},
         "economy": {
@@ -1613,6 +1649,15 @@ async def guild_save(request: Request, guild_id: str):
             return JSONResponse({"ok": False, "error": "save"}, status_code=500)
         return RedirectResponse(f"/guild/{guild_id}?err=save", status_code=303)
     print(f"[guild_save] OK guild={guild_id}")
+    # Sync agresiva: version + dirty + push callback
+    try:
+        _atomic_write(DATA_DIR / "config_version.txt", str(time.time()))
+        dirty_path = DATA_DIR / "config_dirty.json"
+        import json as _json
+        dirty = {"guild_ids": [str(guild_id)], "ts": time.time()}
+        dirty_path.write_text(_json.dumps(dirty), encoding="utf-8")
+    except Exception as e:
+        print(f"[guild_save] dirty: {e}")
     try:
         await _notify_bot_refresh(str(guild_id))
     except Exception as e:
@@ -1801,9 +1846,14 @@ async def verify_start(request: Request, guild_id: str, token: str = ""):
         tokens = _load_verify_tokens()
         key = f"{guild_id}:{token}"
         entry = tokens.get(key)
-        if not token or not entry or entry.get("used"):
+        if not token or not entry:
             return _render_verify_result(
-                request, False, "Enlace invalido o ya usado. Pide uno nuevo en Discord."
+                request, False, "Enlace invalido. Pide uno nuevo en Discord."
+            )
+        # multi_use: se puede reutilizar; used solo aplica a enlaces de un solo uso
+        if entry.get("used") and not entry.get("multi_use"):
+            return _render_verify_result(
+                request, False, "Enlace ya usado. Pide uno nuevo en Discord."
             )
         if float(entry.get("exp", 0)) < time.time():
             return _render_verify_result(request, False, "Enlace caducado. Pide uno nuevo.")
@@ -1833,10 +1883,12 @@ async def verify_start(request: Request, guild_id: str, token: str = ""):
                     "No se permiten VPN/proxy para verificar. Desactivala e intentalo de nuevo.",
                 )
 
-        entry["used"] = True
+        if not entry.get("multi_use"):
+            entry["used"] = True
         entry["user_id"] = user["id"]
         entry["ip_hash"] = hashlib.sha256(ip.encode()).hexdigest()[:16]
         entry["verified_at"] = time.time()
+        entry["uses"] = int(entry.get("uses") or 0) + 1
         tokens[key] = entry
         _save_verify_tokens(tokens)
 
@@ -2137,9 +2189,13 @@ async def api_create_verify_token(guild_id: str, request: Request):
     user_id = str((body or {}).get("user_id") or "").strip()
     vt = secrets.token_urlsafe(24)
     tokens = _load_verify_tokens()
+    multi_use = bool((body or {}).get("multi_use"))
+    # multi_use: el mismo enlace sirve varias veces (miembros que salen y vuelven)
+    # exp más larga si multi_use
     tokens[f"{guild_id}:{vt}"] = {
-        "exp": time.time() + 900,
+        "exp": time.time() + (86400 * 30 if multi_use else 900),
         "used": False,
+        "multi_use": multi_use,
         "for_user": user_id or None,
     }
     _save_verify_tokens(tokens)
