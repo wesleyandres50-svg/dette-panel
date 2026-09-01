@@ -1760,6 +1760,132 @@ async def guild_save(request: Request, guild_id: str):
     return RedirectResponse(f"/guild/{guild_id}?ok=1", status_code=303)
 
 
+
+def _commands_catalog():
+    """Lista de comandos del bot para on/off en el panel."""
+    return [
+        {"name": "Moderación", "icon": "🛡️", "commands": [
+            {"name": "ban", "icon": "🔨", "desc": "Banear por mención o ID"},
+            {"name": "kick", "icon": "👢", "desc": "Expulsar del servidor"},
+            {"name": "timeout", "icon": "⏱️", "desc": "Aislar / mute temporal"},
+            {"name": "warn", "icon": "⚠️", "desc": "Advertir a un usuario"},
+            {"name": "unban", "icon": "✅", "desc": "Quitar ban por ID"},
+            {"name": "lock", "icon": "🔒", "desc": "Bloquear canales"},
+            {"name": "purge", "icon": "🧹", "desc": "Borrar mensajes"},
+        ]},
+        {"name": "Utilidad", "icon": "🛠️", "commands": [
+            {"name": "help", "icon": "❓", "desc": "Menú de ayuda"},
+            {"name": "dl", "icon": "📥", "desc": "Descargar media / adjuntos en calidad"},
+            {"name": "snipe", "icon": "👀", "desc": "Último mensaje borrado"},
+            {"name": "editsnipe", "icon": "✏️", "desc": "Último mensaje editado"},
+            {"name": "afk", "icon": "💤", "desc": "Modo AFK"},
+            {"name": "selfroles", "icon": "🎭", "desc": "Publicar paneles de roles"},
+            {"name": "userinfo", "icon": "👤", "desc": "Info de usuario"},
+            {"name": "serverinfo", "icon": "🏠", "desc": "Info del servidor"},
+            {"name": "avatar", "icon": "🖼️", "desc": "Ver avatar"},
+        ]},
+        {"name": "Economía", "icon": "💰", "commands": [
+            {"name": "balance", "icon": "💵", "desc": "Ver saldo"},
+            {"name": "daily", "icon": "📅", "desc": "Recompensa diaria"},
+            {"name": "work", "icon": "💼", "desc": "Trabajar"},
+            {"name": "pay", "icon": "💸", "desc": "Transferir coins"},
+            {"name": "slots", "icon": "🎰", "desc": "Tragaperras"},
+            {"name": "gamble", "icon": "🎲", "desc": "Apostar"},
+            {"name": "bankheist", "icon": "🏦", "desc": "Asalto al banco en grupo"},
+            {"name": "top", "icon": "🏆", "desc": "Ranking coins/niveles"},
+            {"name": "shop", "icon": "🛒", "desc": "Tienda"},
+        ]},
+        {"name": "Diversión", "icon": "🎉", "commands": [
+            {"name": "ship", "icon": "💕", "desc": "Ship de usuarios"},
+            {"name": "meme", "icon": "😂", "desc": "Memes"},
+            {"name": "8ball", "icon": "🎱", "desc": "Bola 8"},
+        ]},
+        {"name": "Música", "icon": "🎵", "commands": [
+            {"name": "play", "icon": "▶️", "desc": "Reproducir"},
+            {"name": "skip", "icon": "⏭️", "desc": "Saltar"},
+            {"name": "stop", "icon": "⏹️", "desc": "Detener"},
+            {"name": "queue", "icon": "📜", "desc": "Cola"},
+        ]},
+        {"name": "Admin / Panel", "icon": "⚙️", "commands": [
+            {"name": "panelsync", "icon": "🔄", "desc": "Sincronizar panel"},
+            {"name": "tempvc", "icon": "🔊", "desc": "Temp voice"},
+            {"name": "verify", "icon": "✅", "desc": "Verificación"},
+            {"name": "setprefix", "icon": "🔤", "desc": "Cambiar prefijo"},
+        ]},
+    ]
+
+
+
+@app.get("/guild/{guild_id}/commands", response_class=HTMLResponse)
+async def commands_page(request: Request, guild_id: str):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    if not str(guild_id).isdigit():
+        return RedirectResponse("/dashboard", status_code=303)
+    guilds = request.session.get("guilds") or []
+    guild = next((g for g in guilds if str(g["id"]) == str(guild_id)), None)
+    if not guild and not is_owner(request):
+        return RedirectResponse("/dashboard", status_code=303)
+    if not guild:
+        guild = {"id": guild_id, "name": f"Server {guild_id}", "icon": None}
+    try:
+        config = get_guild_config(guild_id)
+    except Exception:
+        config = _default_config()
+    disabled = {str(x).lower().strip() for x in (config.get("disabled_commands") or [])}
+    prefix = (config.get("prefix") or "o!")
+    if isinstance(prefix, list):
+        prefix = prefix[0] if prefix else "o!"
+    return templates.TemplateResponse(
+        "commands.html",
+        {
+            "request": request,
+            "user": user,
+            "guild": guild,
+            "is_owner": is_owner(request),
+            "catalog": _commands_catalog(),
+            "disabled": disabled,
+            "prefix": str(prefix),
+            "csrf_token": _csrf_token(request),
+        },
+    )
+
+
+@app.post("/guild/{guild_id}/commands/save")
+async def commands_save(request: Request, guild_id: str):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    guilds = request.session.get("guilds") or []
+    if not (any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)):
+        return RedirectResponse("/dashboard", status_code=303)
+    form = await request.form()
+    if not _check_csrf(request, str(form.get("csrf_token") or "")):
+        return RedirectResponse(f"/guild/{guild_id}/commands?err=csrf", status_code=303)
+    catalog = _commands_catalog()
+    all_names = []
+    for cat in catalog:
+        for c in cat["commands"]:
+            all_names.append(c["name"].lower())
+    disabled = []
+    for name in all_names:
+        # checked = enabled; unchecked = disabled
+        if form.get(f"cmd_on_{name}") != "on":
+            disabled.append(name)
+    config = get_guild_config(guild_id)
+    config["disabled_commands"] = disabled[:120]
+    config["_panel_saved"] = True
+    config["_saved_at"] = time.time()
+    save_guild_config(guild_id, config)
+    try:
+        await _notify_bot_refresh(str(guild_id))
+    except Exception as e:
+        print(f"[commands save] notify: {e}")
+    print(f"[commands] guild={guild_id} disabled={disabled}")
+    return RedirectResponse(f"/guild/{guild_id}/commands?ok=1", status_code=303)
+
+
 @app.get("/guild/{guild_id}/tickets", response_class=HTMLResponse)
 async def tickets_page(request: Request, guild_id: str):
     user = current_user(request)
