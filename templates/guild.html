@@ -243,6 +243,139 @@
 
   .mod-wide { grid-column: 1 / -1; }
 
+  /* —— Self-roles builder —— */
+  .sr-builder { border: 1px solid rgba(129,140,248,.35) !important; }
+  .sr-layout {
+    display: grid;
+    grid-template-columns: 1.2fr 0.9fr;
+    gap: 16px;
+    margin-top: 4px;
+  }
+  @media (max-width: 960px) {
+    .sr-layout { grid-template-columns: 1fr; }
+  }
+  .sr-card {
+    background: rgba(15,23,42,.55);
+    border: 1px solid rgba(148,163,184,.12);
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+    margin-bottom: 12px;
+  }
+  .sr-card-h {
+    font-size: 0.82rem;
+    font-weight: 650;
+    color: #e2e8f0;
+    margin-bottom: 10px;
+  }
+  .sr-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+  }
+  .sr-btn:hover { filter: brightness(1.08); }
+  .sr-btn:active { transform: scale(.98); }
+  .sr-btn-primary {
+    background: linear-gradient(135deg, #818cf8, #c084fc);
+    color: #0b1220;
+  }
+  .sr-btn-ghost {
+    background: rgba(148,163,184,.12);
+    color: #e2e8f0;
+  }
+  .sr-btn-danger {
+    background: rgba(248,113,113,.15);
+    color: #fca5a5;
+  }
+  .sr-btn-sm { padding: 5px 10px; font-size: 0.72rem; }
+  .sr-mod {
+    background: rgba(30,41,59,.55);
+    border: 1px solid rgba(148,163,184,.14);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .sr-mod-top {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .sr-mod-top input {
+    flex: 1;
+    background: #0f172a;
+    border: 1px solid rgba(148,163,184,.2);
+    border-radius: 10px;
+    color: #e2e8f0;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+  .sr-role-row {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr auto;
+    gap: 6px;
+    margin-bottom: 6px;
+    align-items: center;
+  }
+  .sr-role-row input {
+    background: #0f172a;
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 8px;
+    color: #e2e8f0;
+    padding: 7px 9px;
+    font-size: 0.8rem;
+  }
+  .sr-preview-label {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .sr-discord-preview {
+    background: #313338;
+    border-radius: 12px;
+    padding: 14px;
+    position: sticky;
+    top: 16px;
+  }
+  .sr-d-embed {
+    display: flex;
+    background: #2b2d31;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .sr-d-bar {
+    width: 4px;
+    background: #818cf8;
+    flex-shrink: 0;
+  }
+  .sr-d-body { padding: 10px 14px 12px; flex: 1; min-width: 0; }
+  .sr-d-title { color: #f2f3f5; font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+  .sr-d-desc { color: #dbdee1; font-size: 0.84rem; line-height: 1.4; white-space: pre-wrap; }
+  .sr-d-img { max-width: 100%; border-radius: 6px; margin-top: 10px; display: block; }
+  .sr-d-thumb {
+    width: 70px; height: 70px; object-fit: cover;
+    border-radius: 6px; margin: 10px 12px 0 0;
+  }
+  .sr-d-footer { color: #949ba4; font-size: 0.72rem; margin-top: 10px; }
+  .sr-d-buttons {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+  }
+  .sr-d-btn {
+    background: #4e5058;
+    color: #fff;
+    border-radius: 3px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 500;
+  }
+
+
   .fields {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1053,41 +1186,101 @@
         </div>
 
         
-        <div class="mod mod-wide is-on" data-mod id="sec-selfroles" style="border:1px solid rgba(129,140,248,.45);grid-column:1/-1">
+        
+        <div class="mod mod-wide is-on sr-builder" data-mod id="sec-selfroles">
           <div class="mod-top">
-            <div class="mod-title">🎭 Self-roles / Autoroles (colores, pings…)</div>
+            <div class="mod-title">🎭 Self-roles · constructor</div>
             <label class="switch">
-              <input type="checkbox" name="selfroles_enabled" data-toggle {% if (config.selfroles or {}).get('enabled') %}checked{% endif %} />
+              <input type="checkbox" name="selfroles_enabled" data-toggle id="sr_enabled" {% if (config.selfroles or {}).get('enabled') %}checked{% endif %} />
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Varios módulos de roles que el miembro puede coger y quitarse con botones. Ideal para colores, pings, géneros…</p>
-          <div class="mod-settings" style="display:block !important;border-top:1px solid rgba(255,255,255,.06)">
+          <p class="mod-desc">Crea paneles de roles con botones. Los miembros eligen color, pings, etc. y pueden quitarlos.</p>
+          <div class="mod-settings" style="display:block !important">
             <div class="mod-settings-inner">
-              <div class="fields">
-                <div class="field">
-                  <label>Canal del panel (ID)</label>
-                  <input type="text" name="selfroles_channel" value="{{ (config.selfroles or {}).get('channel_id','') }}" placeholder="ID del canal" />
+
+              <div class="sr-layout">
+                <div class="sr-left">
+                  <div class="sr-card">
+                    <div class="sr-card-h">📌 Publicación</div>
+                    <div class="field">
+                      <label>Canal del panel (ID)</label>
+                      <input type="text" name="selfroles_channel" id="sr_channel" value="{{ (config.selfroles or {}).get('channel_id','') }}" placeholder="ID del canal de Discord" />
+                    </div>
+                    <label class="check-line" style="margin-top:10px">
+                      <input type="checkbox" name="selfroles_unique" id="sr_unique" {% if (config.selfroles or {}).get('unique_in_module', true) %}checked{% endif %} />
+                      Un solo rol por módulo (ej. un color a la vez)
+                    </label>
+                  </div>
+
+                  <div class="sr-card">
+                    <div class="sr-card-h">✨ Embed del mensaje</div>
+                    <div class="fields">
+                      <div class="field"><label>Título</label>
+                        <input type="text" id="sr_embed_title" maxlength="120" value="{{ (config.selfroles or {}).get('embed_title', 'Elige tus roles') }}" />
+                      </div>
+                      <div class="field"><label>Color (#hex)</label>
+                        <input type="text" id="sr_embed_color" value="{{ (config.selfroles or {}).get('embed_color', '#818cf8') }}" placeholder="#818cf8" />
+                      </div>
+                    </div>
+                    <div class="field"><label>Descripción</label>
+                      <textarea id="sr_embed_desc" rows="2" maxlength="500">{{ (config.selfroles or {}).get('embed_description', 'Pulsa un botón para obtener o quitar el rol.') }}</textarea>
+                    </div>
+                    <div class="fields">
+                      <div class="field"><label>Imagen grande (URL)</label>
+                        <input type="url" id="sr_embed_image" value="{{ (config.selfroles or {}).get('embed_image', '') }}" placeholder="https://..." />
+                      </div>
+                      <div class="field"><label>Miniatura (URL)</label>
+                        <input type="url" id="sr_embed_thumb" value="{{ (config.selfroles or {}).get('embed_thumb', '') }}" placeholder="https://..." />
+                      </div>
+                    </div>
+                    <div class="field"><label>Footer</label>
+                      <input type="text" id="sr_embed_footer" maxlength="100" value="{{ (config.selfroles or {}).get('embed_footer', 'Odette · self-roles') }}" />
+                    </div>
+                  </div>
+
+                  <div class="sr-card">
+                    <div class="sr-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                      <span>🧩 Módulos y botones</span>
+                      <button type="button" class="sr-btn sr-btn-primary" id="sr_add_module">＋ Módulo</button>
+                    </div>
+                    <div id="sr_modules_list"></div>
+                    <p class="hint" style="margin-top:10px">Cada módulo = un grupo de botones. En Discord: <code>o!selfroles post</code></p>
+                  </div>
+                </div>
+
+                <div class="sr-right">
+                  <div class="sr-preview-label">Vista previa del embed</div>
+                  <div class="sr-discord-preview">
+                    <div class="sr-d-embed" id="sr_preview_embed">
+                      <div class="sr-d-bar" id="sr_preview_bar"></div>
+                      <div class="sr-d-body">
+                        <div class="sr-d-title" id="sr_preview_title">Elige tus roles</div>
+                        <div class="sr-d-desc" id="sr_preview_desc">Pulsa un botón para obtener o quitar el rol.</div>
+                        <img class="sr-d-img" id="sr_preview_img" alt="" style="display:none" />
+                        <div class="sr-d-footer" id="sr_preview_footer">Odette · self-roles</div>
+                      </div>
+                      <img class="sr-d-thumb" id="sr_preview_thumb" alt="" style="display:none" />
+                    </div>
+                    <div class="sr-d-buttons" id="sr_preview_buttons"></div>
+                  </div>
                 </div>
               </div>
-              <div class="field" style="margin-top:10px">
-                <label>Módulos (formato abajo)</label>
-                <textarea name="selfroles_modules" rows="12" style="width:100%;font-family:ui-monospace,monospace;font-size:13px" placeholder="## Colores&#10;Rojo:ID_ROL&#10;Azul:ID_ROL&#10;&#10;## Pings&#10;Anuncios:ID_ROL">{% if (config.selfroles or {}).get('modules_raw') %}{{ (config.selfroles or {}).get('modules_raw') }}{% endif %}</textarea>
-                <p class="hint" style="margin-top:8px">
-                  <strong>Formato:</strong> <code>## Nombre módulo</code> y líneas <code>Etiqueta:ID_DEL_ROL</code>.<br>
-                  Guarda aquí y en Discord: <code>o!selfroles post</code>
-                </p>
-              </div>
-              <label class="check-line">
-                <input type="checkbox" name="selfroles_unique" {% if (config.selfroles or {}).get('unique_in_module', true) %}checked{% endif %} />
-                Solo un rol por módulo (ej. un color a la vez)
-              </label>
+
+              <!-- serializado para el backend -->
+              <textarea name="selfroles_modules" id="sr_modules_raw" style="display:none">{% if (config.selfroles or {}).get('modules_raw') %}{{ (config.selfroles or {}).get('modules_raw') }}{% endif %}</textarea>
+              <input type="hidden" name="selfroles_embed_title" id="sr_hid_title" value="" />
+              <input type="hidden" name="selfroles_embed_color" id="sr_hid_color" value="" />
+              <input type="hidden" name="selfroles_embed_description" id="sr_hid_desc" value="" />
+              <input type="hidden" name="selfroles_embed_image" id="sr_hid_image" value="" />
+              <input type="hidden" name="selfroles_embed_thumb" id="sr_hid_thumb" value="" />
+              <input type="hidden" name="selfroles_embed_footer" id="sr_hid_footer" value="" />
+
             </div>
           </div>
         </div>
 
-<div class="mod {% if config.booster.enabled %}is-on{% endif %}" data-mod>
-          <div class="mod-top">
+<div class="mod-top">
             <div class="mod-title">Booster</div>
             <label class="switch">
               <input type="checkbox" name="booster_enabled" data-toggle {% if config.booster.enabled %}checked{% endif %} />
@@ -2335,3 +2528,152 @@
 })();
 </script>
 {% endblock %}
+
+<script>
+(function () {
+  const list = document.getElementById('sr_modules_list');
+  const raw = document.getElementById('sr_modules_raw');
+  if (!list || !raw) return;
+
+  function parseRaw(text) {
+    const modules = [];
+    let cur = null;
+    (text || '').split(/\r?\n/).forEach(line => {
+      line = line.trim();
+      if (!line) return;
+      if (line.startsWith('##')) {
+        if (cur) modules.push(cur);
+        cur = { name: line.replace(/^##\s*/, '').trim() || 'Módulo', roles: [] };
+      } else if (cur && line.includes(':')) {
+        const i = line.indexOf(':');
+        cur.roles.push({ label: line.slice(0, i).trim(), role_id: line.slice(i + 1).trim() });
+      }
+    });
+    if (cur) modules.push(cur);
+    return modules.length ? modules : [{ name: 'Colores', roles: [{ label: 'Rojo', role_id: '' }, { label: 'Azul', role_id: '' }] }];
+  }
+
+  function serialize() {
+    const modules = [];
+    list.querySelectorAll('.sr-mod').forEach(modEl => {
+      const name = (modEl.querySelector('.sr-mod-name') || {}).value || 'Módulo';
+      const roles = [];
+      modEl.querySelectorAll('.sr-role-row').forEach(row => {
+        const label = (row.querySelector('.sr-role-label') || {}).value || '';
+        const rid = (row.querySelector('.sr-role-id') || {}).value || '';
+        if (label || rid) roles.push({ label, role_id: rid });
+      });
+      modules.push({ name, roles });
+    });
+    const lines = [];
+    modules.forEach(m => {
+      lines.push('## ' + m.name);
+      m.roles.forEach(r => lines.push((r.label || 'Rol') + ':' + (r.role_id || '')));
+      lines.push('');
+    });
+    raw.value = lines.join('\n').trim();
+    // hiddens embed
+    const map = [
+      ['sr_embed_title', 'sr_hid_title'],
+      ['sr_embed_color', 'sr_hid_color'],
+      ['sr_embed_desc', 'sr_hid_desc'],
+      ['sr_embed_image', 'sr_hid_image'],
+      ['sr_embed_thumb', 'sr_hid_thumb'],
+      ['sr_embed_footer', 'sr_hid_footer'],
+    ];
+    map.forEach(([a, b]) => {
+      const el = document.getElementById(a);
+      const hid = document.getElementById(b);
+      if (el && hid) hid.value = el.value || '';
+    });
+    updatePreview(modules);
+  }
+
+  function updatePreview(modules) {
+    const title = document.getElementById('sr_embed_title');
+    const desc = document.getElementById('sr_embed_desc');
+    const color = document.getElementById('sr_embed_color');
+    const image = document.getElementById('sr_embed_image');
+    const thumb = document.getElementById('sr_embed_thumb');
+    const footer = document.getElementById('sr_embed_footer');
+    const pt = document.getElementById('sr_preview_title');
+    const pd = document.getElementById('sr_preview_desc');
+    const pb = document.getElementById('sr_preview_bar');
+    const pi = document.getElementById('sr_preview_img');
+    const pth = document.getElementById('sr_preview_thumb');
+    const pf = document.getElementById('sr_preview_footer');
+    const pbtns = document.getElementById('sr_preview_buttons');
+    if (pt) pt.textContent = (title && title.value) || 'Elige tus roles';
+    if (pd) pd.textContent = (desc && desc.value) || '';
+    if (pb) pb.style.background = (color && color.value) || '#818cf8';
+    if (pf) pf.textContent = (footer && footer.value) || '';
+    if (pi) {
+      if (image && image.value) { pi.src = image.value; pi.style.display = 'block'; }
+      else { pi.removeAttribute('src'); pi.style.display = 'none'; }
+    }
+    if (pth) {
+      if (thumb && thumb.value) { pth.src = thumb.value; pth.style.display = 'block'; }
+      else { pth.removeAttribute('src'); pth.style.display = 'none'; }
+    }
+    if (pbtns) {
+      pbtns.innerHTML = '';
+      (modules || []).forEach(m => {
+        (m.roles || []).forEach(r => {
+          if (!r.label && !r.role_id) return;
+          const b = document.createElement('span');
+          b.className = 'sr-d-btn';
+          b.textContent = r.label || 'Rol';
+          pbtns.appendChild(b);
+        });
+      });
+    }
+  }
+
+  function addRoleRow(modEl, label, roleId) {
+    const row = document.createElement('div');
+    row.className = 'sr-role-row';
+    row.innerHTML =
+      '<input class="sr-role-label" placeholder="Etiqueta (ej. Rojo)" value="' + (label || '').replace(/"/g, '&quot;') + '" />' +
+      '<input class="sr-role-id" placeholder="ID del rol" value="' + (roleId || '').replace(/"/g, '&quot;') + '" />' +
+      '<button type="button" class="sr-btn sr-btn-danger sr-btn-sm sr-del-role">✕</button>';
+    row.querySelector('.sr-del-role').onclick = () => { row.remove(); serialize(); };
+    row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', serialize));
+    modEl.querySelector('.sr-roles').appendChild(row);
+  }
+
+  function addModule(name, roles) {
+    const mod = document.createElement('div');
+    mod.className = 'sr-mod';
+    mod.innerHTML =
+      '<div class="sr-mod-top">' +
+        '<input class="sr-mod-name" placeholder="Nombre del módulo" value="' + (name || 'Nuevo módulo').replace(/"/g, '&quot;') + '" />' +
+        '<button type="button" class="sr-btn sr-btn-ghost sr-btn-sm sr-add-role">＋ Rol</button>' +
+        '<button type="button" class="sr-btn sr-btn-danger sr-btn-sm sr-del-mod">Eliminar</button>' +
+      '</div>' +
+      '<div class="sr-roles"></div>';
+    mod.querySelector('.sr-add-role').onclick = () => { addRoleRow(mod, '', ''); serialize(); };
+    mod.querySelector('.sr-del-mod').onclick = () => { mod.remove(); serialize(); };
+    mod.querySelector('.sr-mod-name').addEventListener('input', serialize);
+    list.appendChild(mod);
+    const rs = roles && roles.length ? roles : [{ label: '', role_id: '' }];
+    rs.forEach(r => addRoleRow(mod, r.label, r.role_id));
+  }
+
+  document.getElementById('sr_add_module').onclick = () => {
+    addModule('Nuevo módulo', [{ label: '', role_id: '' }]);
+    serialize();
+  };
+
+  ['sr_embed_title','sr_embed_color','sr_embed_desc','sr_embed_image','sr_embed_thumb','sr_embed_footer'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', serialize);
+  });
+
+  const form = document.getElementById('guildForm');
+  if (form) form.addEventListener('submit', serialize);
+
+  // init from textarea
+  parseRaw(raw.value).forEach(m => addModule(m.name, m.roles));
+  serialize();
+})();
+</script>
