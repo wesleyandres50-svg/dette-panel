@@ -1240,13 +1240,135 @@
                   </div>
 
                   <div class="sr-card">
-                    <div class="sr-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                    <div class="sr-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
                       <span>🧩 Módulos y botones</span>
-                      <button type="button" class="sr-btn sr-btn-primary" id="sr_add_module">＋ Módulo</button>
+                      <button type="button" class="sr-btn sr-btn-primary" id="sr_add_module"
+                        onclick="window.odSR && window.odSR.addModule(); return false;">＋ Módulo</button>
                     </div>
                     <div id="sr_modules_list"></div>
-                    <p class="hint" style="margin-top:10px">Cada módulo = un grupo de botones. En Discord: <code>o!selfroles post</code></p>
+                    <p class="hint" style="margin-top:10px">Cada módulo = un grupo de botones en Discord. Tras guardar: <code>o!selfroles post</code>. Pulsar un botón en Discord <strong>añade o quita</strong> el rol.</p>
                   </div>
+                  <script>
+                  (function(){
+                    function $(id){ return document.getElementById(id); }
+                    function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+                    function parseRaw(text){
+                      var modules=[], cur=null;
+                      String(text||'').split(/\r?\n/).forEach(function(line){
+                        line=line.trim();
+                        if(!line) return;
+                        if(line.indexOf('##')===0){
+                          if(cur) modules.push(cur);
+                          cur={name:line.replace(/^##\s*/,'').trim()||'Módulo', roles:[]};
+                        } else if(cur && line.indexOf(':')>=0){
+                          var i=line.indexOf(':');
+                          cur.roles.push({label:line.slice(0,i).trim(), role_id:line.slice(i+1).trim()});
+                        }
+                      });
+                      if(cur) modules.push(cur);
+                      if(!modules.length) modules=[{name:'Colores', roles:[{label:'Rojo',role_id:''},{label:'Azul',role_id:''}]}];
+                      return modules;
+                    }
+                    function serialize(){
+                      var list=$('sr_modules_list'); var raw=$('sr_modules_raw');
+                      if(!list||!raw) return;
+                      var modules=[];
+                      list.querySelectorAll('.sr-mod').forEach(function(modEl){
+                        var name=(modEl.querySelector('.sr-mod-name')||{}).value||'Módulo';
+                        var roles=[];
+                        modEl.querySelectorAll('.sr-role-row').forEach(function(row){
+                          var label=(row.querySelector('.sr-role-label')||{}).value||'';
+                          var rid=(row.querySelector('.sr-role-id')||{}).value||'';
+                          if(label||rid) roles.push({label:label, role_id:rid});
+                        });
+                        modules.push({name:name, roles:roles});
+                      });
+                      var lines=[];
+                      modules.forEach(function(m){
+                        lines.push('## '+m.name);
+                        m.roles.forEach(function(r){ lines.push((r.label||'Rol')+':'+(r.role_id||'')); });
+                        lines.push('');
+                      });
+                      raw.value=lines.join('\n').trim();
+                      [['sr_embed_title','sr_hid_title'],['sr_embed_color','sr_hid_color'],['sr_embed_desc','sr_hid_desc'],['sr_embed_image','sr_hid_image'],['sr_embed_thumb','sr_hid_thumb'],['sr_embed_footer','sr_hid_footer']].forEach(function(p){
+                        var a=$(p[0]), b=$(p[1]); if(a&&b) b.value=a.value||'';
+                      });
+                      updatePreview(modules);
+                    }
+                    function updatePreview(modules){
+                      var title=$('sr_embed_title'), desc=$('sr_embed_desc'), color=$('sr_embed_color');
+                      var image=$('sr_embed_image'), thumb=$('sr_embed_thumb'), footer=$('sr_embed_footer');
+                      var pt=$('sr_preview_title'), pd=$('sr_preview_desc'), pb=$('sr_preview_bar');
+                      var pi=$('sr_preview_img'), pth=$('sr_preview_thumb'), pf=$('sr_preview_footer'), pbtns=$('sr_preview_buttons');
+                      if(pt) pt.textContent=(title&&title.value)||'Elige tus roles';
+                      if(pd) pd.textContent=(desc&&desc.value)||'';
+                      if(pb) pb.style.background=(color&&color.value)||'#818cf8';
+                      if(pf) pf.textContent=(footer&&footer.value)||'';
+                      if(pi){ if(image&&image.value){ pi.src=image.value; pi.style.display='block'; } else { pi.removeAttribute('src'); pi.style.display='none'; } }
+                      if(pth){ if(thumb&&thumb.value){ pth.src=thumb.value; pth.style.display='block'; } else { pth.removeAttribute('src'); pth.style.display='none'; } }
+                      if(pbtns){
+                        pbtns.innerHTML='';
+                        (modules||[]).forEach(function(m){
+                          (m.roles||[]).forEach(function(r){
+                            if(!r.label && !r.role_id) return;
+                            var b=document.createElement('span');
+                            b.className='sr-d-btn';
+                            b.textContent=r.label||'Rol';
+                            pbtns.appendChild(b);
+                          });
+                        });
+                      }
+                    }
+                    function addRoleRow(modEl, label, roleId){
+                      var row=document.createElement('div');
+                      row.className='sr-role-row';
+                      row.innerHTML='<input class="sr-role-label" placeholder="Etiqueta (ej. Rojo)" value="'+esc(label)+'" />'
+                        +'<input class="sr-role-id" placeholder="ID del rol" value="'+esc(roleId)+'" />'
+                        +'<button type="button" class="sr-btn sr-btn-danger sr-btn-sm">✕</button>';
+                      row.querySelector('button').onclick=function(){ row.remove(); serialize(); };
+                      row.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', serialize); });
+                      modEl.querySelector('.sr-roles').appendChild(row);
+                    }
+                    function addModule(name, roles){
+                      var list=$('sr_modules_list');
+                      if(!list) return;
+                      var mod=document.createElement('div');
+                      mod.className='sr-mod';
+                      mod.innerHTML='<div class="sr-mod-top">'
+                        +'<input class="sr-mod-name" placeholder="Nombre del módulo" value="'+esc(name||'Nuevo módulo')+'" />'
+                        +'<button type="button" class="sr-btn sr-btn-ghost sr-btn-sm sr-add-role">＋ Rol</button>'
+                        +'<button type="button" class="sr-btn sr-btn-danger sr-btn-sm sr-del-mod">Eliminar</button>'
+                        +'</div><div class="sr-roles"></div>';
+                      mod.querySelector('.sr-add-role').onclick=function(){ addRoleRow(mod,'',''); serialize(); };
+                      mod.querySelector('.sr-del-mod').onclick=function(){ mod.remove(); serialize(); };
+                      mod.querySelector('.sr-mod-name').addEventListener('input', serialize);
+                      list.appendChild(mod);
+                      var rs=(roles&&roles.length)?roles:[{label:'',role_id:''}];
+                      rs.forEach(function(r){ addRoleRow(mod, r.label, r.role_id); });
+                      serialize();
+                    }
+                    window.odSR = {
+                      addModule: function(){ addModule('Nuevo módulo', [{label:'', role_id:''}]); },
+                      serialize: serialize
+                    };
+                    function init(){
+                      var raw=$('sr_modules_raw');
+                      if(!raw) return;
+                      parseRaw(raw.value).forEach(function(m){ addModule(m.name, m.roles); });
+                      ['sr_embed_title','sr_embed_color','sr_embed_desc','sr_embed_image','sr_embed_thumb','sr_embed_footer'].forEach(function(id){
+                        var el=$(id); if(el) el.addEventListener('input', serialize);
+                      });
+                      var form=$('guildForm');
+                      if(form) form.addEventListener('submit', function(){ serialize(); });
+                      var btn=$('sr_add_module');
+                      if(btn){
+                        btn.onclick=function(e){ if(e){e.preventDefault();e.stopPropagation();} window.odSR.addModule(); return false; };
+                      }
+                    }
+                    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
+                    else init();
+                  })();
+                  </script>
                 </div>
 
                 <div class="sr-right">
@@ -2527,153 +2649,8 @@
 
 })();
 </script>
+
+
 {% endblock %}
 
-<script>
-(function () {
-  const list = document.getElementById('sr_modules_list');
-  const raw = document.getElementById('sr_modules_raw');
-  if (!list || !raw) return;
 
-  function parseRaw(text) {
-    const modules = [];
-    let cur = null;
-    (text || '').split(/\r?\n/).forEach(line => {
-      line = line.trim();
-      if (!line) return;
-      if (line.startsWith('##')) {
-        if (cur) modules.push(cur);
-        cur = { name: line.replace(/^##\s*/, '').trim() || 'Módulo', roles: [] };
-      } else if (cur && line.includes(':')) {
-        const i = line.indexOf(':');
-        cur.roles.push({ label: line.slice(0, i).trim(), role_id: line.slice(i + 1).trim() });
-      }
-    });
-    if (cur) modules.push(cur);
-    return modules.length ? modules : [{ name: 'Colores', roles: [{ label: 'Rojo', role_id: '' }, { label: 'Azul', role_id: '' }] }];
-  }
-
-  function serialize() {
-    const modules = [];
-    list.querySelectorAll('.sr-mod').forEach(modEl => {
-      const name = (modEl.querySelector('.sr-mod-name') || {}).value || 'Módulo';
-      const roles = [];
-      modEl.querySelectorAll('.sr-role-row').forEach(row => {
-        const label = (row.querySelector('.sr-role-label') || {}).value || '';
-        const rid = (row.querySelector('.sr-role-id') || {}).value || '';
-        if (label || rid) roles.push({ label, role_id: rid });
-      });
-      modules.push({ name, roles });
-    });
-    const lines = [];
-    modules.forEach(m => {
-      lines.push('## ' + m.name);
-      m.roles.forEach(r => lines.push((r.label || 'Rol') + ':' + (r.role_id || '')));
-      lines.push('');
-    });
-    raw.value = lines.join('\n').trim();
-    // hiddens embed
-    const map = [
-      ['sr_embed_title', 'sr_hid_title'],
-      ['sr_embed_color', 'sr_hid_color'],
-      ['sr_embed_desc', 'sr_hid_desc'],
-      ['sr_embed_image', 'sr_hid_image'],
-      ['sr_embed_thumb', 'sr_hid_thumb'],
-      ['sr_embed_footer', 'sr_hid_footer'],
-    ];
-    map.forEach(([a, b]) => {
-      const el = document.getElementById(a);
-      const hid = document.getElementById(b);
-      if (el && hid) hid.value = el.value || '';
-    });
-    updatePreview(modules);
-  }
-
-  function updatePreview(modules) {
-    const title = document.getElementById('sr_embed_title');
-    const desc = document.getElementById('sr_embed_desc');
-    const color = document.getElementById('sr_embed_color');
-    const image = document.getElementById('sr_embed_image');
-    const thumb = document.getElementById('sr_embed_thumb');
-    const footer = document.getElementById('sr_embed_footer');
-    const pt = document.getElementById('sr_preview_title');
-    const pd = document.getElementById('sr_preview_desc');
-    const pb = document.getElementById('sr_preview_bar');
-    const pi = document.getElementById('sr_preview_img');
-    const pth = document.getElementById('sr_preview_thumb');
-    const pf = document.getElementById('sr_preview_footer');
-    const pbtns = document.getElementById('sr_preview_buttons');
-    if (pt) pt.textContent = (title && title.value) || 'Elige tus roles';
-    if (pd) pd.textContent = (desc && desc.value) || '';
-    if (pb) pb.style.background = (color && color.value) || '#818cf8';
-    if (pf) pf.textContent = (footer && footer.value) || '';
-    if (pi) {
-      if (image && image.value) { pi.src = image.value; pi.style.display = 'block'; }
-      else { pi.removeAttribute('src'); pi.style.display = 'none'; }
-    }
-    if (pth) {
-      if (thumb && thumb.value) { pth.src = thumb.value; pth.style.display = 'block'; }
-      else { pth.removeAttribute('src'); pth.style.display = 'none'; }
-    }
-    if (pbtns) {
-      pbtns.innerHTML = '';
-      (modules || []).forEach(m => {
-        (m.roles || []).forEach(r => {
-          if (!r.label && !r.role_id) return;
-          const b = document.createElement('span');
-          b.className = 'sr-d-btn';
-          b.textContent = r.label || 'Rol';
-          pbtns.appendChild(b);
-        });
-      });
-    }
-  }
-
-  function addRoleRow(modEl, label, roleId) {
-    const row = document.createElement('div');
-    row.className = 'sr-role-row';
-    row.innerHTML =
-      '<input class="sr-role-label" placeholder="Etiqueta (ej. Rojo)" value="' + (label || '').replace(/"/g, '&quot;') + '" />' +
-      '<input class="sr-role-id" placeholder="ID del rol" value="' + (roleId || '').replace(/"/g, '&quot;') + '" />' +
-      '<button type="button" class="sr-btn sr-btn-danger sr-btn-sm sr-del-role">✕</button>';
-    row.querySelector('.sr-del-role').onclick = () => { row.remove(); serialize(); };
-    row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', serialize));
-    modEl.querySelector('.sr-roles').appendChild(row);
-  }
-
-  function addModule(name, roles) {
-    const mod = document.createElement('div');
-    mod.className = 'sr-mod';
-    mod.innerHTML =
-      '<div class="sr-mod-top">' +
-        '<input class="sr-mod-name" placeholder="Nombre del módulo" value="' + (name || 'Nuevo módulo').replace(/"/g, '&quot;') + '" />' +
-        '<button type="button" class="sr-btn sr-btn-ghost sr-btn-sm sr-add-role">＋ Rol</button>' +
-        '<button type="button" class="sr-btn sr-btn-danger sr-btn-sm sr-del-mod">Eliminar</button>' +
-      '</div>' +
-      '<div class="sr-roles"></div>';
-    mod.querySelector('.sr-add-role').onclick = () => { addRoleRow(mod, '', ''); serialize(); };
-    mod.querySelector('.sr-del-mod').onclick = () => { mod.remove(); serialize(); };
-    mod.querySelector('.sr-mod-name').addEventListener('input', serialize);
-    list.appendChild(mod);
-    const rs = roles && roles.length ? roles : [{ label: '', role_id: '' }];
-    rs.forEach(r => addRoleRow(mod, r.label, r.role_id));
-  }
-
-  document.getElementById('sr_add_module').onclick = () => {
-    addModule('Nuevo módulo', [{ label: '', role_id: '' }]);
-    serialize();
-  };
-
-  ['sr_embed_title','sr_embed_color','sr_embed_desc','sr_embed_image','sr_embed_thumb','sr_embed_footer'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('input', serialize);
-  });
-
-  const form = document.getElementById('guildForm');
-  if (form) form.addEventListener('submit', serialize);
-
-  // init from textarea
-  parseRaw(raw.value).forEach(m => addModule(m.name, m.roles));
-  serialize();
-})();
-</script>
