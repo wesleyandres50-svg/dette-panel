@@ -594,6 +594,13 @@ def _default_config() -> dict:
         "modnotes": {"enabled": False},
         "watchlist": {"enabled": False},
         "reaction_roles": {"enabled": False},
+        "selfroles": {
+            "enabled": False,
+            "channel_id": "",
+            "modules_raw": "",
+            "unique_in_module": True,
+            "modules": [],
+        },
         "invites": {
             "enabled": False,
             "channel_id": "",
@@ -1471,7 +1478,14 @@ async def guild_save(request: Request, guild_id: str):
         },
         "modnotes": {"enabled": form.get("modnotes_enabled") == "on"},
         "watchlist": {"enabled": form.get("watchlist_enabled") == "on"},
-        "reaction_roles": {"enabled": form.get("reaction_roles_enabled") == "on"},
+                "reaction_roles": {"enabled": form.get("reaction_roles_enabled") == "on" or form.get("selfroles_enabled") == "on"},
+        "selfroles": {
+            "enabled": form.get("selfroles_enabled") == "on",
+            "channel_id": _s("selfroles_channel").strip(),
+            "modules_raw": _s("selfroles_modules")[:8000],
+            "unique_in_module": form.get("selfroles_unique") == "on",
+            "modules": [],  # rellenado abajo
+        },
         "invites": {
             "enabled": form.get("invites_enabled") == "on",
             "channel_id": _s("invites_channel").strip(),
@@ -1639,6 +1653,30 @@ async def guild_save(request: Request, guild_id: str):
 
     if not (ok_g or ok_u):
         config["ia"]["enabled"] = False
+    # Parse selfroles modules from raw text
+    try:
+        raw = (config.get("selfroles") or {}).get("modules_raw") or ""
+        modules = []
+        cur = None
+        for line in raw.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("##"):
+                if cur and cur.get("roles"):
+                    modules.append(cur)
+                cur = {"name": line.lstrip("#").strip()[:80], "roles": []}
+            elif cur is not None and ":" in line:
+                lab, rid = line.split(":", 1)
+                rid = rid.strip()
+                if rid.isdigit():
+                    cur["roles"].append({"label": lab.strip()[:40], "role_id": rid})
+        if cur and cur.get("roles"):
+            modules.append(cur)
+        config.setdefault("selfroles", {})["modules"] = modules[:20]
+    except Exception as e:
+        print(f"[selfroles parse] {e}")
+
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
     try:
