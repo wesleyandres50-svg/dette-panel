@@ -1,7 +1,8 @@
 """
-Odette Panel — completo
+Odette Panel — completo (sync + backup)
 - OAuth, dashboard, config, tickets, premium guild+user
-- API bot GET/POST config (restore)
+- API bot GET/POST config (restore bidireccional + force)
+- Backups locales rotativos de configs y premium
 - Verificación web: token 1 uso, edad cuenta, VPN opcional
 """
 from __future__ import annotations
@@ -10,6 +11,7 @@ import hashlib
 import json
 import os
 import secrets
+import shutil
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,12 +35,45 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
+BACKUP_DIR = DATA_DIR / "backups"
+BACKUP_DIR.mkdir(exist_ok=True)
 AVATARS_DIR = DATA_DIR / "avatars"
 AVATARS_DIR.mkdir(exist_ok=True)
 PREMIUM_FILE = DATA_DIR / "premium_guilds.json"
 CONFIG_FILE = DATA_DIR / "guild_configs.json"
 VERIFY_TOKENS_FILE = DATA_DIR / "verify_tokens.json"
 VERIFIED_USERS_FILE = DATA_DIR / "verified_users.json"
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    """Escritura atómica para no corromper JSON si el proceso muere a medias."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def _rotate_backup(src: Path, prefix: str, keep: int = 8) -> None:
+    """Copia de seguridad rotativa en data/backups/."""
+    if not src.is_file():
+        return
+    try:
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        dest = BACKUP_DIR / f"{prefix}_{ts}.json"
+        shutil.copy2(src, dest)
+        files = sorted(
+            BACKUP_DIR.glob(f"{prefix}_*.json"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        for old in files[keep:]:
+            try:
+                old.unlink()
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"[backup] {prefix}: {e}")
+
 
 DISCORD_CLIENT_ID = (os.getenv("DISCORD_CLIENT_ID") or "").strip()
 DISCORD_CLIENT_SECRET = (os.getenv("DISCORD_CLIENT_SECRET") or "").strip()
@@ -280,7 +315,8 @@ def _save_premium(data: dict) -> None:
     data.setdefault("guilds", {})
     data.setdefault("users", {})
     data.setdefault("free_profile", False)
-    PREMIUM_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _rotate_backup(PREMIUM_FILE, "premium")
+    _atomic_write(PREMIUM_FILE, json.dumps(data, indent=2, ensure_ascii=False))
 
 
 def is_free_profile() -> bool:
@@ -653,9 +689,10 @@ def _load_all_configs() -> dict:
 def _save_all_configs(data: dict) -> None:
     try:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
-        CONFIG_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        _rotate_backup(CONFIG_FILE, "configs")
+        _atomic_write(CONFIG_FILE, json.dumps(data, indent=2, ensure_ascii=False))
         # Marca para que el bot pueda detectar cambios al instante (poll corto)
-        (DATA_DIR / "config_version.txt").write_text(str(time.time()), encoding="utf-8")
+        _atomic_write(DATA_DIR / "config_version.txt", str(time.time()))
     except Exception as e:
         print(f"[config] write error: {e}")
         raise
@@ -808,7 +845,7 @@ def _load_verify_tokens() -> dict:
 
 
 def _save_verify_tokens(data: dict) -> None:
-    VERIFY_TOKENS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _atomic_write(VERIFY_TOKENS_FILE, json.dumps(data, indent=2, ensure_ascii=False))
 
 
 def _load_verified_users() -> dict:
@@ -821,7 +858,7 @@ def _load_verified_users() -> dict:
 
 
 def _save_verified_users(data: dict) -> None:
-    VERIFIED_USERS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _atomic_write(VERIFIED_USERS_FILE, json.dumps(data, indent=2, ensure_ascii=False))
 
 
 def _discord_snowflake_created(user_id: str):
@@ -1987,6 +2024,10 @@ async def api_guild_config(guild_id: str, request: Request):
 
 @app.post("/api/guild/{guild_id}/config")
 async def api_guild_config_restore(guild_id: str, request: Request):
+    """El bot empuja su config aquí.
+    - force=true → siempre sobrescribe (cuando cambias algo desde Discord)
+    - sin force → solo si el panel no tiene una versión más nueva
+    """
     if not str(guild_id).isdigit():
         return JSONResponse({"error": "guild_id invalido"}, status_code=400)
     auth = request.headers.get("Authorization") or ""
@@ -1997,16 +2038,38 @@ async def api_guild_config_restore(guild_id: str, request: Request):
         body = await request.json()
     except Exception:
         return JSONResponse({"error": "JSON invalido"}, status_code=400)
+    force = bool(body.get("force")) if isinstance(body, dict) else False
+    source = (body.get("source") or "bot") if isinstance(body, dict) else "bot"
     cfg = body.get("config") if isinstance(body, dict) and "config" in body else body
     if not isinstance(cfg, dict):
         return JSONResponse({"error": "config invalida"}, status_code=400)
     current = get_guild_config(guild_id)
-    if current.get("_panel_saved") and float(current.get("_saved_at") or 0) > float(cfg.get("_saved_at") or 0):
+    if (
+        not force
+        and current.get("_panel_saved")
+        and float(current.get("_saved_at") or 0) > float(cfg.get("_saved_at") or 0)
+    ):
         return {"ok": True, "restored": False, "reason": "panel_has_newer"}
-    cfg["_panel_saved"] = True
-    cfg.setdefault("_saved_at", time.time())
-    save_guild_config(guild_id, cfg)
-    return {"ok": True, "restored": True, "guild_id": str(guild_id)}
+    # Merge superficial: conservar claves del panel que el bot no manda
+    merged = dict(current)
+    for k, v in cfg.items():
+        if isinstance(v, dict) and isinstance(merged.get(k), dict):
+            sub = dict(merged[k])
+            sub.update(v)
+            merged[k] = sub
+        else:
+            merged[k] = v
+    merged["_panel_saved"] = True
+    merged["_saved_at"] = time.time()
+    merged["_source"] = str(source)[:32]
+    save_guild_config(guild_id, merged)
+    return {
+        "ok": True,
+        "restored": True,
+        "guild_id": str(guild_id),
+        "forced": force,
+        "source": merged["_source"],
+    }
 
 
 @app.post("/api/guild/{guild_id}/verify/token")
