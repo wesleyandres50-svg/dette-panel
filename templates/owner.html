@@ -73,8 +73,8 @@
 
   {# ——— SERVIDORES ——— #}
   <div class="owner-card">
-    <h2>🖥️ Servidores premium</h2>
-    <p class="hint">Estos servers tienen IA / extras de premium activos en el panel y el bot.</p>
+    <h2>🖥️ Servidores premium <span class="badge-mini">{{ premium_guilds|length if premium_guilds else 0 }}</span></h2>
+    <p class="hint">Lista del panel · el bot las lee con <code>/api/premium/export</code>.</p>
     {% if premium_guilds %}
       {% for gid, entry in premium_guilds.items() %}
         <div class="list-item">
@@ -102,8 +102,8 @@
 
   {# ——— PERSONAS ——— #}
   <div class="owner-card">
-    <h2>👤 Personas premium</h2>
-    <p class="hint">Usuarios con premium personal (sirve aunque el server no sea premium).</p>
+    <h2>👤 Personas premium <span class="badge-mini">{{ premium_users|length if premium_users else 0 }}</span></h2>
+    <p class="hint">Usuarios con premium personal (sincronizados con el bot vía <code>o!premiumsync</code> / API).</p>
     {% if premium_users %}
       {% for uid, entry in premium_users.items() %}
         <div class="list-item">
