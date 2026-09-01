@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Comandos — {{ guild.name }}{% endblock %}
+{% block content %}
+<style>
+  #cmdPage { max-width: 1000px; margin: 0 auto; padding-bottom: 48px; }
+  .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  .page-head h1 { margin: 0 0 4px; font-size: 1.5rem; background: linear-gradient(90deg,#fff,#a5b4fc); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .meta { color: #94a3b8; font-size: 0.85rem; }
+  .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); color: inherit; text-decoration: none; font-size: 0.85rem; cursor: pointer; }
+  .btn-primary { background: linear-gradient(135deg,#38bdf8,#818cf8); border: none; color: #0b0e14; font-weight: 700; }
+  .search-wrap { margin-bottom: 16px; }
+  .search-wrap input {
+    width: 100%; max-width: 420px; padding: 12px 16px 12px 40px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.1); background: rgba(15,23,42,.8); color: #e2e8f0; font-size: 0.9rem;
+  }
+  .search-box { position: relative; display: inline-block; width: 100%; max-width: 420px; }
+  .search-box::before { content: "🔍"; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: .7; }
+  .cat { background: rgba(15,23,42,.55); border: 1px solid rgba(148,163,184,.12); border-radius: 16px; margin-bottom: 14px; overflow: hidden; }
+  .cat-h { padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,.06); display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .cat-h h2 { margin: 0; font-size: 1rem; }
+  .cat-h .count { font-size: 0.75rem; color: #94a3b8; }
+  .cat-body { padding: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+  .cat.collapsed .cat-body { display: none; }
+  .cmd-card {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    border-radius: 12px; background: rgba(30,41,59,.45); border: 1px solid rgba(148,163,184,.1);
+  }
+  .cmd-card.off { opacity: 0.55; }
+  .cmd-ico {
+    width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    background: rgba(129,140,248,.15); font-size: 1.1rem; flex-shrink: 0;
+  }
+  .cmd-info { flex: 1; min-width: 0; }
+  .cmd-name { font-weight: 700; font-size: 0.9rem; color: #e2e8f0; }
+  .cmd-name code { color: #a5b4fc; }
+  .cmd-desc { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; line-height: 1.35; }
+  .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; border-radius: 999px; background: #334155; cursor: pointer; transition: .2s; }
+  .slider:before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .2s; }
+  .switch input:checked + .slider { background: #34d399; }
+  .switch input:checked + .slider:before { transform: translateX(20px); }
+  .toast { position: fixed; top: 16px; right: 16px; background: rgba(16,185,129,.9); color: #04120c; padding: 10px 16px; border-radius: 10px; font-weight: 700; display: none; z-index: 99; }
+  .hint { color: #64748b; font-size: 0.8rem; margin-top: 12px; }
+</style>
+
+<div id="cmdPage">
+  <div class="page-head">
+    <div>
+      <h1>⚡ Comandos del bot</h1>
+      <div class="meta">{{ guild.name }} · Activa o desactiva comandos en este servidor</div>
+    </div>
+    <div class="head-actions">
+      <a class="btn" href="/guild/{{ guild.id }}">← Volver al panel</a>
+      <button type="submit" form="cmdForm" class="btn btn-primary">💾 Guardar</button>
+    </div>
+  </div>
+
+  {% if request.query_params.get('ok') %}
+  <div class="toast" id="okToast" style="display:block">Guardado</div>
+  {% endif %}
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <input type="search" id="cmdSearch" placeholder="Buscar un comando..." autocomplete="off" />
+    </div>
+  </div>
+
+  <form method="post" action="/guild/{{ guild.id }}/commands/save" id="cmdForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+    {% for cat in catalog %}
+    <div class="cat" data-cat>
+      <div class="cat-h" onclick="this.parentElement.classList.toggle('collapsed')">
+        <h2>{{ cat.icon }} {{ cat.name }}</h2>
+        <span class="count">{{ cat.commands|length }} comandos</span>
+      </div>
+      <div class="cat-body">
+        {% for c in cat.commands %}
+        <div class="cmd-card {% if c.name in disabled %}off{% endif %}" data-cmd="{{ c.name }} {{ c.desc }}">
+          <div class="cmd-ico">{{ c.icon }}</div>
+          <div class="cmd-info">
+            <div class="cmd-name"><code>{{ prefix }}{{ c.name }}</code></div>
+            <div class="cmd-desc">{{ c.desc }}</div>
+          </div>
+          <label class="switch" title="Activo = ON">
+            <input type="checkbox" name="cmd_on_{{ c.name }}" {% if c.name not in disabled %}checked{% endif %}
+              onchange="this.closest('.cmd-card').classList.toggle('off', !this.checked)" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <p class="hint">Los comandos desactivados no se pueden usar en este servidor (la dueña del bot sí). Prefijo actual: <code>{{ prefix }}</code></p>
+    <div style="margin-top:16px">
+      <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function(){
+  var s = document.getElementById('cmdSearch');
+  if (!s) return;
+  s.addEventListener('input', function(){
+    var q = (s.value || '').toLowerCase().trim();
+    document.querySelectorAll('.cmd-card').forEach(function(card){
+      var hay = (card.getAttribute('data-cmd') || '').toLowerCase();
+      card.style.display = (!q || hay.indexOf(q) >= 0) ? '' : 'none';
+    });
+  });
+  var t = document.getElementById('okToast');
+  if (t) setTimeout(function(){ t.style.display = 'none'; }, 2500);
+})();
+</script>
+{% endblock %}
