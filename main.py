@@ -1665,27 +1665,65 @@ async def guild_save(request: Request, guild_id: str):
 
     if not (ok_g or ok_u):
         config["ia"]["enabled"] = False
-    # Parse selfroles modules from raw text
+    # Parse selfroles modules (JSON prioritario, luego raw)
     try:
-        raw = (config.get("selfroles") or {}).get("modules_raw") or ""
+        import json as _json
+        sr = config.setdefault("selfroles", {})
         modules = []
-        cur = None
-        for line in raw.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            if line.startswith("##"):
-                if cur and cur.get("roles"):
-                    modules.append(cur)
-                cur = {"name": line.lstrip("#").strip()[:80], "roles": []}
-            elif cur is not None and ":" in line:
-                lab, rid = line.split(":", 1)
-                rid = rid.strip()
-                if rid.isdigit():
-                    cur["roles"].append({"label": lab.strip()[:40], "role_id": rid})
-        if cur and cur.get("roles"):
-            modules.append(cur)
-        config.setdefault("selfroles", {})["modules"] = modules[:20]
+        raw_json = (_s("selfroles_modules_json") or "").strip()
+        if raw_json:
+            try:
+                data_m = _json.loads(raw_json)
+                if isinstance(data_m, list):
+                    for m in data_m[:20]:
+                        if not isinstance(m, dict):
+                            continue
+                        roles = []
+                        for r in (m.get("roles") or [])[:25]:
+                            if not isinstance(r, dict):
+                                continue
+                            rid = str(r.get("role_id") or "").strip()
+                            if rid.isdigit():
+                                roles.append({
+                                    "label": str(r.get("label") or rid)[:80],
+                                    "role_id": rid,
+                                })
+                        if roles:
+                            modules.append({
+                                "name": str(m.get("name") or "Roles")[:80],
+                                "roles": roles,
+                            })
+            except Exception as e:
+                print(f"[selfroles json] {e}")
+        if not modules:
+            raw = (sr.get("modules_raw") or "") or _s("selfroles_modules")
+            cur = None
+            for line in str(raw).splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith("##"):
+                    if cur and cur.get("roles"):
+                        modules.append(cur)
+                    cur = {"name": line.lstrip("#").strip()[:80], "roles": []}
+                elif cur is not None and ":" in line:
+                    lab, rid = line.rsplit(":", 1)
+                    rid = rid.strip()
+                    if rid.isdigit():
+                        cur["roles"].append({"label": lab.strip()[:80], "role_id": rid})
+            if cur and cur.get("roles"):
+                modules.append(cur)
+        sr["modules"] = modules[:20]
+        # asegurar modules_raw coherente
+        if modules and not (sr.get("modules_raw") or "").strip():
+            lines = []
+            for m in modules:
+                lines.append("## " + m["name"])
+                for r in m["roles"]:
+                    lines.append(f"{r['label']}:{r['role_id']}")
+                lines.append("")
+            sr["modules_raw"] = chr(10).join(lines).strip()
+        print(f"[selfroles] guild={guild_id} modules={len(modules)} roles={sum(len(m.get('roles') or []) for m in modules)}")
     except Exception as e:
         print(f"[selfroles parse] {e}")
 
