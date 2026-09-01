@@ -1,9 +1,41 @@
 {% extends "base.html" %}
 {% block title %}Verificación · Odette{% endblock %}
 {% block content %}
-<div style="max-width:480px;margin:40px auto;padding:24px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
-  <h1 style="margin-top:0">{% if ok %}✅ Verificado{% else %}❌ No verificado{% endif %}</h1>
-  <p style="line-height:1.5;opacity:.9">{{ message }}</p>
+<style>
+  .verify-box {
+    max-width: 480px;
+    margin: 48px auto;
+    padding: 28px 24px;
+    border-radius: 16px;
+    background: linear-gradient(160deg, rgba(22,32,51,0.95), rgba(26,39,64,0.98));
+    border: 1px solid rgba(255,255,255,0.08);
+    text-align: center;
+  }
+  .verify-box h1 {
+    margin: 0 0 12px;
+    font-size: 1.5rem;
+  }
+  .verify-box p {
+    color: #94a3b8;
+    line-height: 1.55;
+    margin: 0 0 22px;
+  }
+  .verify-box .btn {
+    display: inline-block;
+    padding: 12px 22px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #818cf8, #c084fc);
+    color: #0b1220;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .verify-box .btn:hover { filter: brightness(1.08); }
+  .ok h1 { color: #86efac; }
+  .fail h1 { color: #fca5a5; }
+</style>
+<div class="verify-box {% if ok %}ok{% else %}fail{% endif %}">
+  <h1>{% if ok %}✅ Verificado{% else %}❌ No verificado{% endif %}</h1>
+  <p>{{ message }}</p>
   <a class="btn" href="/dashboard">Ir al panel</a>
 </div>
 {% endblock %}
