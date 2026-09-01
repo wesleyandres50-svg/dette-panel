@@ -599,6 +599,12 @@ def _default_config() -> dict:
             "channel_id": "",
             "modules_raw": "",
             "unique_in_module": True,
+            "embed_title": "Elige tus roles",
+            "embed_description": "Pulsa un botón para obtener o quitar el rol.",
+            "embed_color": "#818cf8",
+            "embed_image": "",
+            "embed_thumb": "",
+            "embed_footer": "Odette · self-roles",
             "modules": [],
         },
         "invites": {
@@ -1484,7 +1490,13 @@ async def guild_save(request: Request, guild_id: str):
             "channel_id": _s("selfroles_channel").strip(),
             "modules_raw": _s("selfroles_modules")[:8000],
             "unique_in_module": form.get("selfroles_unique") == "on",
-            "modules": [],  # rellenado abajo
+            "embed_title": _s("selfroles_embed_title", "Elige tus roles")[:120],
+            "embed_description": _s("selfroles_embed_description", "Pulsa un botón para obtener o quitar el rol.")[:500],
+            "embed_color": _s("selfroles_embed_color", "#818cf8")[:20],
+            "embed_image": _s("selfroles_embed_image")[:500],
+            "embed_thumb": _s("selfroles_embed_thumb")[:500],
+            "embed_footer": _s("selfroles_embed_footer", "Odette · self-roles")[:100],
+            "modules": [],
         },
         "invites": {
             "enabled": form.get("invites_enabled") == "on",
