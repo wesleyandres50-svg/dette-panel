@@ -170,11 +170,22 @@
   details.ar-more summary { cursor:pointer; color:#b5bac1; font-size:0.85rem; }
 
 
-  .mod-grid {
+    .mod-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 12px;
+    align-items: start;
   }
+  .mod-grid .mod {
+    min-width: 0;
+    width: 100%;
+    height: auto;
+    align-self: start;
+  }
+  .mod-grid .mod.mod-wide {
+    grid-column: 1 / -1;
+  }
+
 
   /* Module card: compact when off, expanded settings when on */
   .mod {
@@ -1298,7 +1309,7 @@
     </div>
   </div>
 
-  {# ══════════════ 04 UTILIDAD ══════════════ #}
+    {# ══════════════ 04 UTILIDAD ══════════════ #}
   <div class="section sec-util" id="sec-utilidad" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">04</span> 🛠️ Utilidad</h2>
@@ -1307,93 +1318,86 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        
         <div class="mod mod-wide {% if (config.moderation or {}).get('enabled', true) %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">🛡️ Moderación (roles y sanciones)</div>
             <label class="switch"><input type="checkbox" name="moderation_enabled" data-toggle {% if (config.moderation or {}).get('enabled', true) %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Roles de staff, inmunidad y canal de sanciones. Los comandos de mod del bot respetan esto.</p>
+          <p class="mod-desc">Roles de staff, inmunidad y canal de sanciones.</p>
           <div class="mod-settings"><div class="mod-settings-inner">
             <div class="fields">
-              <div class="field"><label>Rol staff (puede usar comandos de mod)</label>
+              <div class="field"><label>Rol staff</label>
                 <input type="text" name="mod_staff_role" value="{{ (config.moderation or {}).get('staff_role_id','') }}" placeholder="ID rol" />
               </div>
-              <div class="field"><label>Rol inmunidad (no le afecta automod/antiraid)</label>
+              <div class="field"><label>Rol inmunidad</label>
                 <input type="text" name="mod_immune_role" value="{{ (config.moderation or {}).get('immune_role_id','') }}" placeholder="ID rol" />
               </div>
-              <div class="field"><label>Canal de sanciones / cases (ID)</label>
+              <div class="field"><label>Canal sanciones</label>
                 <input type="text" name="mod_sanction_channel" value="{{ (config.moderation or {}).get('sanction_channel_id','') }}" placeholder="ID canal" />
               </div>
             </div>
-            <p class="hint">Comandos: ban, kick, mute, warn, softban, cases… (se listarán con on/off en una fase siguiente)</p>
           </div></div>
         </div>
 
-<div class="mod mod-wide {% if config.invites.enabled %}is-on{% endif %}" data-mod>
-          <div class="mod-top">
-            
-        
-        <div class="mod mod-wide is-on" data-mod>
+        <div class="mod is-on" data-mod>
           <div class="mod-top">
             <div class="mod-title">⛔ Comandos desactivados</div>
             <label class="switch"><input type="checkbox" checked disabled /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Comandos del bot desactivados en este servidor (uno por línea).</p>
+          <p class="mod-desc">Uno por línea (slots, nsfw, gamble…).</p>
           <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
             <textarea name="disabled_commands" rows="4" placeholder="nsfw&#10;slots&#10;gamble">{% if config.disabled_commands %}{{ config.disabled_commands|join('\n') }}{% endif %}</textarea>
           </div></div>
         </div>
 
-        <div class="mod mod-wide {% if (config.invites or {}).get('enabled') %}is-on{% endif %}" data-mod>
+        <div class="mod {% if (config.invites or {}).get('enabled') %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">📨 Invite tracker</div>
             <label class="switch"><input type="checkbox" name="invites_enabled" data-toggle {% if (config.invites or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Anuncia quién invitó a cada miembro nuevo.</p>
+          <p class="mod-desc">Anuncia quién invitó a cada miembro.</p>
           <div class="mod-settings"><div class="mod-settings-inner">
-            <div class="fields">
-              <div class="field"><label>Canal de anuncios (ID)</label>
-                <input type="text" name="invites_channel" value="{{ (config.invites or {}).get('channel_id','') }}" placeholder="ID del canal" />
-              </div>
+            <div class="field"><label>Canal (ID)</label>
+              <input type="text" name="invites_channel" value="{{ (config.invites or {}).get('channel_id','') }}" />
             </div>
-            <div class="field" style="margin-top:10px"><label>Mensaje personalizable</label>
+            <div class="field"><label>Mensaje</label>
               <textarea name="invites_message" rows="3">{{ (config.invites or {}).get('message', '📨 {user} entró con la invitación de {inviter} (`{code}` · usos {uses})') }}</textarea>
-              <p class="hint">Placeholders: {user} {inviter} {code} {uses} {server} {membercount}</p>
+              <p class="hint">{user} {inviter} {code} {uses} {server} {membercount}</p>
             </div>
           </div></div>
         </div>
-<div class="mod {% if config.sticky.enabled %}is-on{% endif %}" data-mod>
+
+        <div class="mod {% if (config.sticky or {}).get('enabled') %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Sticky messages</div>
-            <label class="switch"><input type="checkbox" name="sticky_enabled" data-toggle {% if config.sticky.enabled %}checked{% endif %} /><span class="slider"></span></label>
+            <label class="switch"><input type="checkbox" name="sticky_enabled" data-toggle {% if (config.sticky or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
           </div>
           <p class="mod-desc">Mensajes fijos al final del canal.</p>
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Configura stickies con comandos del bot.</p></div></div>
         </div>
 
-        <div class="mod {% if config.autoresponse.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if (config.autoresponse or {}).get('enabled') %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Autorespuestas</div>
-            <label class="switch"><input type="checkbox" name="autoresponse_enabled" data-toggle {% if config.autoresponse.enabled %}checked{% endif %} /><span class="slider"></span></label>
+            <label class="switch"><input type="checkbox" name="autoresponse_enabled" data-toggle {% if (config.autoresponse or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
           </div>
           <p class="mod-desc">Respuestas a palabras clave.</p>
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Añade triggers con los comandos de autoresponse.</p></div></div>
         </div>
 
-        <div class="mod {% if config.afk.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if (config.afk or {}).get('enabled') %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">AFK</div>
-            <label class="switch"><input type="checkbox" name="afk_enabled" data-toggle {% if config.afk.enabled %}checked{% endif %} /><span class="slider"></span></label>
+            <label class="switch"><input type="checkbox" name="afk_enabled" data-toggle {% if (config.afk or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
           </div>
           <p class="mod-desc">Sistema AFK al mencionar ausentes.</p>
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!afk [motivo]</p></div></div>
         </div>
 
-        <div class="mod {% if config.snipe.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if (config.snipe or {}).get('enabled') %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Snipe</div>
-            <label class="switch"><input type="checkbox" name="snipe_enabled" data-toggle {% if config.snipe.enabled %}checked{% endif %} /><span class="slider"></span></label>
+            <label class="switch"><input type="checkbox" name="snipe_enabled" data-toggle {% if (config.snipe or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
           </div>
           <p class="mod-desc">Último mensaje borrado / editado.</p>
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!snipe · o!editsnipe</p></div></div>
@@ -1404,44 +1408,43 @@
             <div class="mod-title">🔊 Temp Voice</div>
             <label class="switch"><input type="checkbox" name="tempvc_enabled" data-toggle {% if (config.tempvc or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Entras al hub → se crea tu VC + canal de texto privado con panel de control (lock, allowlist, límite, nombre).</p>
+          <p class="mod-desc">Entras al hub → se crea tu VC + canal de texto privado con panel de control.</p>
           <div class="mod-settings"><div class="mod-settings-inner">
             <div class="fields">
-              <div class="field"><label>Canal hub (ID) — al unirse se crea el temp</label>
-                <input type="text" name="tempvc_hub" value="{{ (config.tempvc or {}).get('hub_channel_id','') }}" placeholder="ID canal de voz" />
+              <div class="field"><label>Canal hub (ID)</label>
+                <input type="text" name="tempvc_hub" value="{{ (config.tempvc or {}).get('hub_channel_id','') }}" />
               </div>
               <div class="field"><label>Categoría destino (ID)</label>
-                <input type="text" name="tempvc_category" value="{{ (config.tempvc or {}).get('category_id','') }}" placeholder="opcional" />
+                <input type="text" name="tempvc_category" value="{{ (config.tempvc or {}).get('category_id','') }}" />
               </div>
               <div class="field"><label>Nombre del canal</label>
-                <input type="text" name="tempvc_name" value="{{ (config.tempvc or {}).get('name_template','🔊 {user}') }}" placeholder="🔊 {user}" />
+                <input type="text" name="tempvc_name" value="{{ (config.tempvc or {}).get('name_template','🔊 {user}') }}" />
               </div>
-              <div class="field"><label>Límite de usuarios (0 = sin límite)</label>
+              <div class="field"><label>Límite usuarios (0 = ∞)</label>
                 <input type="number" name="tempvc_limit" min="0" max="99" value="{{ (config.tempvc or {}).get('user_limit', 0) }}" />
               </div>
             </div>
             <div class="fields" style="margin-top:8px">
-              <label class="check-line"><input type="checkbox" name="tempvc_text" {% if (config.tempvc or {}).get('create_text', true) %}checked{% endif %} /> Crear canal de texto privado + menú</label>
-              <label class="check-line"><input type="checkbox" name="tempvc_lock_empty" {% if (config.tempvc or {}).get('lock_on_owner_leave', true) %}checked{% endif %} /> Si el dueño cierra/sale: expulsar a quien entre sin permiso</label>
-              <label class="check-line"><input type="checkbox" name="tempvc_auto_delete" {% if (config.tempvc or {}).get('auto_delete', true) %}checked{% endif %} /> Borrar VC vacío automáticamente</label>
+              <label class="check-line"><input type="checkbox" name="tempvc_text" {% if (config.tempvc or {}).get('create_text', true) %}checked{% endif %} /> Canal de texto privado + menú</label>
+              <label class="check-line"><input type="checkbox" name="tempvc_lock_empty" {% if (config.tempvc or {}).get('lock_on_owner_leave', true) %}checked{% endif %} /> Si el dueño sale: expulsar sin permiso</label>
+              <label class="check-line"><input type="checkbox" name="tempvc_auto_delete" {% if (config.tempvc or {}).get('auto_delete', true) %}checked{% endif %} /> Borrar VC vacío</label>
             </div>
-            <p class="hint">Panel en el canal privado: 🔒 Bloquear · 🔓 Abrir · ➕ Permitir · ➖ Quitar · 👥 Límite · ✏️ Nombre · 🗑️ Borrar</p>
           </div></div>
         </div>
 
-        <div class="mod {% if config.giveaways.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if (config.giveaways or {}).get('enabled') %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Giveaways</div>
-            <label class="switch"><input type="checkbox" name="giveaways_enabled" data-toggle {% if config.giveaways.enabled %}checked{% endif %} /><span class="slider"></span></label>
+            <label class="switch"><input type="checkbox" name="giveaways_enabled" data-toggle {% if (config.giveaways or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
           </div>
           <p class="mod-desc">Sorteos con reacción / botón.</p>
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!gstart …</p></div></div>
         </div>
 
-        <div class="mod {% if config.reminders.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if (config.reminders or {}).get('enabled') %}is-on{% endif %}" data-mod>
           <div class="mod-top">
             <div class="mod-title">Recordatorios</div>
-            <label class="switch"><input type="checkbox" name="reminders_enabled" data-toggle {% if config.reminders.enabled %}checked{% endif %} /><span class="slider"></span></label>
+            <label class="switch"><input type="checkbox" name="reminders_enabled" data-toggle {% if (config.reminders or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
           </div>
           <p class="mod-desc">Recordatorios personales.</p>
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!remind 1h texto</p></div></div>
@@ -1451,7 +1454,7 @@
     </div>
   </div>
 
-  {# ══════════════ 05 SOCIAL / FUN ══════════════ #}
+{# ══════════════ 05 SOCIAL / FUN ══════════════ #}
   <div class="section sec-fun" id="sec-social" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">05</span> 🎭 Social / Fun</h2>
