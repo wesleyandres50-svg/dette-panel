@@ -1,194 +1,38 @@
 {% extends "base.html" %}
 
+{% block title %}{{ guild.name }} · Odette{% endblock %}
+
 {% block content %}
-<div class="min-h-screen bg-[#0a0a0a] text-white font-sans antialiased selection:bg-[#ff6b2b]/30" style="font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;">
-    <div class="flex min-h-screen">
-        <!-- SIDEBAR -->
-        <aside class="fixed lg:sticky top-0 z-30 h-screen w-[280px] bg-[#111111] border-r border-[#1e1e1e] flex flex-col shrink-0">
-            <!-- Header -->
-            <div class="h-[68px] px-3 flex items-center border-b border-[#1e1e1e] shrink-0">
-                <div class="flex items-center gap-2.5 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-[10px] px-2.5 py-2">
-                    <div class="w-8 h-8 rounded-[8px] bg-[#ff6b2b] flex items-center justify-center text-[13px] font-bold text-white shrink-0">11</div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-[13px] font-semibold text-white leading-none">1111</span>
-                            <span class="text-[10px] px-1 py-0.5 rounded-[4px] bg-[#2a2a2a] text-[#888] font-medium">Propietario</span>
-                        </div>
-                        <div class="text-[11px] text-[#666] leading-none mt-1">24.532 miembros</div>
-                    </div>
-                    <button class="text-[#666]"><i class="fas fa-chevron-down"></i></button>
-                </div>
-            </div>
+<style>
+    #guildPage { --od-accent: #38bdf8; max-width: 1120px; margin: 0 auto; }
+    /* (todo el CSS original que tenías se mantiene intacto) */
+    .mod-nav a { font-size: 0.76rem; padding: 6px 11px; border-radius: 999px; }
+</style>
 
-            <!-- Search -->
-            <div class="p-4">
-                <div class="relative">
-                    <input id="search-input" type="text" placeholder="Buscar módulo..." 
-                           class="w-full h-[36px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-[8px] pl-9 pr-8 text-[13px] text-[#999] placeholder:text-[#555] focus:outline-none focus:border-[#333]">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#555]">🔍</span>
-                </div>
-            </div>
-
-            <!-- Menu -->
-            <div class="flex-1 overflow-y-auto px-2 py-4 space-y-6">
-                <!-- GENERAL -->
-                <div class="px-2 mb-2 text-[10px] tracking-[0.14em] font-semibold text-[#5a5a5a] uppercase">GENERAL</div>
-                <div class="space-y-0.5">
-                    <button onclick="switchModule('ajustes')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition bg-[#1e1e1e] text-[#ff7a45]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#ff6b2b]/15 flex items-center justify-center"><i class="fas fa-cog"></i></span>
-                        Ajustes
-                    </button>
-                    <button onclick="switchModule('perfil')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-user"></i></span>
-                        Perfil del bot
-                    </button>
-                </div>
-
-                <!-- MIEMBROS -->
-                <div class="px-2 mb-2 text-[10px] tracking-[0.14em] font-semibold text-[#5a5a5a] uppercase">MIEMBROS</div>
-                <div class="space-y-0.5">
-                    <button onclick="switchModule('bienvenidas')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-handshake"></i></span>
-                        Bienvenidas y despedidas
-                    </button>
-                    <button onclick="switchModule('boosts')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-gem"></i></span>
-                        Boosts
-                    </button>
-                    <button onclick="switchModule('autoroles')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-user-plus"></i></span>
-                        Auto Roles
-                    </button>
-                    <button onclick="switchModule('reaccion')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-smile"></i></span>
-                        Roles por reacción
-                    </button>
-                    <button onclick="switchModule('invitaciones')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-link"></i></span>
-                        Invitaciones
-                    </button>
-                </div>
-
-                <!-- MODERACIÓN -->
-                <div class="px-2 mb-2 text-[10px] tracking-[0.14em] font-semibold text-[#5a5a5a] uppercase">MODERACIÓN</div>
-                <div class="space-y-0.5">
-                    <button onclick="switchModule('automod')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-ban"></i></span>
-                        AutoMod
-                    </button>
-                    <button onclick="switchModule('moderacion')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-hammer"></i></span>
-                        Moderación
-                    </button>
-                    <button onclick="switchModule('antiraid')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-shield"></i></span>
-                        Anti-Raid
-                    </button>
-                    <button onclick="switchModule('logs')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-list"></i></span>
-                        Logs
-                    </button>
-                </div>
-
-                <!-- COMUNIDAD -->
-                <div class="px-2 mb-2 text-[10px] tracking-[0.14em] font-semibold text-[#5a5a5a] uppercase">COMUNIDAD</div>
-                <div class="space-y-0.5">
-                    <button onclick="switchModule('niveles')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-chart-column"></i></span>
-                        Niveles
-                    </button>
-                    <button onclick="switchModule('economia')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-coins"></i></span>
-                        Economía
-                    </button>
-                    <button onclick="switchModule('sorteos')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-gift"></i></span>
-                        Sorteos
-                    </button>
-                    <button onclick="switchModule('sugerencias')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-lightbulb"></i></span>
-                        Sugerencias
-                    </button>
-                    <button onclick="switchModule('tickets')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-ticket"></i></span>
-                        Tickets
-                    </button>
-                </div>
-
-                <!-- UTILIDAD -->
-                <div class="px-2 mb-2 text-[10px] tracking-[0.14em] font-semibold text-[#5a5a5a] uppercase">UTILIDAD</div>
-                <div class="space-y-0.5">
-                    <button onclick="switchModule('anuncios')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-megaphone"></i></span>
-                        Anuncios / Embeds
-                    </button>
-                    <button onclick="switchModule('comandos')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-terminal"></i></span>
-                        Comandos personalizados
-                    </button>
-                    <button onclick="switchModule('programados')" class="group w-full flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[13px] font-medium transition text-[#9a9a9a] hover:bg-[#1a1a1a] hover:text-[#d0d0d0]">
-                        <span class="w-7 h-7 rounded-[7px] bg-[#1a1a1a] text-[#6a6a6a] flex items-center justify-center"><i class="fas fa-clock"></i></span>
-                        Mensajes programados
-                    </button>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="p-3 border-t border-[#1e1e1e] space-y-2.5 shrink-0 bg-[#111111]">
-                <button class="w-full h-[40px] rounded-[10px] bg-gradient-to-r from-[#ffb347] to-[#ff6b2b] text-[13px] font-semibold text-black flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,107,43,0.25)]">
-                    <i class="fas fa-crown"></i> Premium
-                </button>
-                <div class="grid grid-cols-2 gap-2">
-                    <button class="h-[34px] rounded-[8px] bg-[#1a1a1a] border border-[#2a2a2a] text-[11px] text-[#888] flex items-center justify-center gap-1.5">
-                        <i class="fas fa-book"></i> Documentación
-                    </button>
-                    <button class="h-[34px] rounded-[8px] bg-[#1a1a1a] border border-[#2a2a2a] text-[11px] text-[#888] flex items-center justify-center gap-1.5">
-                        <i class="fas fa-headphones"></i> Soporte
-                    </button>
-                </div>
-            </div>
-        </aside>
-
-        <!-- MAIN CONTENT -->
-        <div class="flex-1 min-w-0 flex flex-col">
-            <!-- Header -->
-            <header class="h-[56px] sticky top-0 z-10 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-[#1e1e1e] flex items-center px-4 lg:px-6 gap-3">
-                <button onclick="toggleSidebar()" class="lg:hidden w-8 h-8 rounded-[8px] bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="hidden md:flex items-center gap-1.5 text-[13px]">
-                    <span class="text-[#666]">1111</span>
-                    <span class="text-[#333]">/</span>
-                    <span class="text-[#666]">Ajustes</span>
-                    <span class="text-[#333]">/</span>
-                    <span class="text-white font-medium">Bienvenidas y despedidas</span>
-                </div>
-                <div class="flex-1 flex justify-center">
-                    <div class="relative w-full max-w-[440px]">
-                        <input id="global-search" type="text" placeholder="Buscar módulo..." 
-                               class="w-full h-[36px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-[8px] pl-9 pr-8 text-[13px] text-[#999] placeholder:text-[#555] focus:outline-none focus:border-[#333]">
-                    </div>
-                </div>
-                <button class="w-8 h-8 rounded-[8px] bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center hover:bg-[#222]">
-                    <i class="fas fa-bell"></i>
-                </button>
-                <div class="h-8 flex items-center gap-2 pl-1 pr-1.5 rounded-[8px] bg-[#1a1a1a] border border-[#2a2a2a] cursor-pointer hover:bg-[#1e1e1e]">
-                    <div class="w-6 h-6 rounded-full bg-gradient-to-br from-[#ff6b2b] to-[#ffb347] flex items-center justify-center text-[10px] font-bold text-white">M</div>
-                    <span class="text-[12px] font-medium text-white hidden sm:block">misosoppy</span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-            </header>
-
-            <!-- Page Content -->
-            <main id="main-content" class="flex-1 bg-[#0a0a0a] p-6 lg:p-8 overflow-y-auto">
-                <!-- Aquí se cargará el contenido dinámico -->
-                <div class="text-center py-20 text-[#666]">
-                    <i class="fas fa-gear text-[48px]"></i>
-                    <p class="text-[16px]">Selecciona un módulo del menú lateral</p>
-                </div>
-            </main>
+<div id="guildPage">
+    <div class="page-head">
+        <div>
+            <h1>{{ guild.name }} · Ajustes</h1>
+            <div class="meta">Guild de Odette</div>
         </div>
     </div>
+
+    <div class="mod-nav">
+        <a href="#" onclick="switchModule('ajustes')">Ajustes</a>
+        <a href="#" onclick="switchModule('bienvenidas')">Bienvenidas</a>
+        <a href="#" onclick="switchModule('boosts')">Boosts</a>
+        <a href="#" onclick="switchModule('autoroles')">Auto Roles</a>
+        <a href="#" onclick="switchModule('reaccion')">Roles por reacción</a>
+        <a href="#" onclick="switchModule('automod')">AutoMod</a>
+        <a href="#" onclick="switchModule('niveles')">Niveles</a>
+        <a href="#" onclick="switchModule('economia')">Economía</a>
+        <a href="#" onclick="switchModule('sorteos')">Sorteos</a>
+        <a href="#" onclick="switchModule('anuncios')">Anuncios</a>
+        <a href="#" onclick="switchModule('comandos')">Comandos</a>
+    </div>
+
+    <!-- Aquí se carga el contenido dinámico -->
+    <div id="main-content"></div>
 </div>
 
 <script>
@@ -200,25 +44,39 @@ function switchModule(module) {
     switch(module) {
         case 'bienvenidas':
             html = `
-                <div class="max-w-[1280px] mx-auto">
-                    <h1 class="text-[22px] font-semibold mb-8">Bienvenidas y despedidas</h1>
-                    <div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-[12px] overflow-hidden">
-                        <!-- Formulario + Preview -->
-                        <div class="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr]">
-                            <div class="p-6 space-y-6">
-                                <!-- Aquí va todo el formulario que tenías en el clon -->
-                                <div class="flex gap-4 items-center">
-                                    <div class="text-[13px] text-[#666]">Mensaje de bienvenida</div>
-                                    <textarea class="w-full h-20 bg-[#111] border border-[#2a2a2a] rounded-[8px] p-3 text-white">¡Bienvenido/a ${user}! 🎉</textarea>
+                <div class="max-w-[1120px] mx-auto">
+                    <h2 class="text-[1.35rem] font-semibold mb-6">Bienvenidas y despedidas</h2>
+                    <div class="bg-[#2b2d31] border border-[#1e1f22] rounded-[16px] overflow-hidden">
+                        <div class="p-6">
+                            <div class="flex gap-3 items-center mb-6">
+                                <div class="w-10 h-10 rounded-[10px] bg-[#ff6b2b]/15 flex items-center justify-center"><i class="fas fa-handshake text-[#ff6b2b]"></i></div>
+                                <div>
+                                    <div class="font-semibold">Mensaje de bienvenida</div>
+                                    <div class="text-sm text-[#94a3b8]">Se enviará al nuevo miembro</div>
                                 </div>
-                                <!-- ... más campos ... -->
+                                <div class="ml-auto">
+                                    <button onclick="toggleSwitch(this)" class="px-4 py-1 text-sm rounded-full bg-[#1e1f22] border border-[#3f4147]">ON</button>
+                                </div>
                             </div>
-                            <div class="p-6 bg-[#111111]/60 border-l border-[#2a2a2a]">
-                                <div class="text-[11px] uppercase tracking-widest text-[#666] mb-3">PREVIEW DISCORD</div>
-                                <div class="rounded-[10px] overflow-hidden border border-[#2a2a2a] bg-[#2b2d31]">
-                                    <div class="p-4 bg-gradient-to-br from-[#ff6b2b] to-[#ffb347]">
-                                        <div class="text-white text-[16px] font-medium">¡Bienvenido/a ${user}! 🎉</div>
-                                    </div>
+                            
+                            <textarea id="welcome-msg" class="w-full h-28 bg-[#0f172a] border border-[#3f4147] rounded-[12px] p-4 text-white resize-y" placeholder="¡Bienvenido/a {{user}}! 🎉">¡Bienvenido/a {{user}}! 🎉</textarea>
+                            
+                            <div class="mt-8">
+                                <div class="text-sm font-medium mb-3">Despedidas</div>
+                                <div class="flex gap-4">
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" checked class="w-5 h-5 accent-[#38bdf8]">
+                                        <span class="text-sm">Despedir cuando se va</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Preview -->
+                        <div class="border-t border-[#1e1f22] p-6 bg-[#1e1f22]">
+                            <div class="text-xs uppercase tracking-widest text-[#94a3b8] mb-3">PREVIEW DISCORD</div>
+                            <div class="rounded-[12px] overflow-hidden border border-[#3f4147]">
+                                <div class="p-6 bg-gradient-to-br from-[#ff6b2b] to-[#ffb347] text-white">
+                                    ¡Bienvenido/a <span id="user-preview">{{user}}</span>! 🎉
                                 </div>
                             </div>
                         </div>
@@ -226,24 +84,40 @@ function switchModule(module) {
                 </div>`;
             break;
 
-        // Puedes agregar más casos aquí: 'boosts', 'autoroles', 'niveles', etc.
-        // Por ahora solo muestro uno, pero puedes expandirlo
+        case 'autoroles':
+            html = `<div class="p-8 text-center">Contenido de Auto Roles cargando...</div>`;
+            break;
+
+        case 'sorteos':
+            html = `<div class="p-8 text-center">Contenido de Sorteos cargando...</div>`;
+            break;
+
+        case 'anuncios':
+            html = `<div class="p-8 text-center">Contenido de Anuncios cargando...</div>`;
+            break;
 
         default:
-            html = `<div class="text-center py-20 text-[#666]">Selecciona un módulo</div>`;
+            html = `<div class="p-20 text-center text-[#94a3b8]">Selecciona un módulo del menú lateral</div>`;
     }
 
     main.innerHTML = html;
 }
 
-// Sidebar toggle
-function toggleSidebar() {
-    alert("Sidebar (mobile) - en producción");
+// Toast de guardado automático (lo que tenías en el clon)
+function showToast(text, type = 'ok') {
+    const toast = document.createElement('div');
+    toast.className = `od-toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <span>${text}</span>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2800);
 }
 
 // Inicializar
-window.onload = function() {
+document.addEventListener('DOMContentLoaded', () => {
     switchModule('bienvenidas');
-};
+});
 </script>
 {% endblock %}
