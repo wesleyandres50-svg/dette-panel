@@ -3,8 +3,8 @@ from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
-# Plantilla HTML embebida completamente corregida, con selector de servidores y guardado funcional
-HTML_TEMPLATE = """
+# Plantilla HTML limpia sin conflictos de comillas en Python
+HTML_TEMPLATE = r"""
 <!DOCTYPE html>
 <html lang="es" class="dark">
 <head>
@@ -47,7 +47,7 @@ HTML_TEMPLATE = """
             <p class="text-xs text-slate-400">Elige el servidor de Discord que deseas administrar con Odette:</p>
             
             <div class="space-y-2 pt-2 max-h-60 overflow-y-auto">
-                <div onclick="selectServer('Capa\\'s Pizzeria', '🍕')" class="flex items-center gap-3 p-3 bg-cardbg hover:bg-slate-800 rounded-xl cursor-pointer transition-all border border-slate-700/50">
+                <div onclick="selectServer('Capa\'s Pizzeria', '🍕')" class="flex items-center gap-3 p-3 bg-cardbg hover:bg-slate-800 rounded-xl cursor-pointer transition-all border border-slate-700/50">
                     <div class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 font-bold flex items-center justify-center text-lg">🍕</div>
                     <div>
                         <h4 class="font-semibold text-sm text-white">Capa's Pizzeria</h4>
@@ -125,4 +125,25 @@ HTML_TEMPLATE = """
                             <i class="fa-solid fa-star w-5"></i> Starboard
                         </button>
                         <button onclick="switchTab('economia')" id="btn-economia" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
-                            <i class="fa-solid fa-
+                            <i class="fa-solid fa-coins w-5"></i> Economía
+                        </button>
+                        <button onclick="switchTab('tickets')" id="btn-tickets" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
+                            <i class="fa-solid fa-ticket w-5"></i> Tickets
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2">Seguridad</p>
+                    <div class="space-y-1">
+                        <button onclick="switchTab('antiraid')" id="btn-antiraid" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
+                            <i class="fa-solid fa-shield-halved w-5"></i> Anti-raid
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <div class="p-4 border-t border-slate-800/60">
+            <button onclick="toggleServerModal(true)" class="flex items-center justify-center gap-2 w-full bg-slate-800/50 hover:bg-slate-800 text-slate-300 py-2.5 rounded-xl text-xs font-semibold transition-all">
+                <i class="fa-solid fa-arrow-left"></i> Cambiar Servidor
