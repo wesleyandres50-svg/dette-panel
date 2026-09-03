@@ -5,8 +5,17 @@
 {% block content %}
 <style>
     #guildPage { --od-accent: #38bdf8; max-width: 1120px; margin: 0 auto; }
-    /* (todo el CSS original que tenías se mantiene intacto) */
-    .mod-nav a { font-size: 0.76rem; padding: 6px 11px; border-radius: 999px; }
+    .mod-nav a {
+        font-size: 0.76rem;
+        padding: 6px 11px;
+        border-radius: 999px;
+        transition: all 0.2s;
+    }
+    .mod-nav a.active {
+        background: var(--od-accent);
+        color: #fff;
+        font-weight: 600;
+    }
 </style>
 
 <div id="guildPage">
@@ -31,7 +40,6 @@
         <a href="#" onclick="switchModule('comandos')">Comandos</a>
     </div>
 
-    <!-- Aquí se carga el contenido dinámico -->
     <div id="main-content"></div>
 </div>
 
@@ -49,7 +57,7 @@ function switchModule(module) {
                     <div class="bg-[#2b2d31] border border-[#1e1f22] rounded-[16px] overflow-hidden">
                         <div class="p-6">
                             <div class="flex gap-3 items-center mb-6">
-                                <div class="w-10 h-10 rounded-[10px] bg-[#ff6b2b]/15 flex items-center justify-center"><i class="fas fa-handshake text-[#ff6b2b]"></i></div>
+                                <div class="w-10 h-10 rounded-[10px] bg-[#ff6b2b]/15 flex items-center justify-center">{{ icon('fas fa-handshake') }}</div>
                                 <div>
                                     <div class="font-semibold">Mensaje de bienvenida</div>
                                     <div class="text-sm text-[#94a3b8]">Se enviará al nuevo miembro</div>
@@ -85,15 +93,9 @@ function switchModule(module) {
             break;
 
         case 'autoroles':
-            html = `<div class="p-8 text-center">Contenido de Auto Roles cargando...</div>`;
-            break;
-
         case 'sorteos':
-            html = `<div class="p-8 text-center">Contenido de Sorteos cargando...</div>`;
-            break;
-
         case 'anuncios':
-            html = `<div class="p-8 text-center">Contenido de Anuncios cargando...</div>`;
+            html = `<div class="p-20 text-center text-[#94a3b8]">Contenido en desarrollo...</div>`;
             break;
 
         default:
@@ -103,19 +105,13 @@ function switchModule(module) {
     main.innerHTML = html;
 }
 
-// Toast de guardado automático (lo que tenías en el clon)
-function showToast(text, type = 'ok') {
-    const toast = document.createElement('div');
-    toast.className = `od-toast ${type}`;
-    toast.innerHTML = `
-        <i class="fas fa-check-circle"></i>
-        <span>${text}</span>
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2800);
+function toggleSwitch(el) {
+    el.classList.toggle('bg-[#1e1f22]');
+    el.classList.toggle('border-[#3f4147]');
+    el.classList.toggle('bg-[#38bdf8]');
+    el.classList.toggle('text-white');
 }
 
-// Inicializar
 document.addEventListener('DOMContentLoaded', () => {
     switchModule('bienvenidas');
 });
