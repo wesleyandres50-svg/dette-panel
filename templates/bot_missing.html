@@ -1,47 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Invitar bot · {{ guild.name }}{% endblock %}
+{% block title %}Bot no instalado · Odette{% endblock %}
 {% block content %}
-<style>
-  .miss-wrap {
-    max-width: 520px;
-    margin: 48px auto;
-    text-align: center;
-    padding: 28px 24px;
-    border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.03);
-  }
-  .miss-wrap h1 { font-size: 1.35rem; margin: 0 0 10px; }
-  .miss-wrap p { color: #94a3b8; line-height: 1.5; margin: 0 0 18px; }
-  .miss-ico { font-size: 2.8rem; margin-bottom: 12px; }
-  .miss-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-  .btn-inv {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 12px 20px; border-radius: 999px; font-weight: 700;
-    background: linear-gradient(135deg, #5865F2, #7289da);
-    color: #fff; text-decoration: none; border: none; font-size: 0.95rem;
-  }
-  .btn-back {
-    display: inline-flex; align-items: center;
-    padding: 12px 18px; border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.12);
-    color: inherit; text-decoration: none; font-size: 0.9rem;
-  }
-  .gid { font-size: 0.75rem; color: #64748b; margin-top: 14px; word-break: break-all; }
-</style>
-<div class="miss-wrap">
-  <div class="miss-ico">🦢</div>
-  <h1>Odette no está en este servidor</h1>
-  <p>
-    Para configurar <strong>{{ guild.name }}</strong> primero tienes que
-    <strong>invitar al bot</strong>. Cuando esté dentro, vuelve a esta página.
-  </p>
-  <div class="miss-actions">
-    <a class="btn-inv" href="{{ invite_url }}" target="_blank" rel="noopener">
-      ➕ Invitar a Odette
-    </a>
-    <a class="btn-back" href="/dashboard">← Servidores</a>
-  </div>
-  <div class="gid">ID: {{ guild.id }}</div>
+<div class="card"><h2 style="margin:0">Bot no instalado</h2>
+<p class="hint">Página de bot no instalado. Si falta contenido, el bot o la ruta lo rellenan.</p>
+<p style="margin-top:14px"><a class="btn" href="/dashboard">← Servidores</a></p>
 </div>
 {% endblock %}
