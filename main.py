@@ -1,8 +1,7 @@
 """
-Odette Panel — completo (sync + backup)
+Odette Panel — completo
 - OAuth, dashboard, config, tickets, premium guild+user
-- API bot GET/POST config (restore bidireccional + force)
-- Backups locales rotativos de configs y premium
+- API bot GET/POST config (restore)
 - Verificación web: token 1 uso, edad cuenta, VPN opcional
 """
 from __future__ import annotations
@@ -11,7 +10,6 @@ import hashlib
 import json
 import os
 import secrets
-import shutil
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -35,45 +33,12 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
-BACKUP_DIR = DATA_DIR / "backups"
-BACKUP_DIR.mkdir(exist_ok=True)
 AVATARS_DIR = DATA_DIR / "avatars"
 AVATARS_DIR.mkdir(exist_ok=True)
 PREMIUM_FILE = DATA_DIR / "premium_guilds.json"
 CONFIG_FILE = DATA_DIR / "guild_configs.json"
 VERIFY_TOKENS_FILE = DATA_DIR / "verify_tokens.json"
 VERIFIED_USERS_FILE = DATA_DIR / "verified_users.json"
-
-
-def _atomic_write(path: Path, text: str) -> None:
-    """Escritura atómica para no corromper JSON si el proceso muere a medias."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    os.replace(tmp, path)
-
-
-def _rotate_backup(src: Path, prefix: str, keep: int = 8) -> None:
-    """Copia de seguridad rotativa en data/backups/."""
-    if not src.is_file():
-        return
-    try:
-        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        dest = BACKUP_DIR / f"{prefix}_{ts}.json"
-        shutil.copy2(src, dest)
-        files = sorted(
-            BACKUP_DIR.glob(f"{prefix}_*.json"),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )
-        for old in files[keep:]:
-            try:
-                old.unlink()
-            except Exception:
-                pass
-    except Exception as e:
-        print(f"[backup] {prefix}: {e}")
-
 
 DISCORD_CLIENT_ID = (os.getenv("DISCORD_CLIENT_ID") or "").strip()
 DISCORD_CLIENT_SECRET = (os.getenv("DISCORD_CLIENT_SECRET") or "").strip()
@@ -315,8 +280,7 @@ def _save_premium(data: dict) -> None:
     data.setdefault("guilds", {})
     data.setdefault("users", {})
     data.setdefault("free_profile", False)
-    _rotate_backup(PREMIUM_FILE, "premium")
-    _atomic_write(PREMIUM_FILE, json.dumps(data, indent=2, ensure_ascii=False))
+    PREMIUM_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def is_free_profile() -> bool:
@@ -594,19 +558,6 @@ def _default_config() -> dict:
         "modnotes": {"enabled": False},
         "watchlist": {"enabled": False},
         "reaction_roles": {"enabled": False},
-        "selfroles": {
-            "enabled": False,
-            "channel_id": "",
-            "modules_raw": "",
-            "unique_in_module": True,
-            "embed_title": "Elige tus roles",
-            "embed_description": "Pulsa un botón para obtener o quitar el rol.",
-            "embed_color": "#818cf8",
-            "embed_image": "",
-            "embed_thumb": "",
-            "embed_footer": "Odette · self-roles",
-            "modules": [],
-        },
         "invites": {
             "enabled": False,
             "channel_id": "",
@@ -616,23 +567,7 @@ def _default_config() -> dict:
         "autoresponse": {"enabled": False},
         "afk": {"enabled": True},
         "snipe": {"enabled": True},
-        "tempvc": {
-            "enabled": False,
-            "hub_channel_id": "",
-            "category_id": "",
-            "name_template": "🔊 {user}",
-            "user_limit": 0,
-            "create_text": True,
-            "lock_on_owner_leave": True,
-            "auto_delete": True,
-        },
-        "moderation": {
-            "enabled": True,
-            "staff_role_id": "",
-            "immune_role_id": "",
-            "sanction_channel_id": "",
-        },
-        "disabled_commands": [],
+        "tempvc": {"enabled": False},
         "giveaways": {"enabled": True},
         "reminders": {"enabled": True},
         "economy": {
@@ -663,6 +598,9 @@ def _default_config() -> dict:
             "log_channel_id": "",
             "shop_channel_id": "",
             "shop_message_id": "",
+            "commands_channel_id": "",
+            "commands_message_id": "",
+            "commands_message_ids": [],
             "currency": "🪙",
             "start_cash": 0,
             "start_bank": 0,
@@ -718,10 +656,9 @@ def _load_all_configs() -> dict:
 def _save_all_configs(data: dict) -> None:
     try:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
-        _rotate_backup(CONFIG_FILE, "configs")
-        _atomic_write(CONFIG_FILE, json.dumps(data, indent=2, ensure_ascii=False))
+        CONFIG_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
         # Marca para que el bot pueda detectar cambios al instante (poll corto)
-        _atomic_write(DATA_DIR / "config_version.txt", str(time.time()))
+        (DATA_DIR / "config_version.txt").write_text(str(time.time()), encoding="utf-8")
     except Exception as e:
         print(f"[config] write error: {e}")
         raise
@@ -874,7 +811,7 @@ def _load_verify_tokens() -> dict:
 
 
 def _save_verify_tokens(data: dict) -> None:
-    _atomic_write(VERIFY_TOKENS_FILE, json.dumps(data, indent=2, ensure_ascii=False))
+    VERIFY_TOKENS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def _load_verified_users() -> dict:
@@ -887,7 +824,7 @@ def _load_verified_users() -> dict:
 
 
 def _save_verified_users(data: dict) -> None:
-    _atomic_write(VERIFIED_USERS_FILE, json.dumps(data, indent=2, ensure_ascii=False))
+    VERIFIED_USERS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def _discord_snowflake_created(user_id: str):
@@ -1103,6 +1040,36 @@ async def guild_page(request: Request, guild_id: str):
                 "invite_url": invite,
             },
         )
+
+    # Paso 2: pedir al bot config + premium (si BOT_CALLBACK_URL está)
+    try:
+        await _pull_premium_from_bot()
+    except Exception as e:
+        print(f"[guild_page] premium pull: {e}")
+    try:
+        bot_data = await _pull_config_from_bot(str(guild_id))
+        if bot_data and isinstance(bot_data.get("config"), dict):
+            cfg_bot = bot_data["config"]
+            local = get_guild_config(guild_id)
+            bot_ts = float(cfg_bot.get("_bot_saved_at") or bot_data.get("ts") or 0)
+            local_ts = float(local.get("_saved_at") or 0)
+            # Si el bot tiene datos (roles niveles, etc.) los mezclamos siempre
+            merged = dict(local)
+            for k, v in cfg_bot.items():
+                if isinstance(v, dict) and isinstance(merged.get(k), dict):
+                    mm = dict(merged[k])
+                    mm.update(v)
+                    merged[k] = mm
+                else:
+                    merged[k] = v
+            # Preferir timestamp más reciente en _saved_at
+            merged["_bot_saved_at"] = bot_ts or merged.get("_bot_saved_at")
+            merged["_panel_saved"] = True
+            merged["_saved_at"] = max(local_ts, bot_ts, time.time())
+            save_guild_config(guild_id, merged)
+            print(f"[guild_page] merged bot config for {guild_id}")
+    except Exception as e:
+        print(f"[guild_page] bot config pull: {e}")
 
     ok_g, st_g = is_premium(guild_id)
     ok_u, st_u = is_user_premium(user["id"])
@@ -1484,20 +1451,7 @@ async def guild_save(request: Request, guild_id: str):
         },
         "modnotes": {"enabled": form.get("modnotes_enabled") == "on"},
         "watchlist": {"enabled": form.get("watchlist_enabled") == "on"},
-                "reaction_roles": {"enabled": form.get("reaction_roles_enabled") == "on" or form.get("selfroles_enabled") == "on"},
-        "selfroles": {
-            "enabled": form.get("selfroles_enabled") == "on",
-            "channel_id": _s("selfroles_channel").strip(),
-            "modules_raw": _s("selfroles_modules")[:8000],
-            "unique_in_module": form.get("selfroles_unique") == "on",
-            "embed_title": _s("selfroles_embed_title", "Elige tus roles")[:120],
-            "embed_description": _s("selfroles_embed_description", "Pulsa un botón para obtener o quitar el rol.")[:500],
-            "embed_color": _s("selfroles_embed_color", "#818cf8")[:20],
-            "embed_image": _s("selfroles_embed_image")[:500],
-            "embed_thumb": _s("selfroles_embed_thumb")[:500],
-            "embed_footer": _s("selfroles_embed_footer", "Odette · self-roles")[:100],
-            "modules": [],
-        },
+        "reaction_roles": {"enabled": form.get("reaction_roles_enabled") == "on"},
         "invites": {
             "enabled": form.get("invites_enabled") == "on",
             "channel_id": _s("invites_channel").strip(),
@@ -1511,27 +1465,7 @@ async def guild_save(request: Request, guild_id: str):
         "autoresponse": {"enabled": form.get("autoresponse_enabled") == "on"},
         "afk": {"enabled": form.get("afk_enabled") == "on"},
         "snipe": {"enabled": form.get("snipe_enabled") == "on"},
-        "tempvc": {
-            "enabled": form.get("tempvc_enabled") == "on",
-            "hub_channel_id": _s("tempvc_hub").strip(),
-            "category_id": _s("tempvc_category").strip(),
-            "name_template": (_s("tempvc_name") or "🔊 {user}").strip()[:80],
-            "user_limit": max(0, min(_int("tempvc_limit", 0), 99)),
-            "create_text": form.get("tempvc_text") == "on",
-            "lock_on_owner_leave": form.get("tempvc_lock_empty") == "on",
-            "auto_delete": form.get("tempvc_auto_delete") == "on",
-        },
-        "moderation": {
-            "enabled": form.get("moderation_enabled") == "on",
-            "staff_role_id": _s("mod_staff_role").strip(),
-            "immune_role_id": _s("mod_immune_role").strip(),
-            "sanction_channel_id": _s("mod_sanction_channel").strip(),
-        },
-        "disabled_commands": [
-            x.strip().lower()
-            for x in (_s("disabled_commands") or "").replace(",", "\n").splitlines()
-            if x.strip()
-        ][:80],
+        "tempvc": {"enabled": form.get("tempvc_enabled") == "on"},
         "giveaways": {"enabled": form.get("giveaways_enabled") == "on"},
         "reminders": {"enabled": form.get("reminders_enabled") == "on"},
         "economy": {
@@ -1560,6 +1494,9 @@ async def guild_save(request: Request, guild_id: str):
             "log_channel_id": _s("economy_log_channel").strip(),
             "shop_channel_id": _s("economy_shop_channel").strip(),
             "shop_message_id": _s("economy_shop_message").strip(),
+            "commands_channel_id": _s("economy_commands_channel").strip(),
+            "commands_message_id": _s("economy_commands_message").strip(),
+            "commands_message_ids": [x.strip() for x in (_s("economy_commands_messages") or "").split(",") if x.strip()][:10],
             "currency": (_s("economy_currency") or "🪙").strip()[:16] or "🪙",
             "start_cash": max(0, _int("economy_start_cash", 0)),
             "start_bank": max(0, _int("economy_start_bank", 0)),
@@ -1665,68 +1602,6 @@ async def guild_save(request: Request, guild_id: str):
 
     if not (ok_g or ok_u):
         config["ia"]["enabled"] = False
-    # Parse selfroles modules (JSON prioritario, luego raw)
-    try:
-        import json as _json
-        sr = config.setdefault("selfroles", {})
-        modules = []
-        raw_json = (_s("selfroles_modules_json") or "").strip()
-        if raw_json:
-            try:
-                data_m = _json.loads(raw_json)
-                if isinstance(data_m, list):
-                    for m in data_m[:20]:
-                        if not isinstance(m, dict):
-                            continue
-                        roles = []
-                        for r in (m.get("roles") or [])[:25]:
-                            if not isinstance(r, dict):
-                                continue
-                            rid = str(r.get("role_id") or "").strip()
-                            if rid.isdigit():
-                                roles.append({
-                                    "label": str(r.get("label") or rid)[:80],
-                                    "role_id": rid,
-                                })
-                        if roles:
-                            modules.append({
-                                "name": str(m.get("name") or "Roles")[:80],
-                                "roles": roles,
-                            })
-            except Exception as e:
-                print(f"[selfroles json] {e}")
-        if not modules:
-            raw = (sr.get("modules_raw") or "") or _s("selfroles_modules")
-            cur = None
-            for line in str(raw).splitlines():
-                line = line.strip()
-                if not line:
-                    continue
-                if line.startswith("##"):
-                    if cur and cur.get("roles"):
-                        modules.append(cur)
-                    cur = {"name": line.lstrip("#").strip()[:80], "roles": []}
-                elif cur is not None and ":" in line:
-                    lab, rid = line.rsplit(":", 1)
-                    rid = rid.strip()
-                    if rid.isdigit():
-                        cur["roles"].append({"label": lab.strip()[:80], "role_id": rid})
-            if cur and cur.get("roles"):
-                modules.append(cur)
-        sr["modules"] = modules[:20]
-        # asegurar modules_raw coherente
-        if modules and not (sr.get("modules_raw") or "").strip():
-            lines = []
-            for m in modules:
-                lines.append("## " + m["name"])
-                for r in m["roles"]:
-                    lines.append(f"{r['label']}:{r['role_id']}")
-                lines.append("")
-            sr["modules_raw"] = chr(10).join(lines).strip()
-        print(f"[selfroles] guild={guild_id} modules={len(modules)} roles={sum(len(m.get('roles') or []) for m in modules)}")
-    except Exception as e:
-        print(f"[selfroles parse] {e}")
-
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
     try:
@@ -1737,15 +1612,6 @@ async def guild_save(request: Request, guild_id: str):
             return JSONResponse({"ok": False, "error": "save"}, status_code=500)
         return RedirectResponse(f"/guild/{guild_id}?err=save", status_code=303)
     print(f"[guild_save] OK guild={guild_id}")
-    # Sync agresiva: version + dirty + push callback
-    try:
-        _atomic_write(DATA_DIR / "config_version.txt", str(time.time()))
-        dirty_path = DATA_DIR / "config_dirty.json"
-        import json as _json
-        dirty = {"guild_ids": [str(guild_id)], "ts": time.time()}
-        dirty_path.write_text(_json.dumps(dirty), encoding="utf-8")
-    except Exception as e:
-        print(f"[guild_save] dirty: {e}")
     try:
         await _notify_bot_refresh(str(guild_id))
     except Exception as e:
@@ -1758,132 +1624,6 @@ async def guild_save(request: Request, guild_id: str):
             "message": "Cambios guardados",
         })
     return RedirectResponse(f"/guild/{guild_id}?ok=1", status_code=303)
-
-
-
-def _commands_catalog():
-    """Lista de comandos del bot para on/off en el panel."""
-    return [
-        {"name": "Moderación", "icon": "🛡️", "commands": [
-            {"name": "ban", "icon": "🔨", "desc": "Banear por mención o ID"},
-            {"name": "kick", "icon": "👢", "desc": "Expulsar del servidor"},
-            {"name": "timeout", "icon": "⏱️", "desc": "Aislar / mute temporal"},
-            {"name": "warn", "icon": "⚠️", "desc": "Advertir a un usuario"},
-            {"name": "unban", "icon": "✅", "desc": "Quitar ban por ID"},
-            {"name": "lock", "icon": "🔒", "desc": "Bloquear canales"},
-            {"name": "purge", "icon": "🧹", "desc": "Borrar mensajes"},
-        ]},
-        {"name": "Utilidad", "icon": "🛠️", "commands": [
-            {"name": "help", "icon": "❓", "desc": "Menú de ayuda"},
-            {"name": "dl", "icon": "📥", "desc": "Descargar media / adjuntos en calidad"},
-            {"name": "snipe", "icon": "👀", "desc": "Último mensaje borrado"},
-            {"name": "editsnipe", "icon": "✏️", "desc": "Último mensaje editado"},
-            {"name": "afk", "icon": "💤", "desc": "Modo AFK"},
-            {"name": "selfroles", "icon": "🎭", "desc": "Publicar paneles de roles"},
-            {"name": "userinfo", "icon": "👤", "desc": "Info de usuario"},
-            {"name": "serverinfo", "icon": "🏠", "desc": "Info del servidor"},
-            {"name": "avatar", "icon": "🖼️", "desc": "Ver avatar"},
-        ]},
-        {"name": "Economía", "icon": "💰", "commands": [
-            {"name": "balance", "icon": "💵", "desc": "Ver saldo"},
-            {"name": "daily", "icon": "📅", "desc": "Recompensa diaria"},
-            {"name": "work", "icon": "💼", "desc": "Trabajar"},
-            {"name": "pay", "icon": "💸", "desc": "Transferir coins"},
-            {"name": "slots", "icon": "🎰", "desc": "Tragaperras"},
-            {"name": "gamble", "icon": "🎲", "desc": "Apostar"},
-            {"name": "bankheist", "icon": "🏦", "desc": "Asalto al banco en grupo"},
-            {"name": "top", "icon": "🏆", "desc": "Ranking coins/niveles"},
-            {"name": "shop", "icon": "🛒", "desc": "Tienda"},
-        ]},
-        {"name": "Diversión", "icon": "🎉", "commands": [
-            {"name": "ship", "icon": "💕", "desc": "Ship de usuarios"},
-            {"name": "meme", "icon": "😂", "desc": "Memes"},
-            {"name": "8ball", "icon": "🎱", "desc": "Bola 8"},
-        ]},
-        {"name": "Música", "icon": "🎵", "commands": [
-            {"name": "play", "icon": "▶️", "desc": "Reproducir"},
-            {"name": "skip", "icon": "⏭️", "desc": "Saltar"},
-            {"name": "stop", "icon": "⏹️", "desc": "Detener"},
-            {"name": "queue", "icon": "📜", "desc": "Cola"},
-        ]},
-        {"name": "Admin / Panel", "icon": "⚙️", "commands": [
-            {"name": "panelsync", "icon": "🔄", "desc": "Sincronizar panel"},
-            {"name": "tempvc", "icon": "🔊", "desc": "Temp voice"},
-            {"name": "verify", "icon": "✅", "desc": "Verificación"},
-            {"name": "setprefix", "icon": "🔤", "desc": "Cambiar prefijo"},
-        ]},
-    ]
-
-
-
-@app.get("/guild/{guild_id}/commands", response_class=HTMLResponse)
-async def commands_page(request: Request, guild_id: str):
-    user = current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-    if not str(guild_id).isdigit():
-        return RedirectResponse("/dashboard", status_code=303)
-    guilds = request.session.get("guilds") or []
-    guild = next((g for g in guilds if str(g["id"]) == str(guild_id)), None)
-    if not guild and not is_owner(request):
-        return RedirectResponse("/dashboard", status_code=303)
-    if not guild:
-        guild = {"id": guild_id, "name": f"Server {guild_id}", "icon": None}
-    try:
-        config = get_guild_config(guild_id)
-    except Exception:
-        config = _default_config()
-    disabled = {str(x).lower().strip() for x in (config.get("disabled_commands") or [])}
-    prefix = (config.get("prefix") or "o!")
-    if isinstance(prefix, list):
-        prefix = prefix[0] if prefix else "o!"
-    return templates.TemplateResponse(
-        "commands.html",
-        {
-            "request": request,
-            "user": user,
-            "guild": guild,
-            "is_owner": is_owner(request),
-            "catalog": _commands_catalog(),
-            "disabled": disabled,
-            "prefix": str(prefix),
-            "csrf_token": _csrf_token(request),
-        },
-    )
-
-
-@app.post("/guild/{guild_id}/commands/save")
-async def commands_save(request: Request, guild_id: str):
-    user = current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-    guilds = request.session.get("guilds") or []
-    if not (any(str(g["id"]) == str(guild_id) for g in guilds) or is_owner(request)):
-        return RedirectResponse("/dashboard", status_code=303)
-    form = await request.form()
-    if not _check_csrf(request, str(form.get("csrf_token") or "")):
-        return RedirectResponse(f"/guild/{guild_id}/commands?err=csrf", status_code=303)
-    catalog = _commands_catalog()
-    all_names = []
-    for cat in catalog:
-        for c in cat["commands"]:
-            all_names.append(c["name"].lower())
-    disabled = []
-    for name in all_names:
-        # checked = enabled; unchecked = disabled
-        if form.get(f"cmd_on_{name}") != "on":
-            disabled.append(name)
-    config = get_guild_config(guild_id)
-    config["disabled_commands"] = disabled[:120]
-    config["_panel_saved"] = True
-    config["_saved_at"] = time.time()
-    save_guild_config(guild_id, config)
-    try:
-        await _notify_bot_refresh(str(guild_id))
-    except Exception as e:
-        print(f"[commands save] notify: {e}")
-    print(f"[commands] guild={guild_id} disabled={disabled}")
-    return RedirectResponse(f"/guild/{guild_id}/commands?ok=1", status_code=303)
 
 
 @app.get("/guild/{guild_id}/tickets", response_class=HTMLResponse)
@@ -1993,153 +1733,96 @@ async def tickets_save(request: Request, guild_id: str):
     return RedirectResponse(f"/guild/{guild_id}/tickets?ok=1", status_code=303)
 
 
-
-
-def _render_verify_result(request: Request, ok: bool, message: str):
-    """HTML de resultado de verify. No depende de plantilla rota."""
-    # Intentar plantilla correcta
-    try:
-        p = BASE_DIR / "templates" / "verify_result.html"
-        if p.is_file():
-            return templates.TemplateResponse(
-                "verify_result.html",
-                {"request": request, "ok": ok, "message": message},
-            )
-    except Exception as e:
-        print(f"[verify] template: {e}")
-    color = "#86efac" if ok else "#fca5a5"
-    title = "Verificado" if ok else "No verificado"
-    icon = "OK" if ok else "X"
-    # escapar mensaje para HTML
-    safe = (
-        str(message or "")
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
-    html = (
-        "<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'>"
-        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-        "<title>Verificacion · Odette</title><style>"
-        "body{font-family:system-ui,sans-serif;background:#0b0e14;color:#e2e8f0;"
-        "margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center}"
-        ".box{max-width:480px;padding:28px 24px;border-radius:16px;border:1px solid #1e293b;"
-        "background:#111827;text-align:center}"
-        "h1{margin:0 0 12px;font-size:1.45rem;color:" + color + "}"
-        "p{color:#94a3b8;line-height:1.55;margin:0 0 22px}"
-        "a{display:inline-block;padding:12px 22px;border-radius:999px;"
-        "background:linear-gradient(135deg,#818cf8,#c084fc);color:#0b1220;"
-        "font-weight:700;text-decoration:none}"
-        "</style></head><body><div class='box'>"
-        "<h1>" + icon + " " + title + "</h1>"
-        "<p>" + safe + "</p>"
-        "<a href='/dashboard'>Ir al panel</a>"
-        "</div></body></html>"
-    )
-    return HTMLResponse(html)
-
-
 # ── Verificación web ──
 
 @app.get("/verify/{guild_id}", response_class=HTMLResponse)
 async def verify_start(request: Request, guild_id: str, token: str = ""):
-    """Verificación web: edad de cuenta + VPN opcional. Sin plantilla obligatoria."""
-    try:
-        if not str(guild_id).isdigit():
-            return HTMLResponse("Servidor invalido", status_code=400)
-        user = current_user(request)
-        if not user:
-            request.session["verify_next"] = f"/verify/{guild_id}?token={token}"
-            return RedirectResponse("/login", status_code=303)
+    if not str(guild_id).isdigit():
+        return HTMLResponse("Servidor inválido", status_code=400)
+    user = current_user(request)
+    if not user:
+        request.session["verify_next"] = f"/verify/{guild_id}?token={token}"
+        return RedirectResponse("/login", status_code=303)
 
-        cfg = get_guild_config(guild_id)
-        vcfg = cfg.get("verify") or {}
-        min_days = int(vcfg.get("min_account_days") or VERIFY_MIN_ACCOUNT_DAYS)
-        block_vpn = bool(vcfg.get("block_vpn", True)) if "block_vpn" in vcfg else BLOCK_VPN
+    cfg = get_guild_config(guild_id)
+    vcfg = cfg.get("verify") or {}
+    min_days = int(vcfg.get("min_account_days") or VERIFY_MIN_ACCOUNT_DAYS)
+    block_vpn = bool(vcfg.get("block_vpn", True)) if "block_vpn" in vcfg else BLOCK_VPN
 
-        tokens = _load_verify_tokens()
-        key = f"{guild_id}:{token}"
-        entry = tokens.get(key)
-        if not token or not entry:
-            return _render_verify_result(
-                request, False, "Enlace invalido. Pide uno nuevo en Discord."
-            )
-        # multi_use: se puede reutilizar; used solo aplica a enlaces de un solo uso
-        if entry.get("used") and not entry.get("multi_use"):
-            return _render_verify_result(
-                request, False, "Enlace ya usado. Pide uno nuevo en Discord."
-            )
-        if float(entry.get("exp", 0)) < time.time():
-            return _render_verify_result(request, False, "Enlace caducado. Pide uno nuevo.")
-        for_user = entry.get("for_user")
-        if for_user and str(for_user) != str(user["id"]):
-            return _render_verify_result(
-                request, False, "Este enlace es para otra cuenta de Discord."
-            )
-
-        created = _discord_snowflake_created(user["id"])
-        if created and min_days > 0:
-            age_days = (datetime.now(timezone.utc) - created).days
-            if age_days < min_days:
-                return _render_verify_result(
-                    request,
-                    False,
-                    f"Cuenta demasiado nueva ({age_days} dias). Minimo: {min_days} dias.",
-                )
-
-        ip = _client_ip(request)
-        if block_vpn and IP_REPUTATION_KEY:
-            risky, reason = await _ip_is_risky(ip)
-            if risky:
-                return _render_verify_result(
-                    request,
-                    False,
-                    "No se permiten VPN/proxy para verificar. Desactivala e intentalo de nuevo.",
-                )
-
-        if not entry.get("multi_use"):
-            entry["used"] = True
-        entry["user_id"] = user["id"]
-        entry["ip_hash"] = hashlib.sha256(ip.encode()).hexdigest()[:16]
-        entry["verified_at"] = time.time()
-        entry["uses"] = int(entry.get("uses") or 0) + 1
-        tokens[key] = entry
-        _save_verify_tokens(tokens)
-
-        vdata = _load_verified_users()
-        g = vdata.setdefault(str(guild_id), {})
-        g[str(user["id"])] = {
-            "at": time.time(),
-            "ip_hash": entry["ip_hash"],
-            "username": user.get("username"),
-        }
-        _save_verified_users(vdata)
-
-        return _render_verify_result(
-            request,
-            True,
-            "Verificacion completada. Vuelve a Discord; el bot te asignara el rol en unos segundos.",
+    tokens = _load_verify_tokens()
+    key = f"{guild_id}:{token}"
+    entry = tokens.get(key)
+    if not token or not entry or entry.get("used"):
+        return templates.TemplateResponse(
+            "verify_result.html",
+            {
+                "request": request,
+                "ok": False,
+                "message": "Enlace inválido o ya usado. Pide uno nuevo en Discord.",
+            },
         )
-    except Exception as e:
-        import traceback
-        print(f"[verify] ERROR {guild_id}: {e}\n{traceback.format_exc()}")
-        err = (
-            str(e).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        )[:200]
-        html = (
-            "<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'>"
-            "<title>Verificacion</title>"
-            "<style>body{font-family:system-ui;background:#0b0e14;color:#e2e8f0;"
-            "display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}"
-            ".box{max-width:520px;padding:24px;border-radius:14px;border:1px solid #334155;"
-            "background:#111827}code{color:#fca5a5}</style></head><body><div class='box'>"
-            "<h1>Error en verificacion</h1>"
-            "<p>El panel fallo al procesar el enlace. Pide uno nuevo en Discord.</p>"
-            "<p><code>" + type(e).__name__ + ": " + err + "</code></p>"
-            "<p><a href='/dashboard' style='color:#a5b4fc'>Ir al panel</a></p>"
-            "</div></body></html>"
+    if float(entry.get("exp", 0)) < time.time():
+        return templates.TemplateResponse(
+            "verify_result.html",
+            {"request": request, "ok": False, "message": "Enlace caducado. Pide uno nuevo."},
         )
-        return HTMLResponse(html, status_code=500)
+    for_user = entry.get("for_user")
+    if for_user and str(for_user) != str(user["id"]):
+        return templates.TemplateResponse(
+            "verify_result.html",
+            {"request": request, "ok": False, "message": "Este enlace es para otra cuenta de Discord."},
+        )
+
+    created = _discord_snowflake_created(user["id"])
+    if created and min_days > 0:
+        age_days = (datetime.now(timezone.utc) - created).days
+        if age_days < min_days:
+            return templates.TemplateResponse(
+                "verify_result.html",
+                {
+                    "request": request,
+                    "ok": False,
+                    "message": f"Cuenta demasiado nueva ({age_days} días). Mínimo: {min_days} días.",
+                },
+            )
+
+    ip = _client_ip(request)
+    if block_vpn and IP_REPUTATION_KEY:
+        risky, reason = await _ip_is_risky(ip)
+        if risky:
+            return templates.TemplateResponse(
+                "verify_result.html",
+                {
+                    "request": request,
+                    "ok": False,
+                    "message": "No se permiten VPN/proxy para verificar. Desactívala e inténtalo de nuevo.",
+                },
+            )
+
+    entry["used"] = True
+    entry["user_id"] = user["id"]
+    entry["ip_hash"] = hashlib.sha256(ip.encode()).hexdigest()[:16]
+    entry["verified_at"] = time.time()
+    tokens[key] = entry
+    _save_verify_tokens(tokens)
+
+    vdata = _load_verified_users()
+    g = vdata.setdefault(str(guild_id), {})
+    g[str(user["id"])] = {
+        "at": time.time(),
+        "ip_hash": entry["ip_hash"],
+        "username": user.get("username"),
+    }
+    _save_verified_users(vdata)
+
+    return templates.TemplateResponse(
+        "verify_result.html",
+        {
+            "request": request,
+            "ok": True,
+            "message": "Verificación completada. Vuelve a Discord; el bot te asignará el rol en unos segundos.",
+        },
+    )
 
 
 @app.get("/owner", response_class=HTMLResponse)
@@ -2157,6 +1840,10 @@ async def owner_page(request: Request):
             },
             status_code=403,
         )
+    try:
+        await _pull_premium_from_bot()
+    except Exception as e:
+        print(f"[owner] premium pull: {e}")
     data = _load_premium()
     return templates.TemplateResponse(
         "owner.html",
@@ -2340,10 +2027,6 @@ async def api_guild_config(guild_id: str, request: Request):
 
 @app.post("/api/guild/{guild_id}/config")
 async def api_guild_config_restore(guild_id: str, request: Request):
-    """El bot empuja su config aquí.
-    - force=true → siempre sobrescribe (cuando cambias algo desde Discord)
-    - sin force → solo si el panel no tiene una versión más nueva
-    """
     if not str(guild_id).isdigit():
         return JSONResponse({"error": "guild_id invalido"}, status_code=400)
     auth = request.headers.get("Authorization") or ""
@@ -2354,38 +2037,38 @@ async def api_guild_config_restore(guild_id: str, request: Request):
         body = await request.json()
     except Exception:
         return JSONResponse({"error": "JSON invalido"}, status_code=400)
-    force = bool(body.get("force")) if isinstance(body, dict) else False
-    source = (body.get("source") or "bot") if isinstance(body, dict) else "bot"
     cfg = body.get("config") if isinstance(body, dict) and "config" in body else body
     if not isinstance(cfg, dict):
         return JSONResponse({"error": "config invalida"}, status_code=400)
+    source = str((body or {}).get("source") or cfg.get("_source") or "").lower()
     current = get_guild_config(guild_id)
-    if (
-        not force
-        and current.get("_panel_saved")
-        and float(current.get("_saved_at") or 0) > float(cfg.get("_saved_at") or 0)
-    ):
+    bot_ts = float(cfg.get("_bot_saved_at") or 0)
+    panel_ts = float(current.get("_saved_at") or 0)
+    # Si viene del bot, aceptamos y mergeamos (bot es fuente cuando configura por comandos)
+    if source == "bot" or bot_ts > 0:
+        merged = dict(current)
+        for k, v in cfg.items():
+            if k.startswith("_") and k not in ("_bot_saved_at", "_source", "_panel_saved", "_saved_at"):
+                continue
+            if isinstance(v, dict) and isinstance(merged.get(k), dict):
+                mm = dict(merged[k])
+                mm.update(v)
+                merged[k] = mm
+            else:
+                merged[k] = v
+        merged["_bot_saved_at"] = bot_ts or time.time()
+        merged["_source"] = "bot"
+        merged["_panel_saved"] = True
+        merged["_saved_at"] = max(panel_ts, bot_ts, time.time())
+        save_guild_config(guild_id, merged)
+        return {"ok": True, "restored": True, "guild_id": str(guild_id), "from": "bot"}
+    # Panel / restore normal: no pisar si el panel ya tiene algo más nuevo
+    if current.get("_panel_saved") and panel_ts > float(cfg.get("_saved_at") or 0):
         return {"ok": True, "restored": False, "reason": "panel_has_newer"}
-    # Merge superficial: conservar claves del panel que el bot no manda
-    merged = dict(current)
-    for k, v in cfg.items():
-        if isinstance(v, dict) and isinstance(merged.get(k), dict):
-            sub = dict(merged[k])
-            sub.update(v)
-            merged[k] = sub
-        else:
-            merged[k] = v
-    merged["_panel_saved"] = True
-    merged["_saved_at"] = time.time()
-    merged["_source"] = str(source)[:32]
-    save_guild_config(guild_id, merged)
-    return {
-        "ok": True,
-        "restored": True,
-        "guild_id": str(guild_id),
-        "forced": force,
-        "source": merged["_source"],
-    }
+    cfg["_panel_saved"] = True
+    cfg.setdefault("_saved_at", time.time())
+    save_guild_config(guild_id, cfg)
+    return {"ok": True, "restored": True, "guild_id": str(guild_id)}
 
 
 @app.post("/api/guild/{guild_id}/verify/token")
@@ -2403,13 +2086,9 @@ async def api_create_verify_token(guild_id: str, request: Request):
     user_id = str((body or {}).get("user_id") or "").strip()
     vt = secrets.token_urlsafe(24)
     tokens = _load_verify_tokens()
-    multi_use = bool((body or {}).get("multi_use"))
-    # multi_use: el mismo enlace sirve varias veces (miembros que salen y vuelven)
-    # exp más larga si multi_use
     tokens[f"{guild_id}:{vt}"] = {
-        "exp": time.time() + (86400 * 30 if multi_use else 900),
+        "exp": time.time() + 900,
         "used": False,
-        "multi_use": multi_use,
         "for_user": user_id or None,
     }
     _save_verify_tokens(tokens)
@@ -2454,6 +2133,98 @@ async def api_user_premium(user_id: str, request: Request):
 
 
 
+
+
+@app.post("/api/premium/import")
+async def api_premium_import(request: Request):
+    """El bot empuja aquí su premium_guilds.json para que el panel no lo pierda de vista."""
+    auth = request.headers.get("Authorization") or ""
+    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
+    if not _safe_token_eq(token, PANEL_API_TOKEN):
+        return JSONResponse({"error": "No autorizado"}, status_code=401)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "JSON invalido"}, status_code=400)
+    if not isinstance(body, dict):
+        return JSONResponse({"error": "body invalido"}, status_code=400)
+    data = _load_premium()
+    # merge guilds
+    incoming_g = body.get("guilds") if isinstance(body.get("guilds"), dict) else {}
+    incoming_u = body.get("users") if isinstance(body.get("users"), dict) else {}
+    for gid, entry in incoming_g.items():
+        data.setdefault("guilds", {})[str(gid)] = entry
+    for uid, entry in incoming_u.items():
+        data.setdefault("users", {})[str(uid)] = entry
+    if "free_profile" in body:
+        data["free_profile"] = bool(body.get("free_profile"))
+    data["_imported_from_bot_at"] = time.time()
+    _save_premium(data)
+    return {
+        "ok": True,
+        "guilds": len(data.get("guilds") or {}),
+        "users": len(data.get("users") or {}),
+    }
+
+
+async def _pull_config_from_bot(guild_id: str) -> Optional[dict]:
+    """Pide al bot la config actual (BOT_CALLBACK_URL + BOT token)."""
+    import os as _os
+    base = (_os.getenv("BOT_CALLBACK_URL") or "").strip().rstrip("/")
+    if not base:
+        return None
+    token = PANEL_API_TOKEN or ""
+    url = f"{base}/internal/config/{guild_id}"
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            r = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+            if r.status_code != 200:
+                print(f"[bot-pull] config {guild_id} → {r.status_code}")
+                return None
+            data = r.json()
+            if not isinstance(data, dict) or not data.get("ok"):
+                return None
+            return data
+    except Exception as e:
+        print(f"[bot-pull] config fail: {e}")
+        return None
+
+
+async def _pull_premium_from_bot() -> bool:
+    """Pide al bot la lista premium y la importa."""
+    import os as _os
+    base = (_os.getenv("BOT_CALLBACK_URL") or "").strip().rstrip("/")
+    if not base:
+        return False
+    token = PANEL_API_TOKEN or ""
+    url = f"{base}/internal/premium"
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+            if r.status_code != 200:
+                print(f"[bot-pull] premium → {r.status_code}")
+                return False
+            body = r.json()
+            if not isinstance(body, dict) or not body.get("ok"):
+                return False
+            data = _load_premium()
+            for gid, entry in (body.get("guilds") or {}).items():
+                data.setdefault("guilds", {})[str(gid)] = entry
+            for uid, entry in (body.get("users") or {}).items():
+                data.setdefault("users", {})[str(uid)] = entry
+            if "free_profile" in body:
+                data["free_profile"] = bool(body.get("free_profile"))
+            data["_pulled_from_bot_at"] = time.time()
+            _save_premium(data)
+            print(f"[bot-pull] premium OK guilds={len(data.get('guilds') or {})}")
+            return True
+    except Exception as e:
+        print(f"[bot-pull] premium fail: {e}")
+        return False
+
+
 @app.get("/api/premium/export")
 async def api_premium_export(request: Request):
     """Exporta guilds+users premium para que el bot sincronice 1:1."""
@@ -2467,46 +2238,6 @@ async def api_premium_export(request: Request):
         "users": data.get("users") or {},
         "free_profile": bool(data.get("free_profile")),
         "exported_at": __import__("time").time(),
-    })
-
-
-@app.post("/api/premium/import")
-async def api_premium_import(request: Request):
-    """El bot empuja su lista de premium (merge). force=true reemplaza buckets enviados."""
-    auth = request.headers.get("Authorization") or ""
-    token = _clean_secret(auth.replace("Bearer ", "").replace("bearer ", ""))
-    if not _safe_token_eq(token, PANEL_API_TOKEN):
-        return JSONResponse({"error": "No autorizado"}, status_code=401)
-    try:
-        body = await request.json()
-    except Exception:
-        return JSONResponse({"error": "JSON invalido"}, status_code=400)
-    if not isinstance(body, dict):
-        return JSONResponse({"error": "body invalido"}, status_code=400)
-    force = bool(body.get("force"))
-    data = _load_premium()
-    if "guilds" in body and isinstance(body["guilds"], dict):
-        if force:
-            data["guilds"] = {str(k): v for k, v in body["guilds"].items()}
-        else:
-            data.setdefault("guilds", {})
-            for k, v in body["guilds"].items():
-                data["guilds"][str(k)] = v
-    if "users" in body and isinstance(body["users"], dict):
-        if force:
-            data["users"] = {str(k): v for k, v in body["users"].items()}
-        else:
-            data.setdefault("users", {})
-            for k, v in body["users"].items():
-                data["users"][str(k)] = v
-    if "free_profile" in body:
-        data["free_profile"] = bool(body.get("free_profile"))
-    _save_premium(data)
-    return JSONResponse({
-        "ok": True,
-        "guilds": len(data.get("guilds") or {}),
-        "users": len(data.get("users") or {}),
-        "free_profile": bool(data.get("free_profile")),
     })
 
 
