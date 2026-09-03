@@ -1,160 +1,2676 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Odette • Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    body { background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); }
-    .card {
-      background: rgba(26, 26, 26, 0.95);
-      border: 1px solid rgba(255, 140, 66, 0.15);
-      transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-    }
-    .card:hover {
-      transform: translateY(-12px);
-      border-color: rgb(255 140 66);
-      box-shadow: 0 30px 60px -15px rgb(255 140 66 / 0.2);
-    }
-    .nav-tab {
-      position: relative;
-    }
-    .nav-tab.active:after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 100%;
-      height: 3px;
-      background: rgb(255 140 66);
-    }
-    .server-list { scrollbar-width: thin; scrollbar-color: #64748b #1f1f1f; }
-  </style>
-</head>
-<body class="text-white min-h-screen">
-  <div class="flex h-screen overflow-hidden">
-    <!-- Sidebar (exacto como la foto) -->
-    <div class="w-72 bg-zinc-950 border-r border-zinc-800 flex flex-col">
-      <div class="p-6 flex items-center gap-3">
-        <div class="w-10 h-10 bg-orange-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg">🐙</div>
-        <div class="text-3xl font-bold tracking-tighter">Odette</div>
-      </div>
-      <div class="px-4 mt-2">
-        <div onclick="switchTab(0)" class="nav-tab active flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer">
-          <i class="fa-solid fa-house w-5"></i> Dashboard
-        </div>
-        <div onclick="switchTab(1)" class="nav-tab flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer mt-1">
-          <i class="fa-solid fa-shield-halved w-5"></i> Moderación
-        </div>
-        <div onclick="switchTab(2)" class="nav-tab flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer mt-1">
-          <i class="fa-solid fa-robot w-5"></i> Automatización
-        </div>
-        <div onclick="switchTab(3)" class="nav-tab flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer mt-1">
-          <i class="fa-solid fa-bug w-5"></i> Automod Avanzado <span class="text-amber-400 text-xs">(Premium)</span>
-        </div>
-        <div onclick="switchTab(4)" class="nav-tab flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer mt-1">
-          <i class="fa-solid fa-users w-5"></i> Miembros
-        </div>
-      </div>
-      <div class="mt-auto p-6">
-        <div class="bg-zinc-900 rounded-3xl p-5 text-xs">
-          <div class="flex justify-between text-orange-300 mb-3">
-            <span>Tier 5 • 15 servidores</span>
-            <span class="text-amber-400">Premium</span>
-          </div>
-          <button onclick="upgrade()" class="w-full py-3 bg-orange-500 hover:bg-orange-400 rounded-3xl text-sm font-medium">Gestionar suscripciones</button>
-        </div>
+{% extends "base.html" %}
+{% block title %}{{ guild.name }} · Odette{% endblock %}
+{% block content %}
+<style>
+  #guildPage {
+    --od-accent: #38bdf8;
+    --od-accent-rgb: 56, 189, 248;
+    --od-accent-2: #818cf8;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-bottom: 40px;
+  }
+
+  .page-head {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .page-head h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    background: linear-gradient(90deg, #fff 30%, var(--od-accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.02em;
+  }
+  .page-head .meta { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
+
+  .alert {
+    margin-bottom: 14px;
+    padding: 11px 15px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+  }
+  .alert-ok {
+    background: rgba(34, 197, 94, 0.12);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.28);
+  }
+  .alert-err {
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.28);
+  }
+
+  .mod-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 10px;
+    border-radius: 14px;
+    background: rgba(16, 20, 30, 0.55);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .mod-nav a {
+    font-size: 0.76rem;
+    padding: 6px 11px;
+    border-radius: 999px;
+    text-decoration: none;
+    color: #94a3b8;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: 0.15s;
+  }
+  .mod-nav a:hover {
+    color: #fff;
+    border-color: rgba(var(--od-accent-rgb), 0.4);
+    background: rgba(var(--od-accent-rgb), 0.12);
+  }
+
+  .section {
+    margin-bottom: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    background: rgba(16, 20, 30, 0.72);
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  }
+  .section-h {
+    padding: 13px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: linear-gradient(100deg, rgba(var(--od-accent-rgb), 0.14), transparent 55%);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    user-select: none;
+  }
+  .section-h h2 {
+    font-size: 0.95rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 650;
+  }
+  .section-h .cat-tag {
+    font-size: 0.68rem;
+    opacity: 0.55;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .section-h .chev { font-size: 0.72rem; opacity: 0.5; transition: transform 0.2s; }
+  .section.collapsed .chev { transform: rotate(-90deg); }
+  .section.collapsed .section-body { display: none; }
+  .section-body { padding: 14px; }
+
+  /* Estilo plano tipo Dyno/Carl — sin degradados “IA” */
+  .sec-security .section-h,
+  .sec-community .section-h,
+  .sec-mod .section-h,
+  .sec-fun .section-h,
+  .sec-util .section-h,
+  .sec-style .section-h,
+  .sec-levels .section-h,
+  .sec-economy .section-h,
+  .sec-socialnet .section-h,
+  .sec-owner .section-h {
+    background: #1e1f22;
+    border-bottom: 1px solid #2b2d31;
+  }
+  .section {
+    background: #2b2d31 !important;
+    border: 1px solid #1e1f22 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+  .mod {
+    background: #1e1f22 !important;
+    border: 1px solid #3f4147 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+  .mod-title { font-weight: 600; letter-spacing: 0; }
+  .cat-tag {
+    background: #5865f2 !important;
+    color: #fff !important;
+    border-radius: 4px !important;
+    font-family: ui-monospace, monospace;
+  }
+  .page-head h1 { font-weight: 700; letter-spacing: -0.02em; }
+  .mod-nav {
+    background: #1e1f22;
+    border: 1px solid #3f4147;
+    border-radius: 8px;
+  }
+  .mod-nav a {
+    border-radius: 6px;
+    font-size: 0.82rem;
+  }
+  .btn, button.btn {
+    border-radius: 6px !important;
+    box-shadow: none !important;
+  }
+  .badge-gold { background: #5865f2 !important; color: #fff !important; }
+  #guildPage {
+    --od-accent: #5865f2;
+    --od-accent-rgb: 88, 101, 242;
+    --od-accent-2: #4752c4;
+  }
+  .bl-table { width:100%; border-collapse: collapse; font-size:0.85rem; }
+  .bl-table th, .bl-table td { border-bottom:1px solid #3f4147; padding:8px 6px; text-align:left; }
+  .bl-table th { color:#b5bac1; font-weight:600; }
+  details.ar-more { margin-top:10px; }
+  details.ar-more summary { cursor:pointer; color:#b5bac1; font-size:0.85rem; }
+
+
+    .mod-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  .mod-grid .mod {
+    min-width: 0;
+    width: 100%;
+    height: auto;
+    align-self: start;
+  }
+  .mod-grid .mod.mod-wide {
+    grid-column: 1 / -1;
+  }
+
+
+  /* Module card: compact when off, expanded settings when on */
+  .mod {
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(0,0,0,0.28);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+  }
+  .mod:hover { border-color: rgba(var(--od-accent-rgb), 0.35); }
+  .mod.is-on {
+    border-color: rgba(var(--od-accent-rgb), 0.45);
+    box-shadow: 0 0 0 1px rgba(var(--od-accent-rgb), 0.12);
+  }
+  .mod-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 14px;
+    cursor: default;
+  }
+  .mod-title {
+    font-size: 0.9rem;
+    font-weight: 650;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .mod-desc {
+    font-size: 0.76rem;
+    margin: 0;
+    color: #94a3b8;
+    line-height: 1.35;
+    padding: 0 14px 12px;
+  }
+  .mod.is-on .mod-desc { padding-bottom: 4px; }
+
+  /* Settings panel — hidden until module is ON */
+  .mod-settings {
+    display: none;
+    padding: 0 14px 14px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin-top: 2px;
+    animation: fadeIn 0.2s ease;
+  }
+  .mod.is-on .mod-settings { display: block; }
+  .mod-settings-inner { padding-top: 12px; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .mod-wide { grid-column: 1 / -1; }
+
+  /* —— Self-roles builder —— */
+  .sr-builder { border: 1px solid rgba(129,140,248,.35) !important; }
+  .sr-layout {
+    display: grid;
+    grid-template-columns: 1.2fr 0.9fr;
+    gap: 16px;
+    margin-top: 4px;
+  }
+  @media (max-width: 960px) {
+    .sr-layout { grid-template-columns: 1fr; }
+  }
+  .sr-card {
+    background: rgba(15,23,42,.55);
+    border: 1px solid rgba(148,163,184,.12);
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+    margin-bottom: 12px;
+  }
+  .sr-card-h {
+    font-size: 0.82rem;
+    font-weight: 650;
+    color: #e2e8f0;
+    margin-bottom: 10px;
+  }
+  .sr-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+  }
+  .sr-btn:hover { filter: brightness(1.08); }
+  .sr-btn:active { transform: scale(.98); }
+  .sr-btn-primary {
+    background: linear-gradient(135deg, #818cf8, #c084fc);
+    color: #0b1220;
+  }
+  .sr-btn-ghost {
+    background: rgba(148,163,184,.12);
+    color: #e2e8f0;
+  }
+  .sr-btn-danger {
+    background: rgba(248,113,113,.15);
+    color: #fca5a5;
+  }
+  .sr-btn-sm { padding: 5px 10px; font-size: 0.72rem; }
+  .sr-mod {
+    background: rgba(30,41,59,.55);
+    border: 1px solid rgba(148,163,184,.14);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .sr-mod-top {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .sr-mod-top input {
+    flex: 1;
+    background: #0f172a;
+    border: 1px solid rgba(148,163,184,.2);
+    border-radius: 10px;
+    color: #e2e8f0;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+  .sr-role-row {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr auto;
+    gap: 6px;
+    margin-bottom: 6px;
+    align-items: center;
+  }
+  .sr-role-row input {
+    background: #0f172a;
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 8px;
+    color: #e2e8f0;
+    padding: 7px 9px;
+    font-size: 0.8rem;
+  }
+  .sr-preview-label {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .sr-discord-preview {
+    background: #313338;
+    border-radius: 12px;
+    padding: 14px;
+    position: sticky;
+    top: 16px;
+  }
+  .sr-d-embed {
+    display: flex;
+    background: #2b2d31;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .sr-d-bar {
+    width: 4px;
+    background: #818cf8;
+    flex-shrink: 0;
+  }
+  .sr-d-body { padding: 10px 14px 12px; flex: 1; min-width: 0; }
+  .sr-d-title { color: #f2f3f5; font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+  .sr-d-desc { color: #dbdee1; font-size: 0.84rem; line-height: 1.4; white-space: pre-wrap; }
+  .sr-d-img { max-width: 100%; border-radius: 6px; margin-top: 10px; display: block; }
+  .sr-d-thumb {
+    width: 70px; height: 70px; object-fit: cover;
+    border-radius: 6px; margin: 10px 12px 0 0;
+  }
+  .sr-d-footer { color: #949ba4; font-size: 0.72rem; margin-top: 10px; }
+  .sr-d-buttons {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+  }
+  .sr-d-btn {
+    background: #4e5058;
+    color: #fff;
+    border-radius: 3px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 500;
+  }
+
+
+  .fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .fields.full { grid-template-columns: 1fr; }
+  .field { margin-top: 6px; }
+  .field label {
+    font-size: 0.7rem;
+    display: block;
+    margin-bottom: 3px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+  .field input,
+  .field textarea,
+  .field select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 0.84rem;
+    border-radius: 9px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.32);
+    color: inherit;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field input:focus,
+  .field textarea:focus {
+    border-color: rgba(var(--od-accent-rgb), 0.55);
+    box-shadow: 0 0 0 2px rgba(var(--od-accent-rgb), 0.15);
+  }
+  .field textarea { resize: vertical; min-height: 58px; }
+
+  .check-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    margin: 8px 0;
+    color: #94a3b8;
+  }
+  .check-line input { accent-color: var(--od-accent); }
+
+  .hint {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 6px;
+    line-height: 1.35;
+  }
+
+  .footer-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    padding: 14px 0 10px;
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    background: linear-gradient(to top, #070a10 55%, transparent);
+  }
+
+  /* Toast autoguardado */
+  #odToastWrap {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    max-width: min(360px, 92vw);
+  }
+  .od-toast {
+    pointer-events: auto;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+    backdrop-filter: blur(10px);
+    animation: odToastIn 0.28s ease;
+    border: 1px solid rgba(255,255,255,0.12);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .od-toast.ok {
+    background: rgba(22, 163, 74, 0.92);
+    color: #fff;
+  }
+  .od-toast.err {
+    background: rgba(220, 38, 38, 0.94);
+    color: #fff;
+  }
+  .od-toast.saving {
+    background: rgba(30, 41, 59, 0.95);
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.35);
+  }
+  @keyframes odToastIn {
+    from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .footer-bar .btn-primary[type="submit"],
+  .footer-bar button[type="submit"][form="guildForm"] {
+    display: none !important;
+  }
+  .autosave-hint {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-right: auto;
+    align-self: center;
+  }
+
+  .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 23px;
+    flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: rgba(255,255,255,0.12);
+    border-radius: 999px;
+    transition: 0.2s;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 17px;
+    width: 17px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  }
+  .switch input:checked + .slider { background: var(--od-accent); }
+  .switch input:checked + .slider:before { transform: translateX(19px); }
+  .switch input:disabled + .slider { opacity: 0.45; cursor: not-allowed; }
+
+  .prem-lock { opacity: 0.75; }
+  .badge {
+    font-size: 0.66rem;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 650;
+  }
+  .badge-gold {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.32);
+  }
+  .badge-off {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+  }
+
+  /* Color picker row */
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .color-row input[type="color"] {
+    width: 48px;
+    height: 40px;
+    padding: 2px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.3);
+    cursor: pointer;
+  }
+  .color-presets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .color-presets button {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 2px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+    padding: 0;
+  }
+  .color-presets button:hover { border-color: #fff; transform: scale(1.08); }
+  .color-preview {
+    flex: 1;
+    min-width: 160px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border-left: 4px solid var(--preview-color, #AFD7E6);
+    background: rgba(0,0,0,0.35);
+    font-size: 0.85rem;
+  }
+  .color-preview strong { display: block; margin-bottom: 2px; }
+
+  @media (max-width: 640px) {
+    .fields { grid-template-columns: 1fr; }
+    .mod-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div id="guildPage">
+
+<div class="page-head">
+  <div style="display:flex;gap:12px;align-items:center">
+    {% if guild.icon %}
+      <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png?size=64" alt=""
+           style="width:48px;height:48px;border-radius:14px;border:2px solid rgba(var(--od-accent-rgb),0.35);object-fit:cover" />
+    {% else %}
+      <div style="width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:rgba(var(--od-accent-rgb),0.15);border:2px solid rgba(var(--od-accent-rgb),0.35);font-size:1.3rem">🦢</div>
+    {% endif %}
+    <div>
+      <h1>{{ guild.name }}</h1>
+      <div class="meta">
+        ID {{ guild.id }} ·
+        {% if premium %}
+          <span class="badge badge-gold">💎 {{ premium_status }}</span>
+        {% else %}
+          <span class="badge badge-off">Sin premium</span>
+        {% endif %}
       </div>
     </div>
+  </div>
+  <div class="head-actions">
+    <a class="btn" href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener">💬 Soporte</a>
+    <a class="btn" href="/guild/{{ guild.id }}/tickets">🎫 Tickets</a>
+    <button type="button" class="btn" onclick="location.reload()">🔄 Recargar</button>
+    <a class="btn" href="/dashboard">← Servidores</a>
+  </div>
+</div>
 
-    <!-- Main -->
-    <div class="flex-1 overflow-auto">
-      <header class="h-16 bg-zinc-950 border-b border-zinc-800 flex items-center px-8 justify-between">
-        <input type="text" placeholder="Buscar ajuste, sistema, comando..." 
-               class="bg-zinc-900 border border-zinc-700 focus:border-orange-400 rounded-3xl px-6 py-2 w-96 text-sm outline-none">
-        <div class="flex items-center gap-6">
-          <button onclick="refreshServers()" class="flex items-center gap-2 text-sm hover:text-orange-300">
-            <i class="fa-solid fa-rotate"></i> Actualizar
-          </button>
-          <div class="flex items-center gap-3">
-            <div class="text-right">
-              <div class="font-medium">misosoppy</div>
-              <div class="text-emerald-400 text-xs">Online • 1 servidor activo</div>
+{% if request.query_params.get('ok') %}
+  <div class="alert alert-ok">✅ Guardado automáticamente.</div>
+{% endif %}
+{% if request.query_params.get('err') == 'form' %}
+<div class="alert alert-err">No se pudo leer el formulario. Recarga e intenta de nuevo.</div>
+{% endif %}
+{% if request.query_params.get('err') == 'save' %}
+<div class="alert alert-err">Error al guardar en el servidor. Revisa logs de Render.</div>
+{% endif %}
+{% if request.query_params.get('err') == 'csrf' %}
+  <div class="alert alert-err">⚠️ CSRF inválido. Recarga e inténtalo de nuevo.</div>
+{% endif %}
+
+<nav class="mod-nav">
+  <a href="#sec-estilo">🎨 Estilo</a>
+  <a href="#sec-perfilbot">🏷️ Perfil bot</a>
+  <a href="#sec-seguridad">🛡️ Seguridad</a>
+  <a href="#sec-comunidad">👋 Comunidad</a>
+  <a href="#sec-selfroles">🎭 Self-roles</a>
+  <a href="#sec-moderacion">📋 Moderación</a>
+  <a href="#sec-utilidad">🛠️ Utilidad</a>
+  <a href="#sec-social">🎭 Social / Fun</a>
+  <a href="#sec-shop">🛒 Tienda</a>
+  <a href="#sec-economy">💰 Economía</a>
+  <a href="#sec-levels">⭐ Niveles</a>
+  <a href="#sec-socialnet">📣 Redes</a>
+  <a href="#sec-antiraid">🛡️ Anti-Raid+</a>
+  {% if is_owner %}<a href="#sec-owner">👑 Owner</a>{% endif %}
+  <a href="#sec-tickets">🎫 Tickets</a>
+  <a href="/guild/{{ guild.id }}/commands">⚡ Comandos on/off</a>
+  <a href="/guild/{{ guild.id }}/tickets">⚙️ Config tickets</a>
+  <a href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener">💬 Soporte</a>
+</nav>
+
+<form method="post" action="/guild/{{ guild.id }}/save" id="guildForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+  {# ══════════════ 00 ESTILO / COLOR EMBEDS ══════════════ #}
+  {% set emb_hex = config.embed_color or '#AFD7E6' %}
+  {% if emb_hex is number %}
+    {% set emb_hex = '#%06X'|format(emb_hex) %}
+  {% endif %}
+  <div class="section sec-style" id="sec-estilo" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">00</span> 🎨 Estilo del bot</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod is-on" style="max-width:100%">
+        <div class="mod-top">
+          <div class="mod-title">Color de embeds</div>
+        </div>
+        <p class="mod-desc">Color principal de los embeds de respuesta en este servidor (comandos, bienvenidas, utilidades…).</p>
+        <div class="mod-settings" style="display:block;border-top:none">
+          <div class="mod-settings-inner">
+            <div class="color-row">
+              <input type="color" id="embedColorPicker" name="embed_color" value="{{ emb_hex if emb_hex.startswith('#') else '#AFD7E6' }}" />
+              <input type="text" id="embedColorHex" value="{{ emb_hex if emb_hex.startswith('#') else '#AFD7E6' }}"
+                     style="width:110px;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit;font-family:monospace" maxlength="7" />
+              <div class="color-presets">
+                <button type="button" style="background:#AFD7E6" data-c="#AFD7E6" title="Odette"></button>
+                <button type="button" style="background:#38bdf8" data-c="#38bdf8" title="Sky"></button>
+                <button type="button" style="background:#0ea5e9" data-c="#0ea5e9" title="Ocean"></button>
+                <button type="button" style="background:#6366f1" data-c="#6366f1" title="Indigo"></button>
+                <button type="button" style="background:#a78bfa" data-c="#a78bfa" title="Violet"></button>
+                <button type="button" style="background:#c084fc" data-c="#c084fc" title="Purple"></button>
+                <button type="button" style="background:#e879f9" data-c="#e879f9" title="Fuchsia"></button>
+                <button type="button" style="background:#f472b6" data-c="#f472b6" title="Pink"></button>
+                <button type="button" style="background:#e11d48" data-c="#e11d48" title="Carmesí"></button>
+                <button type="button" style="background:#dc2626" data-c="#dc2626" title="Rojo"></button>
+                <button type="button" style="background:#f97316" data-c="#f97316" title="Naranja"></button>
+                <button type="button" style="background:#fbbf24" data-c="#fbbf24" title="Gold"></button>
+                <button type="button" style="background:#22c55e" data-c="#22c55e" title="Verde"></button>
+                <button type="button" style="background:#14b8a6" data-c="#14b8a6" title="Teal"></button>
+                <button type="button" style="background:#06b6d4" data-c="#06b6d4" title="Cyan"></button>
+                <button type="button" style="background:#94a3b8" data-c="#94a3b8" title="Slate"></button>
+              </div>
             </div>
-            <div class="w-9 h-9 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center text-xl">👤</div>
+            <div class="color-preview" id="colorPreview" style="--preview-color: {{ emb_hex if emb_hex.startswith('#') else '#AFD7E6' }}; margin-top: 12px;">
+              <strong>Vista previa</strong>
+              <span style="color:#94a3b8;font-size:0.8rem">Así se verá el borde de color en los embeds de este server.</span>
+            </div>
+            <p class="hint">Success / error / warning siguen con sus colores fijos (verde, rojo, amarillo). El resto usa este color.</p>
           </div>
-        </div>
-      </header>
-
-      <!-- Servidores -->
-      <div class="p-8">
-        <div class="flex justify-between items-end mb-8">
-          <h2 class="text-4xl font-bold">Servidores</h2>
-          <button onclick="inviteOka()" class="px-7 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-3xl flex items-center gap-2 text-sm">
-            <i class="fa-solid fa-plus"></i> Invitar a Odette
-          </button>
-        </div>
-
-        <div id="servers-grid" class="grid grid-cols-4 gap-6 server-list max-h-[calc(100vh-180px)] overflow-auto">
-          <!-- Se llena con JS -->
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal Premium -->
-  <div id="premium-modal" onclick="if(event.target.id==='premium-modal') hideModal()" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[999]">
-    <div onclick="event.stopImmediatePropagation()" class="bg-zinc-900 rounded-3xl p-10 max-w-lg w-full">
-      <h3 class="text-2xl font-bold mb-2">Automod Avanzado • Solo Premium</h3>
-      <p class="text-zinc-400 mb-8">IA + detección ultra-agresiva de spam y raid en tiempo real.</p>
-      <button onclick="hideModal()" class="w-full py-4 bg-orange-500 hover:bg-orange-400 rounded-3xl text-lg font-medium">Ver planes Premium</button>
+  {# ══════════════ 01 SEGURIDAD ══════════════ #}
+  
+  {# ══════════════ 00b PERFIL BOT (estilo MEE6) ══════════════ #}
+  {% set bp = config.bot_profile or {} %}
+  {% set free_on = free_profile|default(false) %}
+  {% set can_profile = premium or free_on or is_owner %}
+  <div class="section sec-style" id="sec-perfilbot" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">00b</span> 🏷️ Perfil del bot (este server)</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% if is_owner %}
+      <div class="mod is-on" style="max-width:100%;margin-bottom:12px;border:1px solid rgba(59,165,93,0.35)">
+        <div class="mod-top">
+          <div class="mod-title">🆓 Free · perfil global</div>
+          <label class="switch">
+            <input type="checkbox" name="free_profile" {% if free_on %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">
+          Solo dueña. Con <b>ON</b>, <b>todos</b> los servers pueden personalizar el apodo del bot (estilo MEE6).
+          No incluye IA ni premium completo. Equivale a <code>o!free on/off</code>.
+        </p>
+      </div>
+      {% endif %}
+
+      <div class="mod {% if can_profile %}is-on{% endif %}" style="max-width:100%;{% if not can_profile %}opacity:0.65{% endif %}">
+        <div class="mod-top">
+          <div class="mod-title">Apodo y marca en <b>este</b> servidor</div>
+          {% if can_profile %}
+            <span class="badge badge-gold">Disponible</span>
+          {% else %}
+            <span class="badge badge-off">Requiere premium o free</span>
+          {% endif %}
+        </div>
+        <p class="mod-desc">
+          Cambia cómo se ve Odette <b>solo aquí</b> (nick en la lista de miembros). No afecta otros servers.
+          {% if not can_profile %}
+            <br/>💎 Activa premium de este server o pide a la dueña <code>o!free on</code>.
+          {% endif %}
+        </p>
+        <div class="mod-settings" style="display:block;border-top:none">
+          <div class="mod-settings-inner">
+            <div class="fields" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+              <div>
+                <label style="font-size:0.75rem;opacity:0.75">Apodo (máx 32)</label>
+                <input type="text" name="bot_nick" maxlength="32"
+                       value="{{ bp.nick or '' }}" placeholder="Odette 💕"
+                       {% if not can_profile %}disabled{% endif %}
+                       style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit" />
+              </div>
+              <div style="grid-column:1/-1">
+                <label style="font-size:0.75rem;opacity:0.75">🖼️ Foto de perfil (solo este server)</label>
+                {% if bp.avatar_url %}
+                <div style="margin:8px 0;display:flex;align-items:center;gap:10px">
+                  <img src="{{ bp.avatar_url }}" alt="avatar" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.15)" onerror="this.style.display='none'" />
+                  <span style="font-size:0.78rem;opacity:0.7;word-break:break-all">Actual guardada</span>
+                </div>
+                {% endif %}
+                <p style="margin:6px 0 8px;font-size:0.78rem;opacity:0.75">
+                  <b>Recomendado:</b> sube el archivo con el botón de abajo (no pegues base64).<br/>
+                  O en Discord: adjunta imagen y escribe <code>o!setbotavatar</code>
+                </p>
+                <input type="url" name="bot_avatar_url" maxlength="500"
+                       value="{% if bp.avatar_url and bp.avatar_url.startswith('http') %}{{ bp.avatar_url }}{% endif %}"
+                       placeholder="https://i.imgur.com/ejemplo.png (opcional)"
+                       {% if not can_profile %}disabled{% endif %}
+                       style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit;margin-bottom:8px" />
+              </div>
+              <div>
+                <label style="font-size:0.75rem;opacity:0.75">Emoji acento</label>
+                <input type="text" name="bot_emoji" maxlength="8"
+                       value="{{ bp.accent_emoji or '🦢' }}"
+                       {% if not can_profile %}disabled{% endif %}
+                       style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit" />
+              </div>
+              <div>
+                <label style="font-size:0.75rem;opacity:0.75">Color embeds (perfil)</label>
+                <input type="color" name="bot_embed_color"
+                       value="{{ bp.embed_color if bp.embed_color and bp.embed_color.startswith('#') else (config.embed_color or '#AFD7E6') }}"
+                       {% if not can_profile %}disabled{% endif %} />
+              </div>
+            </div>
+            <div style="margin-top:12px">
+              <label style="font-size:0.75rem;opacity:0.75">Footer de embeds</label>
+              <input type="text" name="bot_footer" maxlength="100"
+                     value="{{ bp.footer or 'Odette • El Lago de los Cisnes' }}"
+                     {% if not can_profile %}disabled{% endif %}
+                     style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit" />
+            </div>
+            <div style="margin-top:12px">
+              <label style="font-size:0.75rem;opacity:0.75">Bio (este servidor)</label>
+              <textarea name="bot_bio" maxlength="200" rows="2"
+                        {% if not can_profile %}disabled{% endif %}
+                        style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.32);color:inherit;resize:vertical">{{ bp.custom_bio or '' }}</textarea>
+            </div>
+            <p class="mod-desc" style="margin-top:10px">
+              Deja el apodo vacío y guarda para quitar el nick custom.
+              El bot aplica el cambio en el próximo sync o con <code>o!panelsync</code>.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script>
-    const servers = [
-      { id: "11", name: "111111", icon: "https://picsum.photos/id/64/128", online: true, owner: true },
-      { id: "pizza", name: "Capa's Pizzeria", icon: "https://picsum.photos/id/201/128", online: true },
-      { id: "copy", name: "copia capas actualizada", icon: "https://picsum.photos/id/180/128", online: false },
-      { id: "fvcked", name: "FVCKED BY lidest", icon: "https://picsum.photos/id/251/128", online: false },
-      { id: "secret", name: "Secret", icon: "https://picsum.photos/id/30/128", online: false }
-    ];
 
-    function renderServers() {
-      const grid = document.getElementById('servers-grid');
-      grid.innerHTML = '';
-      servers.forEach(s => {
-        const div = document.createElement('div');
-        div.className = `card rounded-3xl p-6 cursor-pointer ${s.online ? 'border-emerald-500' : ''}`;
-        div.innerHTML = `
-          <div class="flex items-center gap-4">
-            <img src="${s.icon}" class="w-14 h-14 rounded-2xl object-cover">
-            <div>
-              <div class="font-semibold text-lg">${s.name}</div>
-              <div class="text-xs text-zinc-400">ID: ${s.id}</div>
+  <div class="section sec-security" id="sec-seguridad" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">01</span> 🛡️ Seguridad</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+
+        <div class="mod mod-wide {% if config.anti_raid.enabled %}is-on{% endif %}" data-mod id="sec-antiraid">
+          <div class="mod-top">
+            <div class="mod-title">Anti-Raid + Anti-Nuke</div>
+            <label class="switch">
+              <input type="checkbox" name="anti_raid_enabled" data-toggle {% if config.anti_raid.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Joins masivos, bots, cuentas nuevas y nuke (canales/roles).</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              {% set ar = config.anti_raid or {} %}
+              <div class="fields">
+                <div class="field">
+                  <label>Máx. joins</label>
+                  <input type="number" name="anti_raid_max_joins" min="1" max="50" value="{{ ar.max_joins or 5 }}" />
+                </div>
+                <div class="field">
+                  <label>Ventana (s)</label>
+                  <input type="number" name="anti_raid_window" min="5" max="120" value="{{ ar.window or 10 }}" />
+                </div>
+                <div class="field">
+                  <label>Edad mín. cuenta (días)</label>
+                  <input type="number" name="anti_raid_account_age" min="0" max="365" value="{{ ar.account_age_days or 3 }}" />
+                </div>
+                <div class="field">
+                  <label>Acción</label>
+                  <select name="anti_raid_action">
+                    {% set ara = ar.action or 'kick' %}
+                    <option value="kick" {% if ara == 'kick' %}selected{% endif %}>Kick</option>
+                    <option value="ban" {% if ara == 'ban' %}selected{% endif %}>Ban</option>
+                    <option value="timeout" {% if ara == 'timeout' %}selected{% endif %}>Timeout</option>
+                  </select>
+                </div>
+              </div>
+              <label class="check-line">
+                <input type="checkbox" name="anti_raid_anti_bot" {% if ar.get('anti_bot', True) %}checked{% endif %} />
+                Bloquear bots no autorizados al entrar
+              </label>
+              <details class="ar-more" open>
+                <summary>▸ Anti-Nuke (canales / roles)</summary>
+                <div class="fields" style="margin-top:10px">
+                  <div class="field">
+                    <label>Anti-Nuke</label>
+                    <label class="switch">
+                      <input type="checkbox" name="anti_raid_nuke_enabled" {% if ar.get('anti_nuke', {}).get('enabled', True) %}checked{% endif %} />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                  <div class="field">
+                    <label>Máx. canales creados</label>
+                    <input type="number" name="anti_raid_nuke_channels" min="1" max="20" value="{{ ar.get('anti_nuke', {}).get('max_channel_creates', ar.get('anti_nuke', {}).get('max_channel_deletes', 2)) }}" />
+                  </div>
+                  <div class="field">
+                    <label>Intervalo nuke (s)</label>
+                    <input type="number" name="anti_raid_nuke_interval" min="5" max="60" value="{{ ar.get('anti_nuke', {}).get('interval', 12) }}" />
+                  </div>
+                  <div class="field">
+                    <label>Acción nuke</label>
+                    <select name="anti_raid_nuke_action">
+                      {% set na = ar.get('anti_nuke', {}).get('action', 'ban') %}
+                      <option value="ban" {% if na == 'ban' %}selected{% endif %}>Ban</option>
+                      <option value="kick" {% if na == 'kick' %}selected{% endif %}>Kick</option>
+                      <option value="timeout" {% if na == 'timeout' %}selected{% endif %}>Timeout</option>
+                    </select>
+                  </div>
+                </div>
+                <p class="hint">Si un bot crea varios canales en segundos → ban + blacklist global (Odette).</p>
+              </details>
+              <p class="hint">Los cambios se sincronizan con el bot (poll o <code>o!panelsync</code>).</p>
             </div>
           </div>
-          ${s.online ? `<div class="mt-4 text-emerald-400 text-xs flex items-center gap-1"><i class="fa-solid fa-circle"></i> En línea</div>` : ''}
-        `;
-        grid.appendChild(div);
+        </div>
+
+        <div class="mod {% if config.automod.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">AutoMod</div>
+            <label class="switch">
+              <input type="checkbox" name="automod_enabled" data-toggle {% if config.automod.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Filtros clásicos de spam e invitaciones (sin IA).</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <label class="check-line">
+                <input type="checkbox" name="automod_anti_invite" {% if config.automod.anti_invite %}checked{% endif %} />
+                Bloquear invitaciones discord.gg
+              </label>
+              <div class="fields">
+                <div class="field">
+                  <label>Acción</label>
+                  <select name="automod_action">
+                    {% set ama = config.automod.action or 'delete' %}
+                    <option value="delete" {% if ama == 'delete' %}selected{% endif %}>Borrar mensaje</option>
+                    <option value="timeout" {% if ama == 'timeout' %}selected{% endif %}>Timeout</option>
+                    <option value="warn" {% if ama == 'warn' %}selected{% endif %}>Avisar</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Timeout (min)</label>
+                  <input type="number" name="automod_timeout" min="1" max="10080" value="{{ config.automod.timeout_minutes or 10 }}" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod mod-wide {% if config.ia.enabled and premium %}is-on{% endif %} {% if not premium %}prem-lock{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">🤖 IA del servidor <span class="badge badge-gold">Premium</span></div>
+            <label class="switch">
+              <input type="checkbox" name="ia_enabled" data-toggle
+                {% if config.ia.enabled and premium %}checked{% endif %}
+                {% if not premium %}disabled{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Control IA (GROQ): anti-raid, automod inteligente, entrenamiento y filtros.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              {% if not premium %}
+                <p class="hint">Requiere premium. El anti-raid normal sigue gratis. ¿Dudas? <a href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener" style="color:var(--od-accent)">Servidor de soporte</a>.</p>
+              {% else %}
+                {% set ia = config.ia or {} %}
+                <p class="hint" style="margin-bottom:10px">La IA analiza mensajes, joins y comportamiento. Entrena con ejemplos y reglas propias.</p>
+
+                <div style="font-size:0.78rem;color:#94a3b8;font-weight:600;margin:8px 0 4px">Módulos</div>
+                <label class="check-line"><input type="checkbox" name="ia_automod" {% if ia.get('automod', true) %}checked{% endif %} /> Automod IA (mensajes tóxicos / scam)</label>
+                <label class="check-line"><input type="checkbox" name="ia_antiraid" {% if ia.get('antiraid', true) %}checked{% endif %} /> Anti-Raid IA (joins sospechosos)</label>
+                <label class="check-line"><input type="checkbox" name="ia_log_decisions" {% if ia.get('log_decisions', true) %}checked{% endif %} /> Registrar decisiones de la IA en logs</label>
+                <label class="check-line"><input type="checkbox" name="ia_block_invites" {% if ia.get('block_invites', true) %}checked{% endif %} /> Bloquear invites (IA)</label>
+                <label class="check-line"><input type="checkbox" name="ia_block_scams" {% if ia.get('block_scams', true) %}checked{% endif %} /> Bloquear estafas / phishing</label>
+                <label class="check-line"><input type="checkbox" name="ia_block_nsfw_sfw" {% if ia.get('block_nsfw_sfw', false) %}checked{% endif %} /> Bloquear NSFW en canales SFW</label>
+                <label class="check-line"><input type="checkbox" name="ia_nick_filter" {% if ia.get('nick_filter', false) %}checked{% endif %} /> Filtro de apodos ofensivos</label>
+                <label class="check-line"><input type="checkbox" name="ia_auto_slowmode" {% if ia.get('auto_slowmode', false) %}checked{% endif %} /> Slowmode automático si el chat se acelera</label>
+                <label class="check-line"><input type="checkbox" name="ia_immune_admins" {% if ia.get('immune_admins', true) %}checked{% endif %} /> Inmunes: administradores</label>
+                <label class="check-line"><input type="checkbox" name="ia_immune_mods" {% if ia.get('immune_mods', true) %}checked{% endif %} /> Inmunes: moderadores</label>
+
+                <div class="fields" style="margin-top:10px">
+                  <div class="field">
+                    <label>Estrictura</label>
+                    {% set st = ia.get('strictness', 'medium') %}
+                    <select name="ia_strictness">
+                      <option value="soft" {% if st == 'soft' %}selected{% endif %}>Suave</option>
+                      <option value="medium" {% if st == 'medium' %}selected{% endif %}>Media</option>
+                      <option value="strict" {% if st == 'strict' %}selected{% endif %}>Estricta</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Acción máxima</label>
+                    {% set ma = ia.get('max_action', 'timeout') %}
+                    <select name="ia_max_action">
+                      <option value="delete" {% if ma == 'delete' %}selected{% endif %}>Borrar</option>
+                      <option value="timeout" {% if ma == 'timeout' %}selected{% endif %}>Timeout</option>
+                      <option value="kick" {% if ma == 'kick' %}selected{% endif %}>Kick</option>
+                      <option value="ban" {% if ma == 'ban' %}selected{% endif %}>Ban</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Timeout IA (min)</label>
+                    <input type="number" name="ia_timeout_minutes" min="1" max="10080" value="{{ ia.get('timeout_minutes', 10) }}" />
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Palabras bloqueadas (una por línea)</label>
+                  <textarea name="ia_block_words" rows="3" placeholder="scam&#10;nitro free&#10;...">{% if ia.get('block_words') %}{{ ia.block_words | join('\n') if ia.block_words is iterable and ia.block_words is not string else ia.block_words }}{% endif %}</textarea>
+                </div>
+                <div class="field">
+                  <label>Palabras permitidas (whitelist, una por línea)</label>
+                  <textarea name="ia_allow_words" rows="2" placeholder="opcional">{% if ia.get('allow_words') %}{{ ia.allow_words | join('\n') if ia.allow_words is iterable and ia.allow_words is not string else ia.allow_words }}{% endif %}</textarea>
+                </div>
+                <div class="field">
+                  <label>Reglas personalizadas (una por línea)</label>
+                  <textarea name="ia_custom_rules" rows="3" placeholder="No permitir anuncios de otros servers&#10;Castigar impersonación de staff">{% if ia.get('custom_rules') %}{{ ia.custom_rules | join('\n') if ia.custom_rules is iterable and ia.custom_rules is not string else ia.custom_rules }}{% endif %}</textarea>
+                  <p class="hint">La IA las usa como instrucciones extra al moderar.</p>
+                </div>
+                <div class="field">
+                  <label>Entrenamiento — ejemplos (uno por línea)</label>
+                  <textarea name="ia_train_examples" rows="4" placeholder="MAL: 'gratis nitro en discord.gg/xxx' → borrar&#10;OK: 'mira este meme' → ignorar&#10;MAL: insultos graves al staff → timeout">{% if ia.get('train_examples') %}{{ ia.train_examples | join('\n') if ia.train_examples is iterable and ia.train_examples is not string else ia.train_examples }}{% endif %}</textarea>
+                  <p class="hint">Ejemplos de cómo quieres que actúe la IA en tu server.</p>
+                </div>
+                <p class="hint">También puedes entrenar con comandos del bot: <code>o!ia train</code> · Soporte: <a href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener" style="color:var(--od-accent)">discord.gg/CfmZtJZ2w</a></p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.raidmode.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Raid Mode</div>
+            <label class="switch">
+              <input type="checkbox" name="raidmode_enabled" data-toggle {% if config.raidmode.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Bloqueo duro durante un raid activo.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Restringe joins y acciones mientras esté activo. Se puede activar también con comandos del bot.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.antihoist.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Anti-Hoist</div>
+            <label class="switch">
+              <input type="checkbox" name="antihoist_enabled" data-toggle {% if config.antihoist.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Corrige nicks con símbolos al inicio.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Quita caracteres especiales al inicio del nick para que no suban en la lista de miembros.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.quarantine.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Cuarentena</div>
+            <label class="switch">
+              <input type="checkbox" name="quarantine_enabled" data-toggle {% if config.quarantine.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Aísla cuentas sospechosas con un rol restringido.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <label class="check-line">
+                <input type="checkbox" name="quarantine_create_role" {% if config.quarantine.create_role %}checked{% endif %} />
+                Crear rol automáticamente si no existe
+              </label>
+              <div class="fields">
+                <div class="field">
+                  <label>Nombre del rol</label>
+                  <input type="text" name="quarantine_role_name" value="{{ config.quarantine.role_name or 'Cuarentena' }}" />
+                </div>
+                <div class="field">
+                  <label>Rol ID (si ya existe)</label>
+                  <input type="text" name="quarantine_role" value="{{ config.quarantine.role_id }}" placeholder="Opcional" />
+                </div>
+              </div>
+              <label class="check-line">
+                <input type="checkbox" name="quarantine_strip_roles" {% if config.quarantine.strip_roles %}checked{% endif %} />
+                Quitar otros roles al poner en cuarentena
+              </label>
+              <div class="field">
+                <label>Canal de logs (ID)</label>
+                <input type="text" name="quarantine_log_channel" value="{{ config.quarantine.log_channel_id }}" placeholder="Opcional" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod mod-wide {% if config.verify.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Verificación web</div>
+            <label class="switch">
+              <input type="checkbox" name="verify_enabled" data-toggle {% if config.verify.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Canal + rol + mensaje. El usuario se verifica desde el panel.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="fields">
+                <div class="field">
+                  <label>Canal ID *</label>
+                  <input type="text" name="verify_channel" value="{{ config.verify.channel_id }}" />
+                </div>
+                <div class="field">
+                  <label>Rol ID *</label>
+                  <input type="text" name="verify_role" value="{{ config.verify.role_id }}" />
+                </div>
+              </div>
+              <div class="field">
+                <label>Mensaje del canal</label>
+                <textarea name="verify_message" rows="2">{{ config.verify.message }}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  {# ══════════════ 02 COMUNIDAD ══════════════ #}
+  <div class="section sec-community" id="sec-comunidad" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">02</span> 👋 Comunidad</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+
+        <div class="mod {% if config.welcome.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Bienvenida</div>
+            <label class="switch">
+              <input type="checkbox" name="welcome_enabled" data-toggle {% if config.welcome.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Mensaje al unirse un miembro.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal ID</label>
+                <input type="text" name="welcome_channel" value="{{ config.welcome.channel_id }}" />
+              </div>
+              <div class="field">
+                <label>Mensaje</label>
+                <textarea name="welcome_message" rows="3">{{ config.welcome.message }}</textarea>
+                <label style="display:block;margin-top:8px">Título</label>
+                <input type="text" name="welcome_title" value="{{ config.welcome.get('title','¡Bienvenido/a!') if config.welcome else '¡Bienvenido/a!' }}" />
+                <label style="display:block;margin-top:8px">Imagen / banner URL</label>
+                <input type="text" name="welcome_image" value="{{ config.welcome.get('image','') if config.welcome else '' }}" placeholder="https://..." />
+                <input type="text" name="welcome_banner" value="{{ config.welcome.get('banner_url','') if config.welcome else '' }}" placeholder="Banner URL" style="margin-top:4px" />
+                <label class="check-line" style="margin-top:8px"><input type="checkbox" name="welcome_card_enabled" {% if config.welcome.get('card_enabled') %}checked{% endif %} /> Tarjeta editable (avatar + nombre + fondo)</label>
+
+              </div>
+              <p class="hint">Variables: {user} {server} {membercount}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.autorole.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Autorole</div>
+            <label class="switch">
+              <input type="checkbox" name="autorole_enabled" data-toggle {% if config.autorole.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Asigna un rol al entrar.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Rol ID</label>
+                <input type="text" name="autorole_role" value="{{ config.autorole.role_id }}" />
+                <label style="display:block;margin-top:8px">Más roles (IDs separados por coma)</label>
+                <input type="text" name="autorole_roles" value="{{ (config.autorole.get('role_ids') or [])|join(',') if config.autorole else '' }}" placeholder="id1,id2,id3" />
+                <label style="display:block;margin-top:8px">Rol para bots (ID)</label>
+                <input type="text" name="autorole_bot_role" value="{{ config.autorole.get('bot_role_id','') if config.autorole else '' }}" />
+                <label style="display:block;margin-top:8px">Más roles bots (IDs coma)</label>
+                <input type="text" name="autorole_bot_roles" value="{{ (config.autorole.get('bot_role_ids') or [])|join(',') if config.autorole else '' }}" />
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        
+        
+        <div class="mod mod-wide is-on sr-builder" data-mod id="sec-selfroles">
+          <div class="mod-top">
+            <div class="mod-title">🎭 Self-roles · constructor</div>
+            <label class="switch">
+              <input type="checkbox" name="selfroles_enabled" data-toggle id="sr_enabled" {% if (config.selfroles or {}).get('enabled') %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Crea paneles de roles con botones. Los miembros eligen color, pings, etc. y pueden quitarlos.</p>
+          <div class="mod-settings" style="display:block !important">
+            <div class="mod-settings-inner">
+
+              <div class="sr-layout">
+                <div class="sr-left">
+                  <div class="sr-card">
+                    <div class="sr-card-h">📌 Publicación</div>
+                    <div class="field">
+                      <label>Canal del panel (ID)</label>
+                      <input type="text" name="selfroles_channel" id="sr_channel" value="{{ (config.selfroles or {}).get('channel_id','') }}" placeholder="ID del canal de Discord" />
+                    </div>
+                    <label class="check-line" style="margin-top:10px">
+                      <input type="checkbox" name="selfroles_unique" id="sr_unique" {% if (config.selfroles or {}).get('unique_in_module', true) %}checked{% endif %} />
+                      Un solo rol por módulo (ej. un color a la vez)
+                    </label>
+                  </div>
+
+                  <div class="sr-card">
+                    <div class="sr-card-h">✨ Embed del mensaje</div>
+                    <div class="fields">
+                      <div class="field"><label>Título</label>
+                        <input type="text" id="sr_embed_title" name="selfroles_embed_title" maxlength="120" value="{{ (config.selfroles or {}).get('embed_title', 'Elige tus roles') }}" />
+                      </div>
+                      <div class="field"><label>Color (#hex)</label>
+                        <input type="text" id="sr_embed_color" name="selfroles_embed_color" value="{{ (config.selfroles or {}).get('embed_color', '#818cf8') }}" placeholder="#818cf8" />
+                      </div>
+                    </div>
+                    <div class="field"><label>Descripción</label>
+                      <textarea id="sr_embed_desc" name="selfroles_embed_description" rows="2" maxlength="500">{{ (config.selfroles or {}).get('embed_description', 'Pulsa un botón para obtener o quitar el rol.') }}</textarea>
+                    </div>
+                    <div class="fields">
+                      <div class="field"><label>Imagen grande (URL)</label>
+                        <input type="url" id="sr_embed_image" name="selfroles_embed_image" value="{{ (config.selfroles or {}).get('embed_image', '') }}" placeholder="https://..." />
+                      </div>
+                      <div class="field"><label>Miniatura (URL)</label>
+                        <input type="url" id="sr_embed_thumb" name="selfroles_embed_thumb" value="{{ (config.selfroles or {}).get('embed_thumb', '') }}" placeholder="https://..." />
+                      </div>
+                    </div>
+                    <div class="field"><label>Footer</label>
+                      <input type="text" id="sr_embed_footer" name="selfroles_embed_footer" maxlength="100" value="{{ (config.selfroles or {}).get('embed_footer', 'Odette · self-roles') }}" />
+                    </div>
+                  </div>
+
+                  <div class="sr-card">
+                    <div class="sr-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                      <span>🧩 Módulos y botones</span>
+                      <button type="button" class="sr-btn sr-btn-primary" id="sr_add_module"
+                        onclick="window.odSR && window.odSR.addModule(); return false;">＋ Módulo</button>
+                    </div>
+                    <div id="sr_modules_list"></div>
+                    <p class="hint" style="margin-top:10px">Cada módulo = un grupo de botones en Discord. Tras guardar: <code>o!selfroles post</code>. Pulsar un botón en Discord <strong>añade o quita</strong> el rol.</p>
+                  </div>
+                  <script>
+                  (function(){
+                    function $(id){ return document.getElementById(id); }
+                    function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+                    function parseRaw(text){
+                      var modules=[], cur=null;
+                      String(text||'').split(/\r?\n/).forEach(function(line){
+                        line=line.trim();
+                        if(!line) return;
+                        if(line.indexOf('##')===0){
+                          if(cur) modules.push(cur);
+                          cur={name:line.replace(/^##\s*/,'').trim()||'Módulo', roles:[]};
+                        } else if(cur && line.indexOf(':')>=0){
+                          var i=line.indexOf(':');
+                          cur.roles.push({label:line.slice(0,i).trim(), role_id:line.slice(i+1).trim()});
+                        }
+                      });
+                      if(cur) modules.push(cur);
+                      if(!modules.length) modules=[{name:'Colores', roles:[{label:'Rojo',role_id:''},{label:'Azul',role_id:''}]}];
+                      return modules;
+                    }
+                    function serialize(){
+                      var list=$('sr_modules_list'); var raw=$('sr_modules_raw');
+                      if(!list||!raw) return;
+                      var modules=[];
+                      list.querySelectorAll('.sr-mod').forEach(function(modEl){
+                        var name=(modEl.querySelector('.sr-mod-name')||{}).value||'Módulo';
+                        var roles=[];
+                        modEl.querySelectorAll('.sr-role-row').forEach(function(row){
+                          var label=(row.querySelector('.sr-role-label')||{}).value||'';
+                          var rid=(row.querySelector('.sr-role-id')||{}).value||'';
+                          if(label||rid) roles.push({label:label, role_id:rid});
+                        });
+                        modules.push({name:name, roles:roles});
+                      });
+                      var lines=[];
+                      modules.forEach(function(m){
+                        lines.push('## '+m.name);
+                        m.roles.forEach(function(r){ lines.push((r.label||'Rol')+':'+(r.role_id||'')); });
+                        lines.push('');
+                      });
+                      raw.value=lines.join('\n').trim();
+                      var j=$('sr_modules_json'); if(j){ try{ j.value=JSON.stringify(modules); }catch(e){} }
+                      [['sr_embed_title','sr_hid_title'],['sr_embed_color','sr_hid_color'],['sr_embed_desc','sr_hid_desc'],['sr_embed_image','sr_hid_image'],['sr_embed_thumb','sr_hid_thumb'],['sr_embed_footer','sr_hid_footer']].forEach(function(p){
+                        var a=$(p[0]), b=$(p[1]); if(a&&b) b.value=a.value||'';
+                      });
+                      updatePreview(modules);
+                    }
+                    function updatePreview(modules){
+                      var title=$('sr_embed_title'), desc=$('sr_embed_desc'), color=$('sr_embed_color');
+                      var image=$('sr_embed_image'), thumb=$('sr_embed_thumb'), footer=$('sr_embed_footer');
+                      var pt=$('sr_preview_title'), pd=$('sr_preview_desc'), pb=$('sr_preview_bar');
+                      var pi=$('sr_preview_img'), pth=$('sr_preview_thumb'), pf=$('sr_preview_footer'), pbtns=$('sr_preview_buttons');
+                      if(pt) pt.textContent=(title&&title.value)||'Elige tus roles';
+                      if(pd) pd.textContent=(desc&&desc.value)||'';
+                      if(pb) pb.style.background=(color&&color.value)||'#818cf8';
+                      if(pf) pf.textContent=(footer&&footer.value)||'';
+                      if(pi){ if(image&&image.value){ pi.src=image.value; pi.style.display='block'; } else { pi.removeAttribute('src'); pi.style.display='none'; } }
+                      if(pth){ if(thumb&&thumb.value){ pth.src=thumb.value; pth.style.display='block'; } else { pth.removeAttribute('src'); pth.style.display='none'; } }
+                      if(pbtns){
+                        pbtns.innerHTML='';
+                        (modules||[]).forEach(function(m){
+                          (m.roles||[]).forEach(function(r){
+                            if(!r.label && !r.role_id) return;
+                            var b=document.createElement('span');
+                            b.className='sr-d-btn';
+                            b.textContent=r.label||'Rol';
+                            pbtns.appendChild(b);
+                          });
+                        });
+                      }
+                    }
+                    function addRoleRow(modEl, label, roleId){
+                      var row=document.createElement('div');
+                      row.className='sr-role-row';
+                      row.innerHTML='<input class="sr-role-label" placeholder="Etiqueta (ej. Rojo)" value="'+esc(label)+'" />'
+                        +'<input class="sr-role-id" placeholder="ID del rol" value="'+esc(roleId)+'" />'
+                        +'<button type="button" class="sr-btn sr-btn-danger sr-btn-sm">✕</button>';
+                      row.querySelector('button').onclick=function(){ row.remove(); triggerSave(); };
+                      row.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', function(){ triggerSave(); }); });
+                      modEl.querySelector('.sr-roles').appendChild(row);
+                    }
+                    function addModule(name, roles){
+                      var list=$('sr_modules_list');
+                      if(!list) return;
+                      var mod=document.createElement('div');
+                      mod.className='sr-mod';
+                      mod.innerHTML='<div class="sr-mod-top">'
+                        +'<input class="sr-mod-name" placeholder="Nombre del módulo" value="'+esc(name||'Nuevo módulo')+'" />'
+                        +'<button type="button" class="sr-btn sr-btn-ghost sr-btn-sm sr-add-role">＋ Rol</button>'
+                        +'<button type="button" class="sr-btn sr-btn-danger sr-btn-sm sr-del-mod">Eliminar</button>'
+                        +'</div><div class="sr-roles"></div>';
+                      mod.querySelector('.sr-add-role').onclick=function(){ addRoleRow(mod,'',''); triggerSave(); };
+                      mod.querySelector('.sr-del-mod').onclick=function(){ mod.remove(); triggerSave(); };
+                      mod.querySelector('.sr-mod-name').addEventListener('input', function(){ triggerSave(); });
+                      list.appendChild(mod);
+                      var rs=(roles&&roles.length)?roles:[{label:'',role_id:''}];
+                      rs.forEach(function(r){ addRoleRow(mod, r.label, r.role_id); });
+                      serialize();
+                    }
+                                        function triggerSave(){
+                      try { serialize(); } catch(e) { console.warn(e); }
+                      try {
+                        var form = document.getElementById('guildForm');
+                        if (!form) return;
+                        var marker = form.querySelector('#sr_modules_raw') || form.querySelector('[name="selfroles_modules"]');
+                        if (marker) {
+                          marker.dispatchEvent(new Event('input', { bubbles: true }));
+                          marker.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        var en = form.querySelector('[name="selfroles_enabled"]');
+                        if (en) en.dispatchEvent(new Event('change', { bubbles: true }));
+                      } catch(e) { console.warn('[selfroles] triggerSave', e); }
+                    }
+                    window.odSR = {
+                      addModule: function(){ addModule('Nuevo módulo', [{label:'', role_id:''}]); triggerSave(); },
+                      serialize: serialize,
+                      save: triggerSave
+                    };
+                    function init(){
+                      var raw=$('sr_modules_raw');
+                      if(!raw) return;
+                      parseRaw(raw.value).forEach(function(m){ addModule(m.name, m.roles); });
+                      ['sr_embed_title','sr_embed_color','sr_embed_desc','sr_embed_image','sr_embed_thumb','sr_embed_footer'].forEach(function(id){
+                        var el=$(id); if(el) el.addEventListener('input', serialize);
+                      });
+                      var form=$('guildForm');
+                      if(form) form.addEventListener('submit', function(){ serialize(); });
+                      var btn=$('sr_add_module');
+                      if(btn){
+                        btn.onclick=function(e){ if(e){e.preventDefault();e.stopPropagation();} window.odSR.addModule(); return false; };
+                      }
+                    }
+                    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
+                    else init();
+                  })();
+                  </script>
+                </div>
+
+                <div class="sr-right">
+                  <div class="sr-preview-label">Vista previa del embed</div>
+                  <div class="sr-discord-preview">
+                    <div class="sr-d-embed" id="sr_preview_embed">
+                      <div class="sr-d-bar" id="sr_preview_bar"></div>
+                      <div class="sr-d-body">
+                        <div class="sr-d-title" id="sr_preview_title">Elige tus roles</div>
+                        <div class="sr-d-desc" id="sr_preview_desc">Pulsa un botón para obtener o quitar el rol.</div>
+                        <img class="sr-d-img" id="sr_preview_img" alt="" style="display:none" />
+                        <div class="sr-d-footer" id="sr_preview_footer">Odette · self-roles</div>
+                      </div>
+                      <img class="sr-d-thumb" id="sr_preview_thumb" alt="" style="display:none" />
+                    </div>
+                    <div class="sr-d-buttons" id="sr_preview_buttons"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- serializado para el backend -->
+              <input type="hidden" name="selfroles_modules_json" id="sr_modules_json" value="" />
+              <textarea name="selfroles_modules" id="sr_modules_raw" style="display:none">{% if (config.selfroles or {}).get('modules_raw') %}{{ (config.selfroles or {}).get('modules_raw') }}{% endif %}</textarea>
+              <input type="hidden"  id="sr_hid_title" value="" />
+              <input type="hidden"  id="sr_hid_color" value="" />
+              <input type="hidden"  id="sr_hid_desc" value="" />
+              <input type="hidden"  id="sr_hid_image" value="" />
+              <input type="hidden"  id="sr_hid_thumb" value="" />
+              <input type="hidden"  id="sr_hid_footer" value="" />
+
+            </div>
+          </div>
+        </div>
+
+<div class="mod-top">
+            <div class="mod-title">Booster</div>
+            <label class="switch">
+              <input type="checkbox" name="booster_enabled" data-toggle {% if config.booster.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Agradecimiento al boostear el server.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal ID</label>
+                <input type="text" name="booster_channel" value="{{ config.booster.channel_id }}" />
+              </div>
+              <div class="field">
+                <label>Mensaje</label>
+                <textarea name="booster_message" rows="2">{{ config.booster.message }}</textarea>
+                <label class="check-line" style="margin-top:8px"><input type="checkbox" name="booster_image_enabled" {% if config.booster.get('image_enabled', true) %}checked{% endif %} /> Imagen personalizada (tarjeta)</label>
+                <label style="display:block;margin-top:8px">URL imagen custom (opcional)</label>
+                <input type="text" name="booster_custom_image" value="{{ config.booster.get('custom_image','') }}" placeholder="https://..." />
+
+              </div>
+              <p class="hint">Variables: {user} {server}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.levels.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Niveles / XP</div>
+            <span style="font-size:0.78rem;opacity:0.75">{% if config.levels.enabled %}🟢 ON{% else %}🔴 OFF{% endif %}</span>
+          </div>
+          <p class="mod-desc">XP por mensajes, roles por nivel y ranking.</p>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07)">
+            <a href="#sec-levels" class="btn" style="display:inline-block;text-decoration:none;padding:10px 14px">⭐ Configurar niveles y roles →</a>
+          </div>
+        </div>
+
+        <div class="mod {% if config.starboard.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Starboard</div>
+            <label class="switch">
+              <input type="checkbox" name="starboard_enabled" data-toggle {% if config.starboard.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Destaca mensajes con estrellas.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="fields">
+                <div class="field">
+                  <label>Canal ID</label>
+                  <input type="text" name="starboard_channel" value="{{ config.starboard.channel_id }}" />
+                </div>
+                <div class="field">
+                  <label>Mín. estrellas</label>
+                  <input type="number" name="starboard_min" min="1" max="50" value="{{ config.starboard.min_stars or 3 }}" />
+                <label style="display:block;margin-top:8px">Emoji</label>
+                <input type="text" name="starboard_emoji" value="{{ config.starboard.get('emoji', '⭐') if config.starboard else '⭐' }}" placeholder="⭐" />
+                <label class="check-line" style="margin-top:8px"><input type="checkbox" name="starboard_self_star" {% if config.starboard.get('self_star') %}checked{% endif %} /> Permitir self-star</label>
+                <label class="check-line"><input type="checkbox" name="starboard_allow_images" {% if config.starboard.get('allow_images', true) %}checked{% endif %} /> Permitir imágenes</label>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.nsfw.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">NSFW</div>
+            <label class="switch">
+              <input type="checkbox" name="nsfw_enabled" data-toggle {% if config.nsfw.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Permite comandos NSFW en canales NSFW.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Solo funciona en canales marcados como NSFW en Discord.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  {# ══════════════ 03 MODERACIÓN ══════════════ #}
+  <div class="section sec-mod" id="sec-moderacion" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">03</span> 📋 Moderación</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+
+        <div class="mod mod-wide {% if config.logs.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">📋 Logs (Carl / Wick / Dyno)</div>
+            <label class="switch">
+              <input type="checkbox" name="logs_enabled" data-toggle {% if config.logs.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Registro bonito de eventos del servidor. Elige qué se envía al canal.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal de logs (ID)</label>
+                <input type="text" name="logs_channel" value="{{ config.logs.channel_id }}" placeholder="ID del canal #logs" />
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px;flex-wrap:wrap;gap:8px">
+                <span style="font-size:0.78rem;color:#94a3b8;font-weight:600">Eventos a registrar</span>
+                <div style="display:flex;gap:8px">
+                  <button type="button" class="btn" id="logSelectAll" style="font-size:0.75rem;padding:5px 10px">✅ Seleccionar todos</button>
+                  <button type="button" class="btn" id="logSelectNone" style="font-size:0.75rem;padding:5px 10px">⬜ Ninguno</button>
+                </div>
+              </div>
+              {% set ev = config.logs.events or {} %}
+              <div class="log-events-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px">
+                <label class="check-line"><input type="checkbox" name="log_ev_message_delete" class="log-ev" {% if ev.get('message_delete', true) %}checked{% endif %} /> 🗑️ Mensaje borrado (+ imágenes)</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_message_edit" class="log-ev" {% if ev.get('message_edit', true) %}checked{% endif %} /> ✏️ Mensaje editado</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_message_bulk" class="log-ev" {% if ev.get('message_bulk', true) %}checked{% endif %} /> 🗑️🗑️ Borrado masivo</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_member_join" class="log-ev" {% if ev.get('member_join', true) %}checked{% endif %} /> 📥 Entrada de miembro</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_member_leave" class="log-ev" {% if ev.get('member_leave', true) %}checked{% endif %} /> 📤 Salida de miembro</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_member_ban" class="log-ev" {% if ev.get('member_ban', true) %}checked{% endif %} /> 🔨 Ban</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_member_unban" class="log-ev" {% if ev.get('member_unban', true) %}checked{% endif %} /> ♻️ Unban</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_nickname" class="log-ev" {% if ev.get('nickname', true) %}checked{% endif %} /> 📝 Cambio de apodo</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_roles" class="log-ev" {% if ev.get('roles', true) %}checked{% endif %} /> 🎭 Roles</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_avatar" class="log-ev" {% if ev.get('avatar', true) %}checked{% endif %} /> 🖼️ Cambio de avatar</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_username" class="log-ev" {% if ev.get('username', true) %}checked{% endif %} /> 👤 Username</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_timeout" class="log-ev" {% if ev.get('timeout', true) %}checked{% endif %} /> ⏱️ Timeout</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_voice" class="log-ev" {% if ev.get('voice', false) %}checked{% endif %} /> 🔊 Voz (join/leave/move)</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_channel_create" class="log-ev" {% if ev.get('channel_create', true) %}checked{% endif %} /> 📁 Canal creado</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_channel_delete" class="log-ev" {% if ev.get('channel_delete', true) %}checked{% endif %} /> 📁 Canal eliminado</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_role_create" class="log-ev" {% if ev.get('role_create', false) %}checked{% endif %} /> 🏷️ Rol creado</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_role_delete" class="log-ev" {% if ev.get('role_delete', false) %}checked{% endif %} /> 🏷️ Rol eliminado</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_invite_create" class="log-ev" {% if ev.get('invite_create', false) %}checked{% endif %} /> 🔗 Invite creada</label>
+                <label class="check-line"><input type="checkbox" name="log_ev_invite_delete" class="log-ev" {% if ev.get('invite_delete', false) %}checked{% endif %} /> 🔗 Invite eliminada</label>
+              </div>
+              <p class="hint">Los embeds usan colores por tipo (rojo borrados, verde joins, etc.), autor, IDs y previews de imágenes borradas.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.reports.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Reportes</div>
+            <label class="switch">
+              <input type="checkbox" name="reports_enabled" data-toggle {% if config.reports.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Canal donde llegan los reportes.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal ID</label>
+                <input type="text" name="reports_channel" value="{{ config.reports.channel_id }}" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.suggest.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Sugerencias</div>
+            <label class="switch">
+              <input type="checkbox" name="suggest_enabled" data-toggle {% if config.suggest.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Canal de sugerencias del servidor.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal ID</label>
+                <input type="text" name="suggest_channel" value="{{ config.suggest.channel_id }}" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.modnotes.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Mod Notes</div>
+            <label class="switch">
+              <input type="checkbox" name="modnotes_enabled" data-toggle {% if config.modnotes.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Notas internas del staff sobre usuarios.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Usa los comandos de notas del bot una vez activado.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.watchlist.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Watchlist</div>
+            <label class="switch">
+              <input type="checkbox" name="watchlist_enabled" data-toggle {% if config.watchlist.enabled %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Vigila usuarios marcados por el staff.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <p class="hint">Los usuarios en watchlist generan alertas al staff.</p>
+            </div>
+          </div>
+        </div>
+
+        
+
+      </div>
+    </div>
+  </div>
+
+    {# ══════════════ 04 UTILIDAD ══════════════ #}
+  <div class="section sec-util" id="sec-utilidad" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">04</span> 🛠️ Utilidad</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+
+        <div class="mod mod-wide {% if (config.moderation or {}).get('enabled', true) %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">🛡️ Moderación (roles y sanciones)</div>
+            <label class="switch"><input type="checkbox" name="moderation_enabled" data-toggle {% if (config.moderation or {}).get('enabled', true) %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Roles de staff, inmunidad y canal de sanciones.</p>
+          <div class="mod-settings"><div class="mod-settings-inner">
+            <div class="fields">
+              <div class="field"><label>Rol staff</label>
+                <input type="text" name="mod_staff_role" value="{{ (config.moderation or {}).get('staff_role_id','') }}" placeholder="ID rol" />
+              </div>
+              <div class="field"><label>Rol inmunidad</label>
+                <input type="text" name="mod_immune_role" value="{{ (config.moderation or {}).get('immune_role_id','') }}" placeholder="ID rol" />
+              </div>
+              <div class="field"><label>Canal sanciones</label>
+                <input type="text" name="mod_sanction_channel" value="{{ (config.moderation or {}).get('sanction_channel_id','') }}" placeholder="ID canal" />
+              </div>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="mod is-on" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">⛔ Comandos desactivados</div>
+            <label class="switch"><input type="checkbox" checked disabled /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Uno por línea (slots, nsfw, gamble…).</p>
+          <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+            <textarea name="disabled_commands" rows="4" placeholder="nsfw&#10;slots&#10;gamble">{% if config.disabled_commands %}{{ config.disabled_commands|join('\n') }}{% endif %}</textarea>
+          </div></div>
+        </div>
+
+        <div class="mod {% if (config.invites or {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">📨 Invite tracker</div>
+            <label class="switch"><input type="checkbox" name="invites_enabled" data-toggle {% if (config.invites or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Anuncia quién invitó a cada miembro.</p>
+          <div class="mod-settings"><div class="mod-settings-inner">
+            <div class="field"><label>Canal (ID)</label>
+              <input type="text" name="invites_channel" value="{{ (config.invites or {}).get('channel_id','') }}" />
+            </div>
+            <div class="field"><label>Mensaje</label>
+              <textarea name="invites_message" rows="3">{{ (config.invites or {}).get('message', '📨 {user} entró con la invitación de {inviter} (`{code}` · usos {uses})') }}</textarea>
+              <p class="hint">{user} {inviter} {code} {uses} {server} {membercount}</p>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="mod {% if (config.sticky or {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Sticky messages</div>
+            <label class="switch"><input type="checkbox" name="sticky_enabled" data-toggle {% if (config.sticky or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Mensajes fijos al final del canal.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Configura stickies con comandos del bot.</p></div></div>
+        </div>
+
+        <div class="mod {% if (config.autoresponse or {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Autorespuestas</div>
+            <label class="switch"><input type="checkbox" name="autoresponse_enabled" data-toggle {% if (config.autoresponse or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Respuestas a palabras clave.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Añade triggers con los comandos de autoresponse.</p></div></div>
+        </div>
+
+        <div class="mod {% if (config.afk or {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">AFK</div>
+            <label class="switch"><input type="checkbox" name="afk_enabled" data-toggle {% if (config.afk or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Sistema AFK al mencionar ausentes.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!afk [motivo]</p></div></div>
+        </div>
+
+        <div class="mod {% if (config.snipe or {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Snipe</div>
+            <label class="switch"><input type="checkbox" name="snipe_enabled" data-toggle {% if (config.snipe or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Último mensaje borrado / editado.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!snipe · o!editsnipe</p></div></div>
+        </div>
+
+        <div class="mod mod-wide {% if (config.tempvc or {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">🔊 Temp Voice</div>
+            <label class="switch"><input type="checkbox" name="tempvc_enabled" data-toggle {% if (config.tempvc or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Entras al hub → se crea tu VC + canal de texto privado con panel de control.</p>
+          <div class="mod-settings"><div class="mod-settings-inner">
+            <div class="fields">
+              <div class="field"><label>Canal hub (ID)</label>
+                <input type="text" name="tempvc_hub" value="{{ (config.tempvc or {}).get('hub_channel_id','') }}" />
+              </div>
+              <div class="field"><label>Categoría destino (ID)</label>
+                <input type="text" name="tempvc_category" value="{{ (config.tempvc or {}).get('category_id','') }}" />
+              </div>
+              <div class="field"><label>Nombre del canal</label>
+                <input type="text" name="tempvc_name" value="{{ (config.tempvc or {}).get('name_template','🔊 {user}') }}" />
+              </div>
+              <div class="field"><label>Límite usuarios (0 = ∞)</label>
+                <input type="number" name="tempvc_limit" min="0" max="99" value="{{ (config.tempvc or {}).get('user_limit', 0) }}" />
+              </div>
+            </div>
+            <div class="fields" style="margin-top:8px">
+              <label class="check-line"><input type="checkbox" name="tempvc_text" {% if (config.tempvc or {}).get('create_text', true) %}checked{% endif %} /> Canal de texto privado + menú</label>
+              <label class="check-line"><input type="checkbox" name="tempvc_lock_empty" {% if (config.tempvc or {}).get('lock_on_owner_leave', true) %}checked{% endif %} /> Si el dueño sale: expulsar sin permiso</label>
+              <label class="check-line"><input type="checkbox" name="tempvc_auto_delete" {% if (config.tempvc or {}).get('auto_delete', true) %}checked{% endif %} /> Borrar VC vacío</label>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="mod {% if (config.giveaways or {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Giveaways</div>
+            <label class="switch"><input type="checkbox" name="giveaways_enabled" data-toggle {% if (config.giveaways or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Sorteos con reacción / botón.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!gstart …</p></div></div>
+        </div>
+
+        <div class="mod {% if (config.reminders or {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Recordatorios</div>
+            <label class="switch"><input type="checkbox" name="reminders_enabled" data-toggle {% if (config.reminders or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Recordatorios personales.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!remind 1h texto</p></div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+{# ══════════════ 05 SOCIAL / FUN ══════════════ #}
+  <div class="section sec-fun" id="sec-social" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">05</span> 🎭 Social / Fun</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+
+        <div class="mod {% if config.economy.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Economía</div>
+            <label class="switch"><input type="checkbox" name="economy_enabled" data-toggle {% if config.economy.enabled %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Moneda, daily, shop…</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!balance · o!daily · o!pay</p></div></div>
+        </div>
+
+        <div class="mod {% if config.profiles.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Perfiles</div>
+            <label class="switch"><input type="checkbox" name="profiles_enabled" data-toggle {% if config.profiles.enabled %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Perfiles de usuario.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!profile</p></div></div>
+        </div>
+
+        <div class="mod {% if config.marriage.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Matrimonios</div>
+            <label class="switch"><input type="checkbox" name="marriage_enabled" data-toggle {% if config.marriage.enabled %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Marriage / divorce.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!marry @user</p></div></div>
+        </div>
+
+        <div class="mod {% if config.actions_sfw.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Acciones SFW</div>
+            <label class="switch"><input type="checkbox" name="actions_sfw_enabled" data-toggle {% if config.actions_sfw.enabled %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">hug, kiss, pat, dance…</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Roleplay GIFs SFW.</p></div></div>
+        </div>
+
+        <div class="mod {% if config.music.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Música</div>
+            <label class="switch"><input type="checkbox" name="music_enabled" data-toggle {% if config.music.enabled %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Comandos de música / VC.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Si el módulo de música está activo en el bot.</p></div></div>
+        </div>
+
+        <div class="mod {% if config.fun.enabled %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">Fun / trivia</div>
+            <label class="switch"><input type="checkbox" name="fun_enabled" data-toggle {% if config.fun.enabled %}checked{% endif %} /><span class="slider"></span></label>
+          </div>
+          <p class="mod-desc">Trivia, generadores, etc.</p>
+          <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Comandos divertidos del bot.</p></div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  
+  {# ══════════════ 06 TICKETS / ALIANZAS ══════════════ #}
+  
+
+  <!-- SHOP + REPORTS -->
+  <div class="section sec-util" id="sec-shop" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">SH</span> Tienda & Reportes</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% set shop = config.shop or {} %}
+      {% set reps = config.reports or {} %}
+      <div class="mod mod-wide {% if shop.get('enabled') %}is-on{% endif %}" data-mod>
+        <div class="mod-top">
+          <div class="mod-title">🛒 Tienda de roles (coins)</div>
+          <label class="switch">
+            <input type="checkbox" name="shop_enabled" data-toggle {% if shop.get('enabled') %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">Los miembros compran roles con <code>o!shop</code> / <code>o!buy</code>.</p>
+        <div class="mod-settings">
+          <div class="mod-settings-inner">
+            <div class="field">
+              <label>Ítems (una línea por rol)</label>
+              <textarea name="shop_items" rows="5" placeholder="ROLE_ID|PRECIO|Nombre&#10;123456789012345678|500|VIP">{% for it in (shop.get('items') or []) %}{{ it.role_id }}|{{ it.price }}|{{ it.name }}
+{% endfor %}</textarea>
+              <p class="hint">Formato: <code>id_del_rol|precio|nombre</code></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mod mod-wide {% if reps.get('enabled') %}is-on{% endif %}" data-mod>
+        <div class="mod-top">
+          <div class="mod-title">🚨 Reportes de usuarios</div>
+          <label class="switch">
+            <input type="checkbox" name="reports_enabled" data-toggle {% if reps.get('enabled') %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc"><code>o!report @user motivo</code> → canal staff.</p>
+        <div class="mod-settings">
+          <div class="mod-settings-inner">
+            <div class="field">
+              <label>Canal de reportes (ID)</label>
+              <input type="text" name="reports_channel_id" value="{{ reps.get('channel_id','') }}" placeholder="ID canal staff" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ECONOMÍA ===== -->
+
+  <!-- ===== NIVELES ===== -->
+  <div class="section sec-levels" id="sec-levels" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">XP</span> Niveles</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% set lv = config.levels or {} %}
+      {% set _roles = lv.get('roles') or {} %}
+
+      <div class="mod mod-wide is-on" data-mod>
+        <div class="mod-top">
+          <div class="mod-title">⭐ Sistema de niveles</div>
+          <label class="switch">
+            <input type="checkbox" name="levels_enabled" data-toggle {% if lv.get('enabled') %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">XP, mensajes de subida y roles por nivel. Se guarda solo al cambiar.</p>
+        <div class="mod-settings" style="display:block">
+          <div class="mod-settings-inner">
+            <h4 style="margin:4px 0 10px;opacity:.9">⚙️ XP y anuncios</h4>
+            <div class="fields">
+              <div class="field"><label>XP por mensaje</label><input type="number" name="levels_xp_per_message" min="1" max="100" value="{{ lv.get('xp_per_message', 15) }}" /></div>
+              <div class="field"><label>Cooldownoldown (s)</label><input type="number" name="levels_xp_cooldown" min="5" max="600" value="{{ lv.get('xp_cooldown', 60) }}" /></div>
+              <div class="field"><label>Canal anuncios (ID)</label><input type="text" name="levels_channel" value="{{ lv.get('channel_id', '') }}" placeholder="vacío = mismo canal" /></div>
+              <div class="field"><label>Color embed</label><input type="text" name="levels_color" value="{{ lv.get('color', '#AFD7E6') }}" /></div>
+            </div>
+            <div class="field"><label>Mensaje al subir de nivel</label>
+              <input type="text" name="levels_message" value="{{ lv.get('message', '🎉 {user} subió al **nivel {level}** en **{server}**!') }}" />
+            </div>
+            <p class="hint">Variables: {user} {username} {level} {server}</p>
+            <div class="field"><label>Banner / imagen (URL)</label>
+              <input type="text" name="levels_banner" value="{{ lv.get('banner_url', lv.get('image', '')) }}" placeholder="https://..." />
+              <input type="hidden" name="levels_image" value="{{ lv.get('image', '') }}" />
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px">
+              <label class="check-line"><input type="checkbox" name="levels_use_embed" {% if lv.get('use_embed', true) %}checked{% endif %} /> Usar embed</label>
+              <label class="check-line"><input type="checkbox" name="levels_card_enabled" {% if lv.get('card_enabled', true) %}checked{% endif %} /> Tarjeta visual</label>
+              <label class="check-line"><input type="checkbox" name="levels_stack_roles" {% if lv.get('stack_roles', true) %}checked{% endif %} /> Acumular roles</label>
+            </div>
+
+            <h4 style="margin:22px 0 8px;opacity:.9">🎭 Roles por nivel</h4>
+            <p class="hint">Añade filas con el botón. Cada una: nivel + ID del rol (sin escribir <code>10:ID,20:ID</code>).</p>
+            <div id="levelRolesBox" style="margin-top:12px">
+              {% for k, v in _roles.items() %}
+              <div class="level-role-row" style="display:grid;grid-template-columns:110px 1fr auto;gap:10px;margin-bottom:10px;align-items:end;padding:12px;border-radius:12px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.07)">
+                <div class="field" style="margin:0"><label>Nivel</label><input type="number" name="levels_role_level_{{ loop.index }}" min="1" max="500" value="{{ k }}" /></div>
+                <div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="levels_role_id_{{ loop.index }}" value="{{ v }}" placeholder="ID del rol" /></div>
+                <button type="button" class="btn" onclick="this.closest('.level-role-row').remove()">✕</button>
+              </div>
+              {% else %}
+              <p class="hint" id="levelRolesEmpty">Todavía no hay roles. Pulsa <b>＋ Añadir rol de nivel</b>.</p>
+              {% endfor %}
+            </div>
+            <button type="button" class="btn" id="btnAddLevelRole" style="margin-top:10px;padding:12px 18px;font-weight:600;font-size:0.95rem">＋ Añadir rol de nivel</button>
+
+            <h4 style="margin:24px 0 8px;opacity:.9">🏆 Top chat</h4>
+            <label class="check-line"><input type="checkbox" name="levels_top_roles_enabled" {% if lv.get('top_roles_enabled') %}checked{% endif %} /> Roles Top 1 / Top 10 por actividad</label>
+            <div class="fields" style="margin-top:8px">
+              <div class="field"><label>Rol Top 1 (ID)</label><input type="text" name="levels_top1_role" value="{{ lv.get('top1_role_id','') }}" /></div>
+              <div class="field"><label>Rol Top 10 (ID)</label><input type="text" name="levels_top10_role" value="{{ lv.get('top10_role_id','') }}" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-economy" id="sec-economy" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">$$</span> Economía</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% set eco = config.economy or {} %}
+      {% set shop_roles = eco.get('shop_roles') or [] %}
+      {% set shop_items = eco.get('shop_items') or [] %}
+
+      <div class="mod mod-wide {% if eco.get('enabled', True) %}is-on{% endif %}" data-mod>
+        <div class="mod-top">
+          <div class="mod-title">Sistema de economía</div>
+          <label class="switch">
+            <input type="checkbox" name="economy_enabled" data-toggle {% if eco.get('enabled', True) %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">Recompensas, mensajes, juegos (ruleta, slots…) y tienda de roles. Se guarda solo al cambiar.</p>
+        <div class="mod-settings">
+          <div class="mod-settings-inner">
+            <h4 style="margin:8px 0 6px;opacity:.85">💰 Cantidades</h4>
+            <div class="fields">
+              <div class="field"><label>Daily mín</label><input type="number" name="economy_daily_min" min="0" value="{{ eco.get('daily_min', 100) }}" /></div>
+              <div class="field"><label>Daily máx</label><input type="number" name="economy_daily_max" min="0" value="{{ eco.get('daily_max', 500) }}" /></div>
+              <div class="field"><label>Weekly mín</label><input type="number" name="economy_weekly_min" min="0" value="{{ eco.get('weekly_min', 500) }}" /></div>
+              <div class="field"><label>Weekly máx</label><input type="number" name="economy_weekly_max" min="0" value="{{ eco.get('weekly_max', 2000) }}" /></div>
+              <div class="field"><label>Work mín</label><input type="number" name="economy_work_min" min="0" value="{{ eco.get('work_min', 50) }}" /></div>
+              <div class="field"><label>Work máx</label><input type="number" name="economy_work_max" min="0" value="{{ eco.get('work_max', 250) }}" /></div>
+              <div class="field"><label>Work cooldown (s)</label><input type="number" name="economy_work_cd" min="60" value="{{ eco.get('work_cooldown', 3600) }}" /></div>
+              <div class="field"><label>Beg mín</label><input type="number" name="economy_beg_min" min="0" value="{{ eco.get('beg_min', 10) }}" /></div>
+              <div class="field"><label>Beg máx</label><input type="number" name="economy_beg_max" min="0" value="{{ eco.get('beg_max', 80) }}" /></div>
+              <div class="field"><label>Beg cooldown (s)</label><input type="number" name="economy_beg_cd" min="30" value="{{ eco.get('beg_cooldown', 600) }}" /></div>
+              <div class="field"><label>Crime éxito mín</label><input type="number" name="economy_crime_min" min="0" value="{{ eco.get('crime_min', 100) }}" /></div>
+              <div class="field"><label>Crime éxito máx</label><input type="number" name="economy_crime_max" min="0" value="{{ eco.get('crime_max', 400) }}" /></div>
+              <div class="field"><label>Crime multa</label><input type="number" name="economy_crime_fine" min="0" value="{{ eco.get('crime_fine', 150) }}" /></div>
+              <div class="field"><label>Robo máx %</label><input type="number" name="economy_rob_percent" min="1" max="50" value="{{ eco.get('rob_percent', 15) }}" /></div>
+            </div>
+
+
+            <h4 style="margin:16px 0 6px;opacity:.85">🪙 Moneda y límites</h4>
+            <div class="fields">
+              <div class="field"><label>Símbolo moneda</label><input type="text" name="economy_currency" maxlength="16" value="{{ eco.get('currency', '🪙') }}" /></div>
+              <div class="field"><label>Inicio cash</label><input type="number" name="economy_start_cash" min="0" value="{{ eco.get('start_cash', 0) }}" /></div>
+              <div class="field"><label>Inicio bank</label><input type="number" name="economy_start_bank" min="0" value="{{ eco.get('start_bank', 0) }}" /></div>
+              <div class="field"><label>Máx cash (0=∞)</label><input type="number" name="economy_max_cash" min="0" value="{{ eco.get('max_cash', 0) }}" /></div>
+              <div class="field"><label>Máx bank (0=∞)</label><input type="number" name="economy_max_bank" min="0" value="{{ eco.get('max_bank', 0) }}" /></div>
+              <div class="field"><label>Apuesta mín</label><input type="number" name="economy_bet_min" min="1" value="{{ eco.get('bet_min', 10) }}" /></div>
+              <div class="field"><label>Apuesta máx (0=∞)</label><input type="number" name="economy_bet_max" min="0" value="{{ eco.get('bet_max', 0) }}" /></div>
+            </div>
+            <h4 style="margin:16px 0 6px;opacity:.85">💋 Slut / riesgos</h4>
+            <div class="fields">
+              <div class="field"><label>Slut mín</label><input type="number" name="economy_slut_min" min="0" value="{{ eco.get('slut_min', 20) }}" /></div>
+              <div class="field"><label>Slut máx</label><input type="number" name="economy_slut_max" min="0" value="{{ eco.get('slut_max', 120) }}" /></div>
+              <div class="field"><label>Slut multa</label><input type="number" name="economy_slut_fine" min="0" value="{{ eco.get('slut_fine', 80) }}" /></div>
+              <div class="field"><label>Slut éxito (0-1)</label><input type="number" step="0.05" name="economy_slut_success" min="0.05" max="0.95" value="{{ eco.get('slut_success', 0.55) }}" /></div>
+              <div class="field"><label>Slut cooldown (s)</label><input type="number" name="economy_slut_cd" min="60" value="{{ eco.get('slut_cooldown', 900) }}" /></div>
+              <div class="field"><label>Crime éxito</label><input type="number" step="0.05" name="economy_crime_success" min="0.05" max="0.95" value="{{ eco.get('crime_success', 0.55) }}" /></div>
+              <div class="field"><label>Rob éxito</label><input type="number" step="0.05" name="economy_rob_success" min="0.05" max="0.95" value="{{ eco.get('rob_success', 0.45) }}" /></div>
+            </div>
+            <h4 style="margin:16px 0 6px;opacity:.85">💬 Chat money</h4>
+            <div class="fields">
+              <div class="field"><label>Mín por mensaje</label><input type="number" name="economy_chat_min" min="0" value="{{ eco.get('chat_money_min', 0) }}" /></div>
+              <div class="field"><label>Máx (0=off)</label><input type="number" name="economy_chat_max" min="0" value="{{ eco.get('chat_money_max', 0) }}" /></div>
+              <div class="field"><label>Cooldownoldown (s)</label><input type="number" name="economy_chat_cd" min="10" value="{{ eco.get('chat_money_cooldown', 60) }}" /></div>
+            </div>
+            <div class="field"><label>Mensaje slut OK</label><input type="text" name="economy_msg_slut_ok" value="{{ eco.get('msg_slut_ok', '💋 +{amount} {currency}') }}" /></div>
+            <div class="field"><label>Mensaje slut fail</label><input type="text" name="economy_msg_slut_fail" value="{{ eco.get('msg_slut_fail', '😬 -{amount} {currency}') }}" /></div>
+
+            <h4 style="margin:16px 0 6px;opacity:.85">💼 Role income</h4>
+            <p class="hint">Salario periódico por rol. El usuario usa <code>o!collect-income</code>.</p>
+            <div id="roleIncomeBox">
+              {% for ri in (eco.get('role_income') or []) %}
+              <div class="role-income-row" style="display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end">
+                <div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="role_income_id_{{ loop.index }}" value="{{ ri.get('role_id','') }}" /></div>
+                <div class="field" style="margin:0"><label>Cantidad</label><input type="number" name="role_income_amount_{{ loop.index }}" value="{{ ri.get('amount',0) }}" min="0" /></div>
+                <div class="field" style="margin:0"><label>Horas</label><input type="number" step="0.5" name="role_income_hours_{{ loop.index }}" value="{{ ri.get('hours',24) }}" min="0.5" /></div>
+                <button type="button" class="btn" onclick="this.closest('.role-income-row').remove()">✕</button>
+              </div>
+              {% endfor %}
+            </div>
+            <button type="button" class="btn" id="btnAddRoleIncome" style="margin-top:6px">＋ Añadir role-income</button>
+
+            <h4 style="margin:16px 0 6px;opacity:.85">📝 Mensajes editables</h4>
+            <p class="hint">Placeholders: <code>{amount}</code> <code>{streak}</code> <code>{user}</code> <code>{job}</code> <code>{text}</code></p>
+            <div class="field"><label>Daily</label><input type="text" name="economy_msg_daily" maxlength="200" value="{{ eco.get('msg_daily', 'Recibiste {amount} coins · racha {streak}') }}" /></div>
+            <div class="field"><label>Weekly</label><input type="text" name="economy_msg_weekly" maxlength="200" value="{{ eco.get('msg_weekly', 'Weekly: +{amount} coins') }}" /></div>
+            <div class="field"><label>Work</label><input type="text" name="economy_msg_work" maxlength="200" value="{{ eco.get('msg_work', 'Trabajaste y ganaste {amount} coins') }}" /></div>
+            <div class="field"><label>Beg OK</label><input type="text" name="economy_msg_beg_ok" maxlength="200" value="{{ eco.get('msg_beg_ok', '{text}') }}" /></div>
+            <div class="field"><label>Beg fail</label><input type="text" name="economy_msg_beg_fail" maxlength="200" value="{{ eco.get('msg_beg_fail', '{text}') }}" /></div>
+            <div class="field"><label>Crime OK</label><input type="text" name="economy_msg_crime_ok" maxlength="200" value="{{ eco.get('msg_crime_ok', 'Crimen exitoso: +{amount} coins') }}" /></div>
+            <div class="field"><label>Crime fail</label><input type="text" name="economy_msg_crime_fail" maxlength="200" value="{{ eco.get('msg_crime_fail', 'Te atraparon: -{amount} coins') }}" /></div>
+
+            <h4 style="margin:18px 0 8px;opacity:.85">🎭 Tienda de roles</h4>
+            <p class="hint">Cada fila = un rol comprable con <code>o!buy nombre</code>. Usa el botón para añadir más (no todo en un solo campo).</p>
+            <div id="shopRolesBox">
+              {% for r in shop_roles %}
+              <div class="shop-role-row" style="display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end">
+                <div class="field" style="margin:0"><label>Nombre</label><input type="text" name="shop_role_name_{{ loop.index }}" value="{{ r.get('name','') }}" placeholder="VIP" /></div>
+                <div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="shop_role_id_{{ loop.index }}" value="{{ r.get('role_id','') }}" placeholder="123..." /></div>
+                <div class="field" style="margin:0"><label>Precio</label><input type="number" name="shop_role_price_{{ loop.index }}" value="{{ r.get('price',0) }}" min="0" /></div>
+                <button type="button" class="btn" onclick="this.closest('.shop-role-row').remove()" style="margin-bottom:2px">✕</button>
+              </div>
+              {% endfor %}
+            </div>
+            <button type="button" class="btn" id="btnAddShopRole" style="margin-top:6px">＋ Añadir rol a la tienda</button>
+
+            <h4 style="margin:18px 0 8px;opacity:.85">📦 Ítems (inventario)</h4>
+            <div id="shopItemsBox">
+              {% for it in shop_items %}
+              <div class="shop-item-row" style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end">
+                <div class="field" style="margin:0"><label>Nombre</label><input type="text" name="shop_item_name_{{ loop.index }}" value="{{ it.get('name','') }}" /></div>
+                <div class="field" style="margin:0"><label>Precio</label><input type="number" name="shop_item_price_{{ loop.index }}" value="{{ it.get('price',0) }}" min="0" /></div>
+                <button type="button" class="btn" onclick="this.closest('.shop-item-row').remove()">✕</button>
+              </div>
+              {% endfor %}
+            </div>
+            <button type="button" class="btn" id="btnAddShopItem" style="margin-top:6px">＋ Añadir ítem</button>
+
+            <p class="hint" style="margin-top:14px">
+              
+            <h4 style="margin:18px 0 8px;opacity:.85">📋 Logs y tienda en canal</h4>
+            <div class="fields">
+              <div class="field"><label>Canal logs economía (ID)</label><input type="text" name="economy_log_channel" value="{{ eco.get('log_channel_id','') }}" placeholder="ID del canal" /></div>
+              <div class="field"><label>Canal tienda (ID)</label><input type="text" name="economy_shop_channel" value="{{ eco.get('shop_channel_id','') }}" placeholder="donde está el mensaje" /></div>
+              <div class="field"><label>Mensaje tienda (ID)</label><input type="text" name="economy_shop_message" value="{{ eco.get('shop_message_id','') }}" placeholder="se rellena con o!shop post" /></div>
+            </div>
+            <p class="hint">En Discord: <code>o!shop post #canal</code> publica la tienda. Si cambias precios aquí, el bot <b>actualiza ese mensaje solo</b>.</p>
+
+            Comandos: <code>o!money</code> <code>o!bal</code> <code>o!work</code> <code>o!crime</code> <code>o!slut</code> <code>o!rob</code> <code>o!heist</code> <code>o!blackjack</code> <code>o!slots</code> <code>o!ruleta</code> <code>o!shop</code> <code>o!add-money</code> <code>o!bal</code> <code>o!daily</code> <code>o!weekly</code> <code>o!work</code> <code>o!beg</code>
+              <code>o!pay</code> <code>o!shop</code> <code>o!buy</code> <code>o!sell</code> <code>o!inv</code>
+              <code>o!gamble</code> <code>o!slots</code> <code>o!ruleta</code> <code>o!rob</code> <code>o!top coins</code>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== REDES SOCIALES ===== -->
+  <div class="section sec-socialnet" id="sec-socialnet" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">IG</span> Redes sociales</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% set soc = config.social or {} %}
+      <div class="mod mod-wide {% if soc.get('enabled') %}is-on{% endif %}" data-mod>
+        <div class="mod-top">
+          <div class="mod-title">Notificaciones de redes</div>
+          <label class="switch">
+            <input type="checkbox" name="social_enabled" data-toggle {% if soc.get('enabled') %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">Avisa en un canal cuando haya contenido nuevo (YouTube / Twitch). Accesible para todos los admins del server.</p>
+        <div class="mod-settings">
+          <div class="mod-settings-inner">
+            <div class="fields">
+              <div class="field">
+                <label>Canal de avisos (ID)</label>
+                <input type="text" name="social_channel_id" placeholder="ID del canal de texto" value="{{ soc.get('channel_id', '') }}" />
+              </div>
+              <div class="field">
+                <label>YouTube (canal o @handle)</label>
+                <input type="text" name="social_youtube" placeholder="@MiCanal o UC..." value="{{ soc.get('youtube', '') }}" />
+              </div>
+              <div class="field">
+                <label>Twitch (usuario)</label>
+                <input type="text" name="social_twitch" placeholder="nombre_twitch" value="{{ soc.get('twitch', '') }}" />
+              </div>
+              <div class="field">
+                <label>Mensaje plantilla</label>
+                <input type="text" name="social_message" maxlength="300" value="{{ soc.get('message', '🔔 Nuevo en {platform}: **{title}**\n{url}') }}" />
+              </div>
+            </div>
+            <label class="check-line">
+              <input type="checkbox" name="social_youtube_on" {% if soc.get('youtube_on', True) %}checked{% endif %} />
+              Activar YouTube
+            </label>
+            <label class="check-line">
+              <input type="checkbox" name="social_twitch_on" {% if soc.get('twitch_on', True) %}checked{% endif %} />
+              Activar Twitch (en directo)
+            </label>
+            <p class="hint">El bot revisa periódicamente y publica en el canal. Tras guardar usa <code>o!panelsync</code> para aplicar ya.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if is_owner %}
+  <!-- ===== OWNER BLACKLIST ===== -->
+  <div class="section sec-owner" id="sec-owner" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">OW</span> Owner · Blacklist global</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod mod-wide is-on">
+        <div class="mod-top">
+          <div class="mod-title">⛔ Blacklist global</div>
+        </div>
+        <p class="mod-desc">Solo la dueña. Quien esté aquí es baneado al entrar a cualquier server con Odette.</p>
+        <div class="mod-settings" style="display:block">
+          <div class="mod-settings-inner">
+            <div class="fields">
+              <div class="field">
+                <label>User / Bot ID</label>
+                <input type="text" id="blUserId" placeholder="123456789012345678" />
+              </div>
+              <div class="field">
+                <label>Razón</label>
+                <input type="text" id="blReason" placeholder="raid / nuke" value="panel" />
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
+              <button type="button" class="btn" id="blAddBtn" style="background:#ed4245">Añadir a blacklist</button>
+              <button type="button" class="btn" id="blRefreshBtn">Actualizar lista</button>
+            </div>
+            <div id="blStatus" class="hint"></div>
+            <table class="bl-table" id="blTable">
+              <thead><tr><th>ID</th><th>Razón</th><th>Fuente</th><th></th></tr></thead>
+              <tbody id="blBody"><tr><td colspan="4">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+<div class="section sec-tickets" id="sec-tickets" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">06</span> 🎫 Tickets y alianzas</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+
+        <div class="mod is-on" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">🎫 Sistema de tickets</div>
+          </div>
+          <p class="mod-desc">Menú desplegable, categorías, mensajes y panel del bot.</p>
+          <div class="mod-settings" style="display:block">
+            <div class="mod-settings-inner">
+              <p class="hint">Configura categorías, canal del panel y textos en la página dedicada.</p>
+              <p style="margin-top:10px">
+                <a class="btn btn-primary" href="/guild/{{ guild.id }}/tickets" style="text-decoration:none">Abrir configuración de tickets →</a>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod {% if config.get('alianzas', {}).get('enabled') %}is-on{% endif %}" data-mod>
+          <div class="mod-top">
+            <div class="mod-title">🤝 Alianzas</div>
+            <label class="switch">
+              <input type="checkbox" name="alianzas_enabled" data-toggle {% if config.get('alianzas', {}).get('enabled') %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Publicar plantillas de tickets de alianza en un canal del servidor.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal de alianzas (ID)</label>
+                <input type="text" name="alianzas_channel" value="{{ config.get('alianzas', {}).get('channel_id', '') }}" placeholder="ID del canal #alianzas" />
+              </div>
+              <label class="check-line">
+                <input type="checkbox" name="alianzas_auto_publish" {% if config.get('alianzas', {}).get('auto_publish', true) %}checked{% endif %} />
+                Activar publicación desde ticket de alianza
+              </label>
+              <label class="check-line">
+                <input type="checkbox" name="alianzas_require_invite" {% if config.get('alianzas', {}).get('require_invite', true) %}checked{% endif %} />
+                Exigir invite <code>discord.gg</code> en la plantilla
+              </label>
+
+              <div class="grid2">
+                <div>
+                  <label>Canal revisión (ID)</label>
+                  <input type="text" name="alianzas_review_channel" value="{{ config.get('alianzas', {}).get('review_channel_id', '') }}" placeholder="staff revisa capturas" />
+                </div>
+                <div>
+                  <label>Categoría tickets (ID)</label>
+                  <input type="text" name="alianzas_category" value="{{ config.get('alianzas', {}).get('category_id', '') }}" />
+                </div>
+              </div>
+              <div class="grid2">
+                <div>
+                  <label>Rol soporte (ID)</label>
+                  <input type="text" name="alianzas_support_role" value="{{ config.get('alianzas', {}).get('support_role_id', '') }}" />
+                </div>
+                <div>
+                  <label>Color panel</label>
+                  <input type="text" name="alianzas_panel_color" value="{{ config.get('alianzas', {}).get('panel_color', '#AFD7E6') }}" />
+                </div>
+              </div>
+              <label>Título del panel</label>
+              <input type="text" name="alianzas_panel_title" value="{{ config.get('alianzas', {}).get('panel_title', 'Solicitud de Alianza') }}" />
+              <label>Descripción del panel</label>
+              <textarea name="alianzas_panel_description" rows="3">{{ config.get('alianzas', {}).get('panel_description', '') }}</textarea>
+              <label>Imagen del panel (URL)</label>
+              <input type="text" name="alianzas_panel_image" value="{{ config.get('alianzas', {}).get('panel_image', '') }}" placeholder="https://..." />
+              <label>Texto botón</label>
+              <input type="text" name="alianzas_button_label" value="{{ config.get('alianzas', {}).get('button_label', 'Solicitar alianza') }}" />
+              <p class="hint">En el bot: <code>o!panel alianza</code> o <code>o!alianza panel</code> envía el menú. En Tickets usa valor <code>alianza</code>. Staff publica en el canal de alianzas.</p>
+              <p class="hint">En Tickets crea una categoría con valor <code>alianza</code>. El usuario envía la plantilla y el staff pulsa <strong>Publicar en alianzas</strong>.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <span class="autosave-hint">💾 Autoguardado · los cambios se aplican al instante</span>
+    <a class="btn" href="/guild/{{ guild.id }}">🔄 Recargar</a>
+    <a class="btn" href="/dashboard">← Servidores</a>
+  </div>
+  <div id="odToastWrap" aria-live="polite"></div>
+</form>
+{% set free_on2 = free_profile|default(false) %}
+  {% set can_upload = premium or free_on2 or is_owner %}
+  {% if can_upload %}
+  <div class="section sec-style" id="sec-avatar-upload" data-section>
+    <div class="section-body">
+      <form method="post" action="/guild/{{ guild.id }}/bot-avatar" enctype="multipart/form-data"
+            style="padding:14px;border:1px dashed rgba(88,101,242,0.45);border-radius:12px;background:rgba(88,101,242,0.08)">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <div style="font-weight:600;margin-bottom:8px">📤 Subir archivo de avatar (este server)</div>
+        <input type="file" name="bot_avatar_file" accept="image/png,image/jpeg,image/webp,image/gif" required />
+        <div style="margin-top:10px">
+          <button type="submit" style="background:#5865f2;color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600">
+            Subir y guardar foto
+          </button>
+        </div>
+        <p style="margin:8px 0 0;font-size:0.75rem;opacity:0.65">png / jpg / webp · máx 8 MB · el bot usará la URL del panel (estable)</p>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+
+
+
+</div>
+
+<script>
+(function () {
+  const page = document.getElementById('guildPage');
+  if (!page) return;
+
+  // Accent from localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem('od-accent') || 'null');
+    if (saved && saved.c) {
+      page.style.setProperty('--od-accent', saved.c);
+      page.style.setProperty('--od-accent-rgb', saved.r);
+      page.style.setProperty('--od-accent-2', saved.c2);
+    }
+  } catch (e) {}
+
+  // Expand settings when switch is ON
+  function syncMod(mod) {
+    const input = mod.querySelector('input[data-toggle]');
+    if (!input) return;
+    if (input.checked && !input.disabled) {
+      mod.classList.add('is-on');
+    } else {
+      mod.classList.remove('is-on');
+    }
+  }
+
+  page.querySelectorAll('[data-mod]').forEach(function (mod) {
+    const input = mod.querySelector('input[data-toggle]');
+    if (!input) return;
+    syncMod(mod);
+    input.addEventListener('change', function () { syncMod(mod); });
+  });
+
+  // Color picker sync
+  const picker = document.getElementById('embedColorPicker');
+  const hex = document.getElementById('embedColorHex');
+  const preview = document.getElementById('colorPreview');
+
+  function setColor(c) {
+    if (!c) return;
+    c = c.trim();
+    if (!c.startsWith('#')) c = '#' + c;
+    if (!/^#[0-9A-Fa-f]{6}$/.test(c)) return;
+    if (picker) picker.value = c;
+    if (hex) hex.value = c.toUpperCase();
+    if (preview) preview.style.setProperty('--preview-color', c);
+  }
+
+  if (picker) picker.addEventListener('input', function () { setColor(picker.value); });
+  if (hex) {
+    hex.addEventListener('change', function () { setColor(hex.value); });
+    hex.addEventListener('keyup', function (e) {
+      if (e.key === 'Enter') setColor(hex.value);
+    });
+  }
+  page.querySelectorAll('.color-presets button').forEach(function (btn) {
+    btn.addEventListener('click', function () { setColor(btn.getAttribute('data-c')); });
+  });
+
+
+  // Log events select all / none
+  const logAll = document.getElementById('logSelectAll');
+  const logNone = document.getElementById('logSelectNone');
+  function setLogEvs(on) {
+    page.querySelectorAll('input.log-ev').forEach(function (c) { c.checked = on; });
+  }
+  if (logAll) logAll.addEventListener('click', function () { setLogEvs(true); });
+  if (logNone) logNone.addEventListener('click', function () { setLogEvs(false); });
+
+  // Nav smooth scroll
+  page.querySelectorAll('.mod-nav a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      const id = a.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (!el) return;
+      e.preventDefault();
+      el.classList.remove('collapsed');
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Owner blacklist
+  (function(){
+    const body = document.getElementById('blBody');
+    if (!body) return;
+    const status = document.getElementById('blStatus');
+    async function loadBl() {
+      try {
+        const r = await fetch('/api/blacklist', { credentials: 'same-origin' });
+        const data = await r.json();
+        const users = data.users || {};
+        const ids = Object.keys(users);
+        if (!ids.length) {
+          body.innerHTML = '<tr><td colspan="4">Lista vacía</td></tr>';
+          return;
+        }
+        body.innerHTML = ids.map(function(id){
+          const e = users[id] || {};
+          return '<tr><td><code>'+id+'</code></td><td>'+(e.reason||'')+'</td><td>'+(e.source||'')+'</td>'
+            +'<td><button type="button" class="btn bl-del" data-id="'+id+'" style="padding:4px 8px;font-size:0.75rem">Quitar</button></td></tr>';
+        }).join('');
+        body.querySelectorAll('.bl-del').forEach(function(btn){
+          btn.addEventListener('click', async function(){
+            const id = btn.getAttribute('data-id');
+            await fetch('/api/blacklist/'+id, { method: 'DELETE', credentials: 'same-origin' });
+            loadBl();
+          });
+        });
+      } catch (e) {
+        body.innerHTML = '<tr><td colspan="4">Error al cargar</td></tr>';
+      }
+    }
+    const addBtn = document.getElementById('blAddBtn');
+    if (addBtn) addBtn.addEventListener('click', async function(){
+      const id = (document.getElementById('blUserId').value || '').trim();
+      const reason = (document.getElementById('blReason').value || 'panel').trim();
+      if (!/^\d{16,20}$/.test(id)) { if(status) status.textContent = 'ID inválido'; return; }
+      const r = await fetch('/api/blacklist', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: id, reason: reason })
+      });
+      const data = await r.json();
+      if (status) status.textContent = data.ok ? 'Añadido.' : (data.error || 'Error');
+      loadBl();
+    });
+    const ref = document.getElementById('blRefreshBtn');
+    if (ref) ref.addEventListener('click', loadBl);
+    loadBl();
+  })();
+
+
+  // ─── Autoguardado + toast ───────────────────────────────────────
+  
+
+  
+
+  
+  (function () {
+    var box = document.getElementById('levelRolesBox');
+    var btn = document.getElementById('btnAddLevelRole');
+    if (!btn || !box) return;
+    btn.addEventListener('click', function () {
+      var n = 1;
+      box.querySelectorAll('input[name^="levels_role_level_"]').forEach(function (inp) {
+        var m = (inp.name || '').match(/_(\d+)$/);
+        if (m) n = Math.max(n, parseInt(m[1], 10) + 1);
+      });
+      if (n > 20) return alert('Máximo 20 roles de nivel');
+      var empty = document.getElementById('levelRolesEmpty');
+      if (empty) empty.remove();
+      var div = document.createElement('div');
+      div.className = 'level-role-row';
+      div.style.cssText = 'display:grid;grid-template-columns:110px 1fr auto;gap:10px;margin-bottom:10px;align-items:end;padding:12px;border-radius:12px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.07)';
+      div.innerHTML = '<div class="field" style="margin:0"><label>Nivel</label><input type="number" name="levels_role_level_' + n + '" min="1" max="500" value="' + (n * 10) + '" /></div>' +
+        '<div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="levels_role_id_' + n + '" placeholder="ID del rol" /></div>' +
+        '<button type="button" class="btn" onclick="this.closest(\'.level-role-row\').remove()">✕</button>';
+      box.appendChild(div);
+      try { div.querySelector('input').dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    });
+  })();
+
+  
+  (function () {
+    var box = document.getElementById('roleIncomeBox');
+    var btn = document.getElementById('btnAddRoleIncome');
+    if (!btn || !box) return;
+    btn.addEventListener('click', function () {
+      var n = 1;
+      box.querySelectorAll('input[name^="role_income_id_"]').forEach(function (inp) {
+        var m = (inp.name || '').match(/_(\d+)$/);
+        if (m) n = Math.max(n, parseInt(m[1], 10) + 1);
+      });
+      if (n > 15) return alert('Máximo 15');
+      var div = document.createElement('div');
+      div.className = 'role-income-row';
+      div.style.cssText = 'display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end';
+      div.innerHTML = '<div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="role_income_id_' + n + '" /></div>' +
+        '<div class="field" style="margin:0"><label>Cantidad</label><input type="number" name="role_income_amount_' + n + '" value="100" min="0" /></div>' +
+        '<div class="field" style="margin:0"><label>Horas</label><input type="number" step="0.5" name="role_income_hours_' + n + '" value="24" min="0.5" /></div>' +
+        '<button type="button" class="btn" onclick="this.closest(\'.role-income-row\').remove()">✕</button>';
+      box.appendChild(div);
+    });
+  })();
+
+  // Economía: filas dinámicas tienda
+  (function () {
+    var roleBox = document.getElementById('shopRolesBox');
+    var itemBox = document.getElementById('shopItemsBox');
+    var btnR = document.getElementById('btnAddShopRole');
+    var btnI = document.getElementById('btnAddShopItem');
+    function nextIndex(box, prefix) {
+      var n = 1;
+      if (!box) return 1;
+      box.querySelectorAll('input').forEach(function (inp) {
+        var m = (inp.name || '').match(new RegExp(prefix + '_(\\d+)$'));
+        if (m) n = Math.max(n, parseInt(m[1], 10) + 1);
+      });
+      return Math.min(n, 20);
+    }
+    if (btnR && roleBox) {
+      btnR.addEventListener('click', function () {
+        var i = nextIndex(roleBox, 'shop_role_id');
+        if (i > 20) return alert('Máximo 20 roles');
+        var div = document.createElement('div');
+        div.className = 'shop-role-row';
+        div.style.cssText = 'display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end';
+        div.innerHTML = '<div class="field" style="margin:0"><label>Nombre</label><input type="text" name="shop_role_name_' + i + '" placeholder="VIP" /></div>' +
+          '<div class="field" style="margin:0"><label>Rol ID</label><input type="text" name="shop_role_id_' + i + '" placeholder="123..." /></div>' +
+          '<div class="field" style="margin:0"><label>Precio</label><input type="number" name="shop_role_price_' + i + '" value="1000" min="0" /></div>' +
+          '<button type="button" class="btn" onclick="this.closest(\'.shop-role-row\').remove()">✕</button>';
+        roleBox.appendChild(div);
+        div.querySelector('input').dispatchEvent(new Event('input', { bubbles: true }));
       });
     }
+    if (btnI && itemBox) {
+      btnI.addEventListener('click', function () {
+        var i = nextIndex(itemBox, 'shop_item_name');
+        if (i > 15) return alert('Máximo 15 ítems');
+        var div = document.createElement('div');
+        div.className = 'shop-item-row';
+        div.style.cssText = 'display:grid;grid-template-columns:1.5fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end';
+        div.innerHTML = '<div class="field" style="margin:0"><label>Nombre</label><input type="text" name="shop_item_name_' + i + '" /></div>' +
+          '<div class="field" style="margin:0"><label>Precio</label><input type="number" name="shop_item_price_' + i + '" value="100" min="0" /></div>' +
+          '<button type="button" class="btn" onclick="this.closest(\'.shop-item-row\').remove()">✕</button>';
+        itemBox.appendChild(div);
+      });
+    }
+  })();
 
-    function switchTab(n) {
-      document.querySelectorAll('.nav-tab').forEach((el, i) => el.classList.toggle('active', i === n));
-      if (n === 3) document.getElementById('premium-modal').classList.remove('hidden');
+  (function autosaveSetup() {
+    const form = document.getElementById('guildForm');
+    if (!form) return;
+
+    const wrap = document.getElementById('odToastWrap') || (function () {
+      const d = document.createElement('div');
+      d.id = 'odToastWrap';
+      document.body.appendChild(d);
+      return d;
+    })();
+
+    let timer = null;
+    let saving = false;
+    let pending = false;
+    let lastToast = null;
+
+    function toast(msg, kind) {
+      kind = kind || 'ok';
+      const el = document.createElement('div');
+      el.className = 'od-toast ' + kind;
+      el.textContent = msg;
+      wrap.appendChild(el);
+      const ttl = kind === 'saving' ? 8000 : 3200;
+      setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.25s';
+        setTimeout(function () { el.remove(); }, 280);
+      }, ttl);
+      if (kind === 'saving') lastToast = el;
+      return el;
     }
 
-    function refreshServers() { renderServers(); }
-    function inviteOka() { alert("✅ Panel de invitación a Odette abierto"); }
-    function upgrade() { document.getElementById('premium-modal').classList.remove('hidden'); }
-    function hideModal() { document.getElementById('premium-modal').classList.add('hidden'); }
+    function clearSavingToast() {
+      if (lastToast && lastToast.parentNode) lastToast.remove();
+      lastToast = null;
+    }
 
-    window.onload = () => {
-      renderServers();
-    };
-  </script>
-</body>
-</html>
+    async function doSave() {
+      if (saving) {
+        pending = true;
+        return;
+      }
+      saving = true;
+      pending = false;
+      toast('Guardando…', 'saving');
+      try {
+        const fd = (window.odSR&&window.odSR.serialize(), new FormData(form));
+        const res = await fetch(form.action + (form.action.indexOf('?') >= 0 ? '&' : '?') + 'ajax=1', {
+          method: 'POST',
+          body: fd,
+          credentials: 'same-origin',
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+        clearSavingToast();
+        let data = null;
+        try { data = await res.json(); } catch (e) { data = null; }
+        if (res.ok && data && data.ok) {
+          toast('✓ Cambios guardados', 'ok');
+        } else {
+          const err = (data && data.error) ? data.error : ('HTTP ' + res.status);
+          toast('Error al guardar (' + err + ')', 'err');
+        }
+      } catch (e) {
+        clearSavingToast();
+        toast('Error de red al guardar', 'err');
+      } finally {
+        saving = false;
+        if (pending) {
+          pending = false;
+          scheduleSave(200);
+        }
+      }
+    }
+
+    function scheduleSave(ms) {
+      try { if (window.odSR && typeof window.odSR.serialize === 'function') window.odSR.serialize(); } catch (e) {}
+
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(doSave, ms == null ? 450 : ms);
+    }
+
+    // Toggles y selects: guardar casi al instante
+    form.addEventListener('change', function (e) {
+      const t = e.target;
+      if (!t || !t.name) return;
+      if (t.type === 'file') return;
+      const fast = t.type === 'checkbox' || t.type === 'radio' || t.tagName === 'SELECT';
+      scheduleSave(fast ? 180 : 600);
+    });
+
+    // Texto: debounce más largo
+    form.addEventListener('input', function (e) {
+      const t = e.target;
+      if (!t || !t.name) return;
+      if (t.type === 'checkbox' || t.type === 'radio' || t.tagName === 'SELECT') return;
+      scheduleSave(900);
+    });
+
+    // Evitar submit clásico del form principal
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      scheduleSave(0);
+    });
+  })();
+
+})();
+</script>
+
+
+{% endblock %}
+
+
