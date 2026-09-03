@@ -270,7 +270,7 @@ HTML_TEMPLATE = """
         </div>
     </main>
 
-    <!-- SCRIPT DE NAVEGACIÓN LIMPIA -->
+    <!-- SCRIPT DE NAVEGACIÓN -->
     <script>
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => {
@@ -310,6 +310,8 @@ HTML_TEMPLATE = """
 </html>
 """
 
+# Configurado para responder tanto en la raíz como en /dashboard
 @app.get("/", response_class=HTMLResponse)
+@app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     return HTML_TEMPLATE
