@@ -3,6 +3,19 @@
 {% block extra_css %}
 
   /* === Single module view (Okaa-style) === */
+  #guildPage.single-mod.multi-mod-list .mod.is-focused-mod {
+    display: block !important;
+    margin-bottom: 14px !important;
+  }
+  #guildPage.single-mod .section.panel-active,
+  #guildPage.single-mod .section.is-active-section {
+    display: block !important;
+  }
+  /* sin single-mod: usar panel-active clásico */
+  .section[data-section].panel-active {
+    display: block !important;
+  }
+
   #guildPage.single-mod .page-head {
     margin-bottom: 12px;
   }
@@ -295,8 +308,15 @@
   <nav class="side-nav">
     <a href="#mod-util" data-panel="sec-utilidad" class="side-item"><span class="ico">🧰</span> Utilidad</a>
     <a href="#mod-social" data-panel="sec-social" class="side-item"><span class="ico">🎉</span> Social / Fun</a>
+    <a href="#mod-comandos" data-panel="sec-comandos" class="side-item"><span class="ico">⌨️</span> Comandos</a>
     <a href="#mod-redes" data-panel="sec-socialnet" class="side-item"><span class="ico">🌐</span> Redes</a>
     {% if is_owner %}<a href="#mod-owner" data-panel="sec-owner" class="side-item"><span class="ico">👑</span> Owner</a>{% endif %}
+  </nav>
+
+  <div class="side-section">Premium</div>
+  <nav class="side-nav">
+    <a href="#mod-arw" data-panel="sec-antiraid-rework" class="side-item"><span class="ico">🛡️</span> AntiRaid Rework <span class="badge-new">PRO</span></a>
+    <a href="#mod-ap" data-panel="sec-autopurge" class="side-item"><span class="ico">🧹</span> Auto Purge <span class="badge-new">PRO</span></a>
   </nav>
 
   <div class="side-footer">
@@ -1352,6 +1372,38 @@
                 <input type="text" name="autorole_bot_role" value="{{ config.autorole.get('bot_role_id','') if config.autorole else '' }}" />
                 <label style="display:block;margin-top:8px">Más roles bots (IDs coma)</label>
                 <input type="text" name="autorole_bot_roles" value="{{ (config.autorole.get('bot_role_ids') or [])|join(',') if config.autorole else '' }}" />
+                <hr style="border:none;border-top:1px solid #2a2a2a;margin:16px 0" />
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+                  <div>
+                    <div style="font-weight:700;font-size:0.9rem">Self-roles (panel en Discord)</div>
+                    <div class="hint" style="margin:4px 0 0">Como el mensaje de “Selección de Roles” · el miembro elige roles</div>
+                  </div>
+                  <button type="button" class="btn btn-primary" onclick="addSelfRoleRow()">+ Añadir rol</button>
+                </div>
+                <div class="field">
+                  <label>Canal del panel</label>
+                  <input type="text" name="selfroles_channel" value="{{ config.selfroles.get('channel_id','') if config.selfroles else '' }}" placeholder="ID del canal" />
+                </div>
+                <div class="field">
+                  <label>Título del embed</label>
+                  <input type="text" name="selfroles_title" value="{{ config.selfroles.get('title','Selección de Roles') if config.selfroles else 'Selección de Roles' }}" />
+                </div>
+                <div class="field">
+                  <label>Descripción</label>
+                  <textarea name="selfroles_description" rows="2">{{ config.selfroles.get('description','Usa el menú para autoasignarte un rol.') if config.selfroles else 'Usa el menú para autoasignarte un rol.' }}</textarea>
+                </div>
+                <div class="field">
+                  <label>Imagen URL</label>
+                  <input type="text" name="selfroles_image" value="{{ config.selfroles.get('image','') if config.selfroles else '' }}" placeholder="https://..." />
+                </div>
+                <div class="field">
+                  <label>Soft-role (rol base al elegir cualquiera)</label>
+                  <input type="text" name="selfroles_soft_role" value="{{ config.selfroles.get('soft_role_id','') if config.selfroles else '' }}" placeholder="ID rol soft / staff base" />
+                  <p class="hint">Se asigna junto al rol elegido (ej. “staff” genérico).</p>
+                </div>
+                <input type="hidden" name="selfroles_roles_json" id="selfroles_roles_json" value='{{ (config.selfroles.get("roles") or [])|tojson if config.selfroles else "[]" }}' />
+                <div id="selfRoleRows" style="display:flex;flex-direction:column;gap:8px;margin-top:10px"></div>
+                <p class="hint">Cada fila: emoji · nombre visible · ID del rol de Discord</p>
 
               </div>
             </div>
@@ -2065,7 +2117,164 @@
 
   {% if is_owner %}
   <!-- ===== OWNER BLACKLIST ===== -->
-  <div class="section sec-owner" id="sec-owner" data-section>
+  
+
+  <!-- ===== Comandos del bot ===== -->
+  <div class="section sec-style" id="sec-comandos" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CMD</span> ⌨️ Comandos</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod is-on" data-mod data-mod-id="comandos">
+        <div class="mod-top"><div class="mod-title">Comandos del bot</div></div>
+        <p class="mod-desc">Activa o desactiva comandos en este servidor. Los desactivados no responden.</p>
+        <div class="mod-settings" style="display:block">
+          <div class="mod-settings-inner">
+            {% set cmds = config.disabled_commands if config.disabled_commands is defined else [] %}
+            {% set all_cmds = [
+              'daily','work','bal','pay','shop','buy','rank','levels','leaderboard',
+              'welcome','autorole','ticket','close','add','remove','ban','kick','mute','warn',
+              'purge','clear','lock','unlock','slowmode','snipe','avatar','userinfo','serverinfo',
+              'ship','hug','kiss','slap','meme','nsfw','play','skip','stop','queue'
+            ] %}
+            <div class="fields" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+              {% for c in all_cmds %}
+              <label class="check-line" style="background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+                <input type="checkbox" name="cmd_enabled_{{ c }}" {% if c not in cmds %}checked{% endif %} />
+                <code style="color:#AFD7E6">/{{ c }}</code>
+              </label>
+              {% endfor %}
+            </div>
+            <p class="hint" style="margin-top:12px">Marcado = habilitado. Desmarca para desactivar en este servidor.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== AntiRaid Rework PREMIUM ===== -->
+  <div class="section sec-security" id="sec-antiraid-rework" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">AR</span> 🛡️ AntiRaid Rework <span class="badge-new">PREMIUM</span></h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% set ar = config.antiraid_rework or {} %}
+      <div class="mod mod-wide {% if ar.get('enabled') %}is-on{% endif %}" data-mod data-mod-id="antiraid-rework">
+        <div class="mod-top">
+          <div class="mod-title">AntiRaid Rework</div>
+          <label class="switch">
+            <input type="checkbox" name="arw_enabled" data-toggle {% if ar.get('enabled') %}checked{% endif %} {% if not premium and not is_owner %}disabled{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">Sistema avanzado tipo Wick: joins masivos, modo emergencia, filtro de cuentas nuevas. Requiere Premium.</p>
+        <div class="mod-settings">
+          <div class="mod-settings-inner">
+            {% if not premium and not is_owner %}
+            <div class="alert alert-err">🔒 Módulo Premium. Activa Premium para usar AntiRaid Rework.</div>
+            {% endif %}
+            <div class="fields">
+              <div class="field">
+                <label>Joins máximos</label>
+                <input type="number" name="arw_max_joins" value="{{ ar.get('max_joins', 5) }}" min="2" max="50" />
+              </div>
+              <div class="field">
+                <label>Ventana (segundos)</label>
+                <input type="number" name="arw_window" value="{{ ar.get('window_seconds', 3) }}" min="1" max="30" />
+                <p class="hint">Ej: más de 5 joins en 3s → emergencia</p>
+              </div>
+              <div class="field">
+                <label>Edad mínima cuenta (días)</label>
+                <input type="number" name="arw_min_age" value="{{ ar.get('min_account_days', 7) }}" min="0" max="365" />
+              </div>
+              <div class="field">
+                <label>Canal #mod-logs</label>
+                <input type="text" name="arw_log_channel" value="{{ ar.get('log_channel_id','') }}" placeholder="ID canal logs" />
+              </div>
+              <div class="field">
+                <label>Acción en emergencia</label>
+                <select name="arw_action">
+                  <option value="kick" {% if ar.get('action','kick')=='kick' %}selected{% endif %}>Kick cuentas nuevas</option>
+                  <option value="ban" {% if ar.get('action')=='ban' %}selected{% endif %}>Ban cuentas nuevas</option>
+                  <option value="quarantine" {% if ar.get('action')=='quarantine' %}selected{% endif %}>Cuarentena</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Duración emergencia (min)</label>
+                <input type="number" name="arw_duration" value="{{ ar.get('emergency_minutes', 10) }}" min="1" max="120" />
+              </div>
+            </div>
+            <label class="check-line" style="margin-top:10px"><input type="checkbox" name="arw_pause_invites" {% if ar.get('pause_invites', True) %}checked{% endif %} /> Pausar invitaciones en emergencia</label>
+            <label class="check-line"><input type="checkbox" name="arw_kick_new" {% if ar.get('kick_new_accounts', True) %}checked{% endif %} /> Expulsar cuentas &lt; edad mínima durante alerta</label>
+            <label class="check-line"><input type="checkbox" name="arw_block_bots" {% if ar.get('block_bots', True) %}checked{% endif %} /> Bloquear bots no verificados</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Auto Purge PREMIUM ===== -->
+  <div class="section sec-mod" id="sec-autopurge" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">AP</span> 🧹 Auto Purge <span class="badge-new">PREMIUM</span></h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      {% set ap = config.auto_purge or {} %}
+      <div class="mod mod-wide {% if ap.get('enabled') %}is-on{% endif %}" data-mod data-mod-id="autopurge">
+        <div class="mod-top">
+          <div class="mod-title">Auto Purge</div>
+          <label class="switch">
+            <input type="checkbox" name="ap_enabled" data-toggle {% if ap.get('enabled') %}checked{% endif %} {% if not premium and not is_owner %}disabled{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">Limpia mensajes automáticamente en canales elegidos (bots, links, invitas, todo, etc.). Premium.</p>
+        <div class="mod-settings">
+          <div class="mod-settings-inner">
+            {% if not premium and not is_owner %}
+            <div class="alert alert-err">🔒 Módulo Premium.</div>
+            {% endif %}
+            <div class="fields">
+              <div class="field">
+                <label>Canal</label>
+                <input type="text" name="ap_channel" value="{{ ap.get('channel_id','') }}" placeholder="ID del canal" />
+              </div>
+              <div class="field">
+                <label>Intervalo (minutos)</label>
+                <input type="number" name="ap_interval" value="{{ ap.get('interval_minutes', 60) }}" min="5" max="1440" />
+              </div>
+              <div class="field">
+                <label>Máx. mensajes por ciclo</label>
+                <input type="number" name="ap_limit" value="{{ ap.get('limit', 100) }}" min="10" max="1000" />
+              </div>
+              <div class="field">
+                <label>Filtro</label>
+                <select name="ap_filter">
+                  <option value="all" {% if ap.get('filter','all')=='all' %}selected{% endif %}>Todos</option>
+                  <option value="bots" {% if ap.get('filter')=='bots' %}selected{% endif %}>Solo bots</option>
+                  <option value="humans" {% if ap.get('filter')=='humans' %}selected{% endif %}>Solo humanos</option>
+                  <option value="links" {% if ap.get('filter')=='links' %}selected{% endif %}>Con links</option>
+                  <option value="invites" {% if ap.get('filter')=='invites' %}selected{% endif %}>Invitaciones Discord</option>
+                  <option value="images" {% if ap.get('filter')=='images' %}selected{% endif %}>Imágenes / media</option>
+                </select>
+              </div>
+            </div>
+            <label class="check-line" style="margin-top:8px"><input type="checkbox" name="ap_pinned" {% if ap.get('keep_pinned', True) %}checked{% endif %} /> Conservar mensajes fijados</label>
+            <label class="check-line"><input type="checkbox" name="ap_notify" {% if ap.get('notify') %}checked{% endif %} /> Avisar en el canal tras limpiar</label>
+            <div class="field" style="margin-top:10px">
+              <label>Más canales (IDs separados por coma)</label>
+              <input type="text" name="ap_channels" value="{{ (ap.get('channel_ids') or [])|join(',') }}" placeholder="id1,id2" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div class="section sec-owner" id="sec-owner" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">OW</span> Owner · Blacklist global</h2>
       <span class="chev">▼</span>
@@ -2117,6 +2326,12 @@
             <div class="mod-title">🎫 Sistema de tickets</div>
           </div>
           <p class="mod-desc">Menú desplegable, categorías, mensajes y panel del bot.</p>
+          <div style="padding:0 16px 8px">
+            <button type="button" class="btn btn-primary" onclick="addTicketPanelRow()">+ Añadir panel de tickets</button>
+            <p class="hint">Varios paneles (soporte, reportes, alianzas…) como Ticket Tool.</p>
+            <input type="hidden" name="ticket_panels_json" id="ticket_panels_json" value='{{ (config.tickets.get("panels") or [])|tojson if config.tickets else "[]" }}' />
+            <div id="ticketPanelRows" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
+          </div>
           <div class="mod-settings" style="display:block">
             <div class="mod-settings-inner">
               <p class="hint">Configura categorías, canal del panel y textos en la página dedicada.</p>
@@ -2561,14 +2776,12 @@
 })();
 function showPanel(panelId, focusKey, linkEl) {
   var page = document.getElementById('guildPage');
-  if (page) page.classList.add('single-mod');
+  if (page) { page.classList.add('single-mod'); page.classList.remove('multi-mod-list'); }
 
-  // hide all sections
   document.querySelectorAll('[data-section]').forEach(function(sec) {
-    sec.classList.remove('is-active-section');
+    sec.classList.remove('is-active-section', 'panel-active');
     sec.classList.add('collapsed');
   });
-  // clear mod focus
   document.querySelectorAll('[data-mod]').forEach(function(mod) {
     mod.classList.remove('is-focused-mod');
   });
@@ -2578,7 +2791,7 @@ function showPanel(panelId, focusKey, linkEl) {
     console.warn('panel missing', panelId);
     return;
   }
-  el.classList.add('is-active-section');
+  el.classList.add('is-active-section', 'panel-active');
   el.classList.remove('collapsed');
 
   var mods = el.querySelectorAll('[data-mod]');
@@ -2590,42 +2803,40 @@ function showPanel(panelId, focusKey, linkEl) {
       var title = ((mod.querySelector('.mod-title') || {}).textContent || '').toLowerCase();
       var hit = false;
       if (id === focusKey || id.indexOf(focusKey) >= 0) hit = true;
-      if (!hit && title.indexOf(focusKey) >= 0) hit = true;
-      // aliases
+      if (!hit && title.indexOf(String(focusKey).toLowerCase()) >= 0) hit = true;
       if (!hit && focusKey === 'welcome' && title.indexOf('bienven') >= 0) hit = true;
       if (!hit && focusKey === 'booster' && title.indexOf('boost') >= 0) hit = true;
       if (!hit && focusKey === 'autorole' && (title.indexOf('auto') >= 0 || title.indexOf('autorole') >= 0)) hit = true;
       if (!hit && focusKey === 'starboard' && title.indexOf('star') >= 0) hit = true;
       if (!hit && focusKey === 'nsfw' && title.indexOf('nsfw') >= 0) hit = true;
-      if (!hit && focusKey === 'antiraid' && (title.indexOf('anti-raid') >= 0 || title.indexOf('antiraid') >= 0 || title.indexOf('nuke') >= 0)) hit = true;
+      if (!hit && focusKey === 'antiraid' && (title.indexOf('anti-raid') >= 0 || title.indexOf('nuke') >= 0)) hit = true;
       if (!hit && focusKey === 'automod' && title.indexOf('automod') >= 0) hit = true;
       if (!hit && focusKey === 'verify' && title.indexOf('verific') >= 0) hit = true;
       if (hit) focused = mod;
     });
   }
 
-  if (!focused && mods.length === 1) {
-    focused = mods[0];
-  }
+  if (!focused && mods.length === 1) focused = mods[0];
 
   if (focused) {
     focused.classList.add('is-focused-mod');
     var settings = focused.querySelector('.mod-settings');
     if (settings) settings.style.display = 'block';
-  } else if (mods.length === 1) {
-    mods[0].classList.add('is-focused-mod');
-    var settings = mods[0].querySelector('.mod-settings');
-    if (settings) settings.style.display = 'block';
   } else if (mods.length > 1) {
-    // overview de varios módulos: grid clásico
-    if (page) page.classList.remove('single-mod');
-    el.classList.remove('collapsed');
+    // varios módulos: mostrar todos en lista vertical (no vacío)
+    mods.forEach(function(mod) {
+      mod.classList.add('is-focused-mod');
+      var settings = mod.querySelector('.mod-settings');
+      if (settings) settings.style.display = 'block';
+    });
+    if (page) {
+      page.classList.add('multi-mod-list');
+    }
   } else {
-    // sección sin cards (contenido directo)
+    // sección sin cards de mod: el body entero
     if (page) page.classList.remove('single-mod');
   }
 
-  // sidebar active
   document.querySelectorAll('.side-nav .side-item').forEach(function(a) {
     a.classList.remove('active');
   });
@@ -2638,27 +2849,21 @@ function showPanel(panelId, focusKey, linkEl) {
     if (match) match.classList.add('active');
   }
 
-  // page title
   var titleBox = document.getElementById('modulePageTitle');
+  var name = 'Configuración';
+  var desc = '';
+  if (linkEl) {
+    name = (linkEl.textContent || '').replace(/NUEVO/g,'').replace(/PREMIUM/g,'').trim();
+  } else if (focused) {
+    name = ((focused.querySelector('.mod-title') || {}).textContent || name).trim();
+    desc = ((focused.querySelector('.mod-desc') || {}).textContent || '').trim();
+  }
   if (titleBox) {
-    var name = 'Configuración';
-    var desc = '';
-    if (linkEl) {
-      name = (linkEl.textContent || '').replace(/NUEVO/g,'').trim();
-    } else if (focused) {
-      name = ((focused.querySelector('.mod-title') || {}).textContent || name).trim();
-      desc = ((focused.querySelector('.mod-desc') || {}).textContent || '').trim();
-    }
     titleBox.querySelector('h2').textContent = name;
     titleBox.querySelector('p').textContent = desc || 'Ajustes de este módulo · guardado automático';
   }
-
-  // crumb
   var crumb = document.querySelector('.topbar .crumb strong');
-  if (crumb) {
-    var t = name || 'Configuración';
-    crumb.textContent = t;
-  }
+  if (crumb) crumb.textContent = name || 'Configuración';
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
   try { history.replaceState(null, '', '#' + panelId + (focusKey ? ('/' + focusKey) : '')); } catch (e) {}
@@ -2720,6 +2925,83 @@ document.addEventListener('DOMContentLoaded', function() {
     showPanel('sec-estilo', null, document.querySelector('.side-nav [data-panel="sec-estilo"]'));
   }
 });
+
+
+
+function addTicketPanelRow(data) {
+  data = data || {name:'Soporte', category_id:'', emoji:'🎫'};
+  var box = document.getElementById('ticketPanelRows');
+  if (!box) return;
+  var row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:50px 1fr 1fr auto;gap:8px;background:#111;border:1px solid #2a2a2a;border-radius:10px;padding:10px';
+  row.innerHTML = '<input type="text" placeholder="🎫" value="'+(data.emoji||'🎫').replace(/"/g,'&quot;')+'" class="tp-emoji" />'
+    + '<input type="text" placeholder="Nombre panel" value="'+(data.name||'').replace(/"/g,'&quot;')+'" class="tp-name" />'
+    + '<input type="text" placeholder="Category ID" value="'+(data.category_id||'').replace(/"/g,'&quot;')+'" class="tp-cat" />'
+    + '<button type="button" class="btn" onclick="this.parentElement.remove();syncTicketPanels()">✕</button>';
+  box.appendChild(row);
+  row.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', syncTicketPanels); });
+  syncTicketPanels();
+}
+function syncTicketPanels() {
+  var box = document.getElementById('ticketPanelRows');
+  var hidden = document.getElementById('ticket_panels_json');
+  if (!box || !hidden) return;
+  var panels = [];
+  box.querySelectorAll(':scope > div').forEach(function(row){
+    panels.push({
+      emoji: (row.querySelector('.tp-emoji')||{}).value || '🎫',
+      name: (row.querySelector('.tp-name')||{}).value || '',
+      category_id: (row.querySelector('.tp-cat')||{}).value || ''
+    });
+  });
+  hidden.value = JSON.stringify(panels);
+}
+(function(){
+  var h = document.getElementById('ticket_panels_json');
+  if (!h) return;
+  try {
+    var arr = JSON.parse(h.value||'[]');
+    if (!arr.length) addTicketPanelRow({name:'Soporte', emoji:'🎫', category_id:''});
+    else arr.forEach(addTicketPanelRow);
+  } catch(e) { addTicketPanelRow(); }
+})();
+
+function addSelfRoleRow(data) {
+  data = data || {emoji:'', label:'', role_id:''};
+  var box = document.getElementById('selfRoleRows');
+  if (!box) return;
+  var row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:70px 1fr 1fr auto;gap:8px;align-items:center';
+  row.innerHTML = '<input type="text" placeholder="Emoji" value="'+(data.emoji||'').replace(/"/g,'&quot;')+'" class="sr-emoji" />'
+    + '<input type="text" placeholder="Nombre" value="'+(data.label||'').replace(/"/g,'&quot;')+'" class="sr-label" />'
+    + '<input type="text" placeholder="Role ID" value="'+(data.role_id||'').replace(/"/g,'&quot;')+'" class="sr-id" />'
+    + '<button type="button" class="btn" onclick="this.parentElement.remove();syncSelfRolesJson()">✕</button>';
+  box.appendChild(row);
+  row.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', syncSelfRolesJson); });
+  syncSelfRolesJson();
+}
+function syncSelfRolesJson() {
+  var box = document.getElementById('selfRoleRows');
+  var hidden = document.getElementById('selfroles_roles_json');
+  if (!box || !hidden) return;
+  var roles = [];
+  box.querySelectorAll(':scope > div').forEach(function(row){
+    var emoji = (row.querySelector('.sr-emoji')||{}).value || '';
+    var label = (row.querySelector('.sr-label')||{}).value || '';
+    var rid = (row.querySelector('.sr-id')||{}).value || '';
+    if (rid || label) roles.push({emoji: emoji, label: label, role_id: rid});
+  });
+  hidden.value = JSON.stringify(roles);
+}
+(function initSelfRoles(){
+  var hidden = document.getElementById('selfroles_roles_json');
+  if (!hidden) return;
+  try {
+    var arr = JSON.parse(hidden.value || '[]');
+    if (!arr.length) addSelfRoleRow();
+    else arr.forEach(addSelfRoleRow);
+  } catch(e) { addSelfRoleRow(); }
+})();
 
 </script>
 {% endblock %}
