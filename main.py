@@ -36,6 +36,7 @@ DATA_DIR.mkdir(exist_ok=True)
 AVATARS_DIR = DATA_DIR / "avatars"
 AVATARS_DIR.mkdir(exist_ok=True)
 PREMIUM_FILE = DATA_DIR / "premium_guilds.json"
+USER_HISTORY_FILE = DATA_DIR / "user_history.json"
 CONFIG_FILE = DATA_DIR / "guild_configs.json"
 VERIFY_TOKENS_FILE = DATA_DIR / "verify_tokens.json"
 VERIFIED_USERS_FILE = DATA_DIR / "verified_users.json"
@@ -365,6 +366,31 @@ def is_premium(guild_id):
     return ok, status
 
 
+
+def _load_user_history() -> dict:
+    try:
+        if USER_HISTORY_FILE.exists():
+            return json.loads(USER_HISTORY_FILE.read_text(encoding="utf-8") or "{}")
+    except Exception:
+        pass
+    return {}
+
+def _save_user_history(data: dict) -> None:
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        USER_HISTORY_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        print(f"[history] save: {e}")
+
+def get_user_history(user_id: str) -> dict:
+    data = _load_user_history()
+    entry = data.get(str(user_id)) or {}
+    return {
+        "user_id": str(user_id),
+        "avatars": entry.get("avatars") or [],
+        "names": entry.get("names") or [],
+    }
+
 def is_user_premium(user_id):
     data = _load_premium()
     uid = str(user_id)
@@ -471,6 +497,105 @@ def _default_config() -> dict:
             "allow_words": [],
             "custom_rules": [],
             "train_examples": [],
+        },
+
+        # --- Okaa-style modules ---
+        "jail": {
+            "enabled": False,
+            "role_id": "",
+            "channel_id": "",
+            "category_id": "",
+            "log_channel_id": "",
+        },
+        "confessions": {
+            "enabled": False,
+            "channel_id": "",
+            "log_channel_id": "",
+            "anonymous_default": True,
+        },
+        "birthdays": {
+            "enabled": False,
+            "channel_id": "",
+            "role_id": "",
+            "hour": "09:00",
+            "timezone": "America/Mexico_City",
+            "message": "🎉 ¡Feliz cumpleaños, {member.mention}! Todo {guild.name} te desea un día increíble 🎂",
+        },
+        "suggestions": {
+            "enabled": False,
+            "channel_id": "",
+            "staff_role_id": "",
+            "upvote_emoji": "👍",
+            "downvote_emoji": "👎",
+        },
+        "applications": {
+            "enabled": False,
+            "channel_id": "",
+            "staff_role_id": "",
+            "title": "Postulaciones",
+            "questions": "¿Por qué quieres unirte al staff?\n¿Cuál es tu experiencia?",
+        },
+        "sticky": {
+            "enabled": False,
+            "channel_id": "",
+            "message": "",
+            "embed": False,
+        },
+        "audit": {
+            "enabled": True,
+            "channel_id": "",
+            "keep_days": 90,
+        },
+        "streamer_alerts": {
+            "enabled": False,
+            "channel_id": "",
+            "role_id": "",
+            "twitch": True,
+            "youtube": True,
+            "kick": False,
+            "message": "{streamer} está en directo: {url}",
+        },
+        "temp_channels": {
+            "enabled": False,
+            "hub_channel_id": "",
+            "category_id": "",
+            "name_template": "Canal de {user}",
+        },
+        "reaction_roles": {
+            "enabled": False,
+            "message_id": "",
+            "channel_id": "",
+            "pairs": "",  # emoji:role_id per line
+        },
+        "media_channel": {
+            "enabled": False,
+            "channel_id": "",
+            "delete_non_media": True,
+        },
+        "threads_mod": {
+            "enabled": False,
+            "auto_archive_minutes": 1440,
+            "auto_create_on_react": False,
+        },
+        "gem_drops": {
+            "enabled": False,
+            "channel_id": "",
+            "min_amount": 10,
+            "max_amount": 100,
+            "chance_percent": 5,
+        },
+        "command_access": {
+            "admin_bypass": False,
+            "notify_blocked": False,
+            "exempt_role_ids": "",
+            "rules": "",
+        },
+        "embeds_panels": {
+            "enabled": False,
+            "title": "",
+            "description": "",
+            "color": "#AFD7E6",
+            "channel_id": "",
         },
         "welcome": {
             "enabled": False,
@@ -1719,6 +1844,106 @@ async def guild_save(request: Request, guild_id: str):
     }
 
 
+    
+    # --- Okaa-style modules save ---
+    config["jail"] = {
+        "enabled": form.get("jail_enabled") == "on",
+        "role_id": (form.get("jail_role_id") or "").strip()[:32],
+        "channel_id": (form.get("jail_channel_id") or "").strip()[:32],
+        "category_id": (form.get("jail_category_id") or "").strip()[:32],
+        "log_channel_id": (form.get("jail_log_channel_id") or "").strip()[:32],
+    }
+    config["confessions"] = {
+        "enabled": form.get("confessions_enabled") == "on",
+        "channel_id": (form.get("confessions_channel_id") or "").strip()[:32],
+        "log_channel_id": (form.get("confessions_log_channel_id") or "").strip()[:32],
+        "anonymous_default": form.get("confessions_anonymous") == "on",
+    }
+    config["birthdays"] = {
+        "enabled": form.get("birthdays_enabled") == "on",
+        "channel_id": (form.get("birthdays_channel_id") or "").strip()[:32],
+        "role_id": (form.get("birthdays_role_id") or "").strip()[:32],
+        "hour": (form.get("birthdays_hour") or "09:00").strip()[:8],
+        "timezone": (form.get("birthdays_timezone") or "America/Mexico_City").strip()[:64],
+        "message": (form.get("birthdays_message") or "")[:500],
+    }
+    config["suggestions"] = {
+        "enabled": form.get("suggestions_enabled") == "on",
+        "channel_id": (form.get("suggestions_channel_id") or "").strip()[:32],
+        "staff_role_id": (form.get("suggestions_staff_role") or "").strip()[:32],
+        "upvote_emoji": (form.get("suggestions_up") or "👍")[:16],
+        "downvote_emoji": (form.get("suggestions_down") or "👎")[:16],
+    }
+    config["applications"] = {
+        "enabled": form.get("applications_enabled") == "on",
+        "channel_id": (form.get("applications_channel_id") or "").strip()[:32],
+        "staff_role_id": (form.get("applications_staff_role") or "").strip()[:32],
+        "title": (form.get("applications_title") or "Postulaciones")[:80],
+        "questions": (form.get("applications_questions") or "")[:2000],
+    }
+    config["sticky"] = {
+        "enabled": form.get("sticky_enabled") == "on",
+        "channel_id": (form.get("sticky_channel_id") or "").strip()[:32],
+        "message": (form.get("sticky_message") or "")[:2000],
+        "embed": form.get("sticky_embed") == "on",
+    }
+    config["audit"] = {
+        "enabled": form.get("audit_enabled") == "on",
+        "channel_id": (form.get("audit_channel_id") or "").strip()[:32],
+        "keep_days": max(1, min(_int("audit_keep_days", 90), 365)),
+    }
+    config["streamer_alerts"] = {
+        "enabled": form.get("streamer_enabled") == "on",
+        "channel_id": (form.get("streamer_channel_id") or "").strip()[:32],
+        "role_id": (form.get("streamer_role_id") or "").strip()[:32],
+        "twitch": form.get("streamer_twitch") == "on",
+        "youtube": form.get("streamer_youtube") == "on",
+        "kick": form.get("streamer_kick") == "on",
+        "message": (form.get("streamer_message") or "")[:300],
+    }
+    config["temp_channels"] = {
+        "enabled": form.get("temp_channels_enabled") == "on",
+        "hub_channel_id": (form.get("temp_hub_channel_id") or "").strip()[:32],
+        "category_id": (form.get("temp_category_id") or "").strip()[:32],
+        "name_template": (form.get("temp_name_template") or "Canal de {user}")[:80],
+    }
+    config["reaction_roles"] = {
+        "enabled": form.get("reaction_roles_enabled") == "on",
+        "message_id": (form.get("rr_message_id") or "").strip()[:32],
+        "channel_id": (form.get("rr_channel_id") or "").strip()[:32],
+        "pairs": (form.get("rr_pairs") or "")[:3000],
+    }
+    config["media_channel"] = {
+        "enabled": form.get("media_channel_enabled") == "on",
+        "channel_id": (form.get("media_channel_id") or "").strip()[:32],
+        "delete_non_media": form.get("media_delete_non") == "on",
+    }
+    config["threads_mod"] = {
+        "enabled": form.get("threads_enabled") == "on",
+        "auto_archive_minutes": max(60, min(_int("threads_archive", 1440), 10080)),
+        "auto_create_on_react": form.get("threads_auto_react") == "on",
+    }
+    config["gem_drops"] = {
+        "enabled": form.get("gem_drops_enabled") == "on",
+        "channel_id": (form.get("gem_drops_channel_id") or "").strip()[:32],
+        "min_amount": max(1, min(_int("gem_min", 10), 100000)),
+        "max_amount": max(1, min(_int("gem_max", 100), 1000000)),
+        "chance_percent": max(1, min(_int("gem_chance", 5), 100)),
+    }
+    config["command_access"] = {
+        "admin_bypass": form.get("cmd_admin_bypass") == "on",
+        "notify_blocked": form.get("cmd_notify_blocked") == "on",
+        "exempt_role_ids": (form.get("cmd_exempt_roles") or "")[:500],
+        "rules": (form.get("cmd_rules") or "")[:4000],
+    }
+    config["embeds_panels"] = {
+        "enabled": form.get("embeds_enabled") == "on",
+        "title": (form.get("embeds_title") or "")[:120],
+        "description": (form.get("embeds_description") or "")[:2000],
+        "color": (form.get("embeds_color") or "#AFD7E6")[:16],
+        "channel_id": (form.get("embeds_channel_id") or "").strip()[:32],
+    }
+
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
     try:
@@ -1943,6 +2168,78 @@ async def verify_start(request: Request, guild_id: str, token: str = ""):
         },
     )
 
+
+
+@app.get("/me/profile", response_class=HTMLResponse)
+async def me_profile(request: Request):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    ok_u, _ = is_user_premium(user["id"])
+    return templates.TemplateResponse(
+        "me_profile.html",
+        {"request": request, "user": user, "is_owner": is_owner(request),
+         "guilds": request.session.get("guilds") or [], "user_premium": ok_u},
+    )
+
+@app.get("/me/preferences", response_class=HTMLResponse)
+async def me_preferences(request: Request):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    return templates.TemplateResponse(
+        "me_preferences.html",
+        {"request": request, "user": user, "is_owner": is_owner(request)},
+    )
+
+@app.get("/me/history", response_class=HTMLResponse)
+async def me_history(request: Request):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    uid = (request.query_params.get("uid") or "").strip()
+    history = get_user_history(uid) if uid.isdigit() else None
+    return templates.TemplateResponse(
+        "me_history.html",
+        {"request": request, "user": user, "is_owner": is_owner(request),
+         "history": history if uid.isdigit() else None},
+    )
+
+@app.get("/me/premium", response_class=HTMLResponse)
+async def me_premium(request: Request):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    ok_u, _ = is_user_premium(user["id"])
+    return templates.TemplateResponse(
+        "me_premium.html",
+        {"request": request, "user": user, "is_owner": is_owner(request), "user_premium": ok_u},
+    )
+
+@app.post("/api/bot/user-history")
+async def api_bot_user_history(request: Request):
+    from fastapi.responses import JSONResponse
+    token = request.headers.get("X-Panel-Token") or ""
+    expected = os.getenv("PANEL_API_TOKEN") or os.getenv("PANEL_TOKEN") or ""
+    if not expected or token != expected:
+        return JSONResponse({"ok": False, "error": "unauthorized"}, status_code=401)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "json"}, status_code=400)
+    uid = str(body.get("user_id") or "").strip()
+    if not uid.isdigit():
+        return JSONResponse({"ok": False, "error": "user_id"}, status_code=400)
+    data = _load_user_history()
+    entry = data.setdefault(uid, {"avatars": [], "names": []})
+    now = time.strftime("%Y-%m-%d %H:%M")
+    if body.get("avatar_url"):
+        entry["avatars"] = ([{"url": str(body["avatar_url"])[:300], "at": now}] + list(entry.get("avatars") or []))[:30]
+    if body.get("name"):
+        entry["names"] = ([{"name": str(body["name"])[:80], "at": now}] + list(entry.get("names") or []))[:30]
+    data[uid] = entry
+    _save_user_history(data)
+    return JSONResponse({"ok": True})
 
 @app.get("/owner", response_class=HTMLResponse)
 async def owner_page(request: Request):
