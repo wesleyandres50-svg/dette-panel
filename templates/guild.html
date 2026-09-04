@@ -342,6 +342,34 @@
     {% if is_owner %}<a href="#mod-owner" data-panel="sec-owner" class="side-item"><span class="ico">👑</span> Owner</a>{% endif %}
   </nav>
 
+
+  <div class="side-section">Comunidad+</div>
+  <nav class="side-nav">
+    <a href="#mod-confessions" data-panel="sec-confessions" class="side-item"><span class="ico">🙈</span> Confesiones <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-birthdays" data-panel="sec-birthdays" class="side-item"><span class="ico">🎂</span> Cumpleaños <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-suggestions" data-panel="sec-suggestions" class="side-item"><span class="ico">💡</span> Sugerencias <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-applications" data-panel="sec-applications" class="side-item"><span class="ico">📋</span> Postulaciones <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-gem-drops" data-panel="sec-gem-drops" class="side-item"><span class="ico">💎</span> Drops de gemas <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-streamers" data-panel="sec-streamers" class="side-item"><span class="ico">📡</span> Alertas streamers <span class="badge-new">NUEVO</span></a>
+  </nav>
+
+  <div class="side-section">Canales & mensajes</div>
+  <nav class="side-nav">
+    <a href="#mod-sticky" data-panel="sec-sticky" class="side-item"><span class="ico">📌</span> Sticky <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-temp" data-panel="sec-temp" class="side-item"><span class="ico">🔊</span> Canales temporales <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-media" data-panel="sec-media" class="side-item"><span class="ico">🖼️</span> Media channel <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-threads" data-panel="sec-threads" class="side-item"><span class="ico">💬</span> Hilos <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-embeds" data-panel="sec-embeds" class="side-item"><span class="ico">📦</span> Embeds & paneles <span class="badge-new">NUEVO</span></a>
+  </nav>
+
+  <div class="side-section">Moderación+</div>
+  <nav class="side-nav">
+    <a href="#mod-jail" data-panel="sec-jail" class="side-item"><span class="ico">🔒</span> Cárcel <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-audit" data-panel="sec-audit" class="side-item"><span class="ico">📜</span> Auditoría <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-rr" data-panel="sec-rr" class="side-item"><span class="ico">🎯</span> Roles por reacción <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-cmd-access" data-panel="sec-cmd-access" class="side-item"><span class="ico">🔐</span> Acceso a comandos <span class="badge-new">NUEVO</span></a>
+  </nav>
+
   <div class="side-section">Premium</div>
   <nav class="side-nav">
     <a href="#mod-arw" data-panel="sec-antiraid-rework" data-premium="1" class="side-item"><span class="ico">🛡️</span> AntiRaid Rework <span class="badge-new">PRO</span></a>
@@ -349,7 +377,8 @@
   </nav>
 
   <div class="side-footer">
-    <a class="premium" href="/owner">✦ Premium</a>
+    <a class="premium btn-premium-gold" href="/me/premium">✦ Premium</a>
+    <a href="https://discord.gg/V5AFh53sPM" target="_blank" rel="noopener">Soporte</a>
     <a href="/dashboard">← Servidores</a>
   </div>
 </aside>
@@ -358,6 +387,11 @@
 <div class="topbar">
   <button class="menu-btn" type="button" onclick="toggleSidebar()">☰</button>
   <div class="crumb">{{ guild.name }} · <strong>Configuración</strong></div>
+  <div class="od-search-wrap" style="margin:0 12px">
+    <span class="od-search-ico">🔍</span>
+    <input type="search" id="modSearch" placeholder="Buscar módulo..." autocomplete="off" />
+    <div class="od-search-results" id="modSearchResults"></div>
+  </div>
   <div class="spacer"></div>
   <span style="font-size:0.78rem;color:var(--muted)" id="autoSaveHint">Guardado automático</span>
 </div>
@@ -3084,6 +3118,32 @@ function syncSelfRolesJson() {
     if (!arr.length) addSelfRoleRow();
     else arr.forEach(addSelfRoleRow);
   } catch(e) { addSelfRoleRow(); }
+})();
+
+
+(function(){
+  var input=document.getElementById('modSearch');
+  var box=document.getElementById('modSearchResults');
+  if(!input||!box) return;
+  input.addEventListener('input',function(){
+    var q=(input.value||'').toLowerCase().trim();
+    box.innerHTML='';
+    if(!q){box.classList.remove('show');return;}
+    var hits=[];
+    document.querySelectorAll('.side-nav .side-item[data-panel]').forEach(function(a){
+      var name=(a.textContent||'').replace(/\s+/g,' ').trim();
+      if(name.toLowerCase().indexOf(q)>=0) hits.push({a:a,name:name,panel:a.getAttribute('data-panel'),focus:a.getAttribute('data-focus')});
+    });
+    hits.slice(0,12).forEach(function(it){
+      var el=document.createElement('a'); el.href='#';
+      el.innerHTML='<div class="sr-cat">Módulo</div>'+it.name;
+      el.onclick=function(e){e.preventDefault();showPanel(it.panel,it.focus,it.a);box.classList.remove('show');input.value='';};
+      box.appendChild(el);
+    });
+    if(!hits.length) box.innerHTML='<div style="padding:12px;color:#666">Sin resultados</div>';
+    box.classList.add('show');
+  });
+  document.addEventListener('click',function(e){ if(!box.contains(e.target)&&e.target!==input) box.classList.remove('show'); });
 })();
 
 </script>
