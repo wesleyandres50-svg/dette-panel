@@ -2222,6 +2222,528 @@
     </div>
   </div>
 
+
+  <!-- ===== NUEVOS MÓDULOS (Comunidad+ / Canales / Moderación+) ===== -->
+
+  <div class="section sec-community" id="sec-confessions" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CM</span> 🙈 Confesiones</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.confessions or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="confessions">
+        <div class="mod-top">
+          <div class="mod-title">Confesiones</div>
+          <label class="switch"><input type="checkbox" name="confessions_enabled" data-toggle {% if (config.confessions or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Confesiones anónimas o públicas. Canal de envío y logs para staff.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set cf = config.confessions or {} %}
+          <div class="fields">
+            <div class="field"><label>Canal de confesiones</label>
+              <select name="confessions_channel_id">
+                <option value="">— Sin canal —</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if cf.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Canal de logs (staff)</label>
+              <select name="confessions_log_channel_id">
+                <option value="">— Sin canal —</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if cf.get('log_channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <label class="check-line"><input type="checkbox" name="confessions_anonymous" {% if cf.get('anonymous_default', true) %}checked{% endif %} /> Anónimo por defecto</label>
+          <p class="hint">Comando: <code>/confesar</code> · <code>!confesar</code></p>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-community" id="sec-birthdays" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CM</span> 🎂 Cumpleaños</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.birthdays or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="birthdays">
+        <div class="mod-top">
+          <div class="mod-title">Cumpleaños</div>
+          <label class="switch"><input type="checkbox" name="birthdays_enabled" data-toggle {% if (config.birthdays or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Anuncio automático y rol de cumpleaños.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set bd = config.birthdays or {} %}
+          <div class="fields">
+            <div class="field"><label>Canal de anuncios</label>
+              <select name="birthdays_channel_id">
+                <option value="">—</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if bd.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Rol de cumpleaños</label>
+              <select name="birthdays_role_id">
+                <option value="">—</option>
+                {% for r in roles or [] %}
+                <option value="{{ r.id }}" {% if bd.get('role_id') == (r.id|string) %}selected{% endif %}>@{{ r.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Hora</label><input type="text" name="birthdays_hour" value="{{ bd.get('hour') or '09:00' }}" /></div>
+            <div class="field"><label>Zona horaria</label><input type="text" name="birthdays_timezone" value="{{ bd.get('timezone') or 'America/Mexico_City' }}" /></div>
+          </div>
+          <div class="field"><label>Mensaje</label>
+            <textarea name="birthdays_message" rows="3">{{ bd.get('message') or '🎉 ¡Feliz cumpleaños, {member.mention}!' }}</textarea>
+          </div>
+          <p class="hint">Variables: {member.mention} {member.username} {guild.name}</p>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-community" id="sec-suggestions" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CM</span> 💡 Sugerencias</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.suggestions or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="suggestions">
+        <div class="mod-top">
+          <div class="mod-title">Sugerencias</div>
+          <label class="switch"><input type="checkbox" name="suggestions_enabled" data-toggle {% if (config.suggestions or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Canal de sugerencias con votos.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set sg = config.suggestions or {} %}
+          <div class="fields">
+            <div class="field"><label>Canal</label>
+              <select name="suggestions_channel_id">
+                <option value="">—</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if sg.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Rol staff</label>
+              <select name="suggestions_staff_role">
+                <option value="">—</option>
+                {% for r in roles or [] %}
+                <option value="{{ r.id }}" {% if sg.get('staff_role_id') == (r.id|string) %}selected{% endif %}>@{{ r.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Emoji a favor</label><input type="text" name="suggestions_up" value="{{ sg.get('upvote_emoji') or '👍' }}" /></div>
+            <div class="field"><label>Emoji en contra</label><input type="text" name="suggestions_down" value="{{ sg.get('downvote_emoji') or '👎' }}" /></div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-community" id="sec-applications" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CM</span> 📋 Postulaciones</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.applications or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="applications">
+        <div class="mod-top">
+          <div class="mod-title">Postulaciones</div>
+          <label class="switch"><input type="checkbox" name="applications_enabled" data-toggle {% if (config.applications or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Formulario de postulación a staff u otros roles.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set ap = config.applications or {} %}
+          <div class="fields">
+            <div class="field"><label>Canal destino</label>
+              <select name="applications_channel_id">
+                <option value="">—</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if ap.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Rol staff</label>
+              <select name="applications_staff_role">
+                <option value="">—</option>
+                {% for r in roles or [] %}
+                <option value="{{ r.id }}" {% if ap.get('staff_role_id') == (r.id|string) %}selected{% endif %}>@{{ r.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Título</label><input type="text" name="applications_title" value="{{ ap.get('title') or 'Postulaciones' }}" /></div>
+          </div>
+          <div class="field"><label>Preguntas (una por línea)</label>
+            <textarea name="applications_questions" rows="4">{{ ap.get('questions') or '¿Por qué quieres unirte?\n¿Experiencia?' }}</textarea>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-community" id="sec-gem-drops" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CM</span> 💎 Drops de gemas</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.gem_drops or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="gem-drops">
+        <div class="mod-top">
+          <div class="mod-title">Drops de gemas</div>
+          <label class="switch"><input type="checkbox" name="gem_drops_enabled" data-toggle {% if (config.gem_drops or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Drops aleatorios de economía en un canal.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set gd = config.gem_drops or {} %}
+          <div class="fields">
+            <div class="field"><label>Canal</label>
+              <select name="gem_drops_channel_id">
+                <option value="">—</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if gd.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Mín</label><input type="number" name="gem_min" value="{{ gd.get('min_amount') or 10 }}" min="1" /></div>
+            <div class="field"><label>Máx</label><input type="number" name="gem_max" value="{{ gd.get('max_amount') or 100 }}" min="1" /></div>
+            <div class="field"><label>Probabilidad %</label><input type="number" name="gem_chance" value="{{ gd.get('chance_percent') or 5 }}" min="1" max="100" /></div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-community" id="sec-streamers" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CM</span> 📡 Alertas streamers</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.streamer_alerts or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="streamers">
+        <div class="mod-top">
+          <div class="mod-title">Alertas de streamers</div>
+          <label class="switch"><input type="checkbox" name="streamer_enabled" data-toggle {% if (config.streamer_alerts or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Avisos de directo (Twitch / YouTube / Kick).</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set st = config.streamer_alerts or {} %}
+          <div class="fields">
+            <div class="field"><label>Canal</label>
+              <select name="streamer_channel_id">
+                <option value="">—</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if st.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Rol a mencionar</label>
+              <select name="streamer_role_id">
+                <option value="">—</option>
+                {% for r in roles or [] %}
+                <option value="{{ r.id }}" {% if st.get('role_id') == (r.id|string) %}selected{% endif %}>@{{ r.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <label class="check-line"><input type="checkbox" name="streamer_twitch" {% if st.get('twitch', true) %}checked{% endif %} /> Twitch</label>
+          <label class="check-line"><input type="checkbox" name="streamer_youtube" {% if st.get('youtube', true) %}checked{% endif %} /> YouTube</label>
+          <label class="check-line"><input type="checkbox" name="streamer_kick" {% if st.get('kick') %}checked{% endif %} /> Kick</label>
+          <div class="field"><label>Mensaje</label><input type="text" name="streamer_message" value="{{ st.get('message') or '{streamer} está en directo: {url}' }}" /></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-util" id="sec-sticky" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CH</span> 📌 Sticky</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.sticky or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="sticky">
+        <div class="mod-top">
+          <div class="mod-title">Sticky</div>
+          <label class="switch"><input type="checkbox" name="sticky_enabled" data-toggle {% if (config.sticky or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Mensaje fijo que se reenvía al final del canal.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set sk = config.sticky or {} %}
+          <div class="field"><label>Canal</label>
+            <select name="sticky_channel_id">
+              <option value="">—</option>
+              {% for c in channels or [] %}
+              <option value="{{ c.id }}" {% if sk.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field"><label>Mensaje</label><textarea name="sticky_message" rows="4">{{ sk.get('message') or '' }}</textarea></div>
+          <label class="check-line"><input type="checkbox" name="sticky_embed" {% if sk.get('embed') %}checked{% endif %} /> Enviar como embed</label>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-util" id="sec-temp" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CH</span> 🔊 Canales temporales</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.temp_channels or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="temp">
+        <div class="mod-top">
+          <div class="mod-title">Canales temporales</div>
+          <label class="switch"><input type="checkbox" name="temp_channels_enabled" data-toggle {% if (config.temp_channels or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Join-to-create: al entrar al hub se crea un canal de voz temporal.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set tc = config.temp_channels or {} %}
+          <div class="fields">
+            <div class="field"><label>Canal hub (ID voz)</label>
+              <input type="text" name="temp_hub_channel_id" value="{{ tc.get('hub_channel_id') or '' }}" placeholder="ID canal de voz" />
+            </div>
+            <div class="field"><label>Categoría destino (ID)</label>
+              <input type="text" name="temp_category_id" value="{{ tc.get('category_id') or '' }}" />
+            </div>
+            <div class="field"><label>Nombre</label>
+              <input type="text" name="temp_name_template" value="{{ tc.get('name_template') or 'Canal de {user}' }}" />
+            </div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-util" id="sec-media" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CH</span> 🖼️ Media channel</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.media_channel or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="media">
+        <div class="mod-top">
+          <div class="mod-title">Media channel</div>
+          <label class="switch"><input type="checkbox" name="media_channel_enabled" data-toggle {% if (config.media_channel or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Solo imágenes/vídeos; borra el resto.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set mc = config.media_channel or {} %}
+          <div class="field"><label>Canal</label>
+            <select name="media_channel_id">
+              <option value="">—</option>
+              {% for c in channels or [] %}
+              <option value="{{ c.id }}" {% if mc.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <label class="check-line"><input type="checkbox" name="media_delete_non" {% if mc.get('delete_non_media', true) %}checked{% endif %} /> Borrar mensajes sin media</label>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-util" id="sec-threads" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CH</span> 💬 Hilos</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.threads_mod or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="threads">
+        <div class="mod-top">
+          <div class="mod-title">Hilos</div>
+          <label class="switch"><input type="checkbox" name="threads_enabled" data-toggle {% if (config.threads_mod or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set th = config.threads_mod or {} %}
+          <div class="field"><label>Auto-archivo (minutos)</label>
+            <input type="number" name="threads_archive" value="{{ th.get('auto_archive_minutes') or 1440 }}" min="60" max="10080" />
+          </div>
+          <label class="check-line"><input type="checkbox" name="threads_auto_react" {% if th.get('auto_create_on_react') %}checked{% endif %} /> Crear hilo al reaccionar</label>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-util" id="sec-embeds" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">CH</span> 📦 Embeds & paneles</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.embeds_panels or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="embeds">
+        <div class="mod-top">
+          <div class="mod-title">Embeds & paneles</div>
+          <label class="switch"><input type="checkbox" name="embeds_enabled" data-toggle {% if (config.embeds_panels or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Plantilla de embed para publicar desde el bot.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set ep = config.embeds_panels or {} %}
+          <div class="fields">
+            <div class="field"><label>Canal</label>
+              <select name="embeds_channel_id">
+                <option value="">—</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if ep.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Color</label><input type="text" name="embeds_color" value="{{ ep.get('color') or '#AFD7E6' }}" /></div>
+            <div class="field"><label>Título</label><input type="text" name="embeds_title" value="{{ ep.get('title') or '' }}" /></div>
+          </div>
+          <div class="field"><label>Descripción</label><textarea name="embeds_description" rows="4">{{ ep.get('description') or '' }}</textarea></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-mod" id="sec-jail" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">MD</span> 🔒 Cárcel</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.jail or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="jail">
+        <div class="mod-top">
+          <div class="mod-title">Cárcel</div>
+          <label class="switch"><input type="checkbox" name="jail_enabled" data-toggle {% if (config.jail or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Aísla a un miembro: se guardan sus roles y solo ve el canal de la cárcel. Al liberarlo los recupera.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set j = config.jail or {} %}
+          <div class="fields">
+            <div class="field"><label>Rol Jail</label>
+              <select name="jail_role_id">
+                <option value="">— Sin rol —</option>
+                {% for r in roles or [] %}
+                <option value="{{ r.id }}" {% if j.get('role_id') == (r.id|string) %}selected{% endif %}>@{{ r.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Canal cárcel</label>
+              <select name="jail_channel_id">
+                <option value="">— Sin canal —</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if j.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Categoría (ID)</label>
+              <input type="text" name="jail_category_id" value="{{ j.get('category_id') or '' }}" placeholder="Opcional" />
+            </div>
+            <div class="field"><label>Canal de logs</label>
+              <select name="jail_log_channel_id">
+                <option value="">— Sin canal —</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if j.get('log_channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <p class="hint">Comandos: <code>!jail @user</code> · <code>!unjail @user</code></p>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-mod" id="sec-audit" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">MD</span> 📜 Auditoría</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.audit or {}).get('enabled', true) %}is-on{% endif %}" data-mod data-mod-id="audit">
+        <div class="mod-top">
+          <div class="mod-title">Auditoría</div>
+          <label class="switch"><input type="checkbox" name="audit_enabled" data-toggle {% if (config.audit or {}).get('enabled', true) %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Registro de cambios del panel. El bot puede reenviar a un canal.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set au = config.audit or {} %}
+          <div class="fields">
+            <div class="field"><label>Canal de auditoría</label>
+              <select name="audit_channel_id">
+                <option value="">—</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if au.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>Días a conservar</label>
+              <input type="number" name="audit_keep_days" value="{{ au.get('keep_days') or 90 }}" min="1" max="365" />
+            </div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-mod" id="sec-rr" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">MD</span> 🎯 Roles por reacción</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.reaction_roles or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="rr">
+        <div class="mod-top">
+          <div class="mod-title">Roles por reacción</div>
+          <label class="switch"><input type="checkbox" name="reaction_roles_enabled" data-toggle {% if (config.reaction_roles or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
+        </div>
+        <p class="mod-desc">Formato por línea: <code>emoji:role_id</code></p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set rr = config.reaction_roles or {} %}
+          <div class="fields">
+            <div class="field"><label>Canal del mensaje</label>
+              <select name="rr_channel_id">
+                <option value="">—</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if rr.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>ID del mensaje</label>
+              <input type="text" name="rr_message_id" value="{{ rr.get('message_id') or '' }}" />
+            </div>
+          </div>
+          <div class="field"><label>Pares emoji:role_id</label>
+            <textarea name="rr_pairs" rows="5" placeholder="✅:123456789">{{ rr.get('pairs') or '' }}</textarea>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section sec-mod" id="sec-cmd-access" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">MD</span> 🔐 Acceso a comandos</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod is-on" data-mod data-mod-id="cmd-access">
+        <div class="mod-top">
+          <div class="mod-title">Acceso a comandos</div>
+        </div>
+        <p class="mod-desc">Quién puede usar comandos, roles exentos y reglas.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set ca = config.command_access or {} %}
+          <label class="check-line"><input type="checkbox" name="cmd_admin_bypass" {% if ca.get('admin_bypass') %}checked{% endif %} /> Los administradores se saltan las restricciones</label>
+          <label class="check-line"><input type="checkbox" name="cmd_notify_blocked" {% if ca.get('notify_blocked') %}checked{% endif %} /> Avisar al bloquear un comando de prefijo</label>
+          <div class="field"><label>Roles exentos (IDs, coma)</label>
+            <input type="text" name="cmd_exempt_roles" value="{{ ca.get('exempt_role_ids') or '' }}" placeholder="111,222" />
+          </div>
+          <div class="field"><label>Reglas (texto libre)</label>
+            <textarea name="cmd_rules" rows="4">{{ ca.get('rules') or '' }}</textarea>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+
   <!-- ===== AntiRaid Rework PREMIUM ===== -->
   
   <div class="section sec-community" id="sec-alianzas" data-section>
@@ -2906,6 +3428,7 @@ function showPanel(panelId, focusKey, linkEl) {
   var el = document.getElementById(panelId);
   if (!el) {
     console.warn('panel missing', panelId);
+    if (typeof showToast === 'function') showToast('Módulo no encontrado: ' + panelId);
     return;
   }
   el.classList.add('is-active-section', 'panel-active');
