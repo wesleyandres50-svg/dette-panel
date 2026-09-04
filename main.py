@@ -50,7 +50,7 @@ PUBLIC_BASE_URL = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
 VERIFY_MIN_ACCOUNT_DAYS = int(os.getenv("VERIFY_MIN_ACCOUNT_DAYS") or "7")
 IP_REPUTATION_KEY = (os.getenv("IP_REPUTATION_KEY") or "").strip()
 BLOCK_VPN = (os.getenv("BLOCK_VPN") or "1").strip() not in ("0", "false", "no")
-BOT_TOKEN = (os.getenv("BOT_TOKEN") or os.getenv("DISCORD_BOT_TOKEN") or "").strip()
+BOT_TOKEN = (os.getenv("BOT_TOKEN") or os.getenv("DISCORD_BOT_TOKEN") or os.getenv("DISCORD_TOKEN") or "").strip()
 # Permisos invite bot (admin-ish: manage guild, roles, channels, messages, etc.)
 BOT_INVITE_PERMISSIONS = (os.getenv("BOT_INVITE_PERMISSIONS") or "8").strip()  # 8 = Administrator
 BOT_CLIENT_ID = (os.getenv("BOT_CLIENT_ID") or DISCORD_CLIENT_ID or "").strip()
@@ -1003,6 +1003,83 @@ def bot_invite_url(guild_id: str | None = None) -> str:
     return f"{OAUTH_AUTHORIZE}?{urlencode(params)}"
 
 
+
+async def fetch_guild_channels_and_roles(guild_id: str) -> tuple[list, list]:
+    """Lista canales y roles del servidor vía Bot token (para los selects del panel)."""
+    channels: list = []
+    roles: list = []
+    if not guild_id or not str(guild_id).isdigit() or not BOT_TOKEN:
+        return channels, roles
+    headers = {"Authorization": f"Bot {BOT_TOKEN}"}
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            rc = await client.get(f"{API_BASE}/guilds/{guild_id}/channels", headers=headers)
+            if rc.status_code == 200:
+                raw = rc.json() or []
+                # 0 text, 5 announcement, 15 forum; 2 voice
+                for ch in raw:
+                    try:
+                        t = int(ch.get("type", 0))
+                        if t not in (0, 2, 5, 13, 15):
+                            continue
+                        name = str(ch.get("name") or "canal")
+                        prefix = "🔊 " if t == 2 else ("💬 " if t == 15 else "#")
+                        if t != 2 and not name.startswith("#"):
+                            display = f"{prefix}{name}" if prefix != "#" else f"#{name}"
+                        else:
+                            display = f"{prefix}{name}" if t == 2 else f"#{name}"
+                        channels.append({
+                            "id": str(ch.get("id")),
+                            "name": name,
+                            "type": t,
+                            "label": display,
+                        })
+                    except Exception:
+                        continue
+                # orden: texto primero, por nombre
+                channels.sort(key=lambda x: (0 if x["type"] in (0, 5) else 1, x["name"].lower()))
+            else:
+                print(f"[channels] guild {guild_id} HTTP {rc.status_code}")
+
+            rr = await client.get(f"{API_BASE}/guilds/{guild_id}/roles", headers=headers)
+            if rr.status_code == 200:
+                raw_r = rr.json() or []
+                for role in raw_r:
+                    try:
+                        rid = str(role.get("id"))
+                        name = str(role.get("name") or "rol")
+                        if name == "@everyone":
+                            continue
+                        roles.append({"id": rid, "name": name})
+                    except Exception:
+                        continue
+                roles.sort(key=lambda x: x["name"].lower())
+            else:
+                print(f"[roles] guild {guild_id} HTTP {rr.status_code}")
+    except Exception as e:
+        print(f"[channels/roles] fail: {e}")
+
+    # Fallback: pedir al bot si expone canales
+    if not channels:
+        try:
+            bot_data = await _pull_config_from_bot(str(guild_id))
+            if bot_data:
+                for ch in (bot_data.get("channels") or []):
+                    channels.append({
+                        "id": str(ch.get("id")),
+                        "name": str(ch.get("name") or "canal"),
+                        "type": int(ch.get("type") or 0),
+                        "label": f"#{ch.get('name') or 'canal'}",
+                    })
+                for role in (bot_data.get("roles") or []):
+                    if str(role.get("name")) == "@everyone":
+                        continue
+                    roles.append({"id": str(role.get("id")), "name": str(role.get("name") or "rol")})
+        except Exception as e:
+            print(f"[channels bot fallback] {e}")
+    return channels, roles
+
+
 async def check_bot_in_guild(guild_id: str) -> bool:
     """True si el bot está en el servidor. Si no hay token, no bloqueamos (True)."""
     if not guild_id or not str(guild_id).isdigit():
@@ -1217,6 +1294,11 @@ async def guild_page(request: Request, guild_id: str):
     except Exception as e:
         print(f"[guild_page] config error {guild_id}: {e}")
         config = _default_config()
+    try:
+        channels, roles = await fetch_guild_channels_and_roles(str(guild_id))
+    except Exception as e:
+        print(f"[guild_page] channels/roles: {e}")
+        channels, roles = [], []
     return _safe_template_response(
         "guild.html",
         {
@@ -1231,6 +1313,8 @@ async def guild_page(request: Request, guild_id: str):
             "bot_present": True,
             "invite_url": invite,
             "free_profile": is_free_profile(),
+            "channels": channels,
+            "roles": roles,
         },
     )
 
