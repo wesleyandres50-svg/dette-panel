@@ -18,6 +18,66 @@
   .premium-gate h3 { margin: 0 0 8px; font-size: 1.15rem; }
   .premium-gate p { margin: 0 0 16px; color: #9a9a9a; font-size: 0.9rem; line-height: 1.5; }
   .premium-gate .btn-primary { min-width: 160px; }
+
+  /* ===== FIX: un solo módulo visible (anti-solapado) ===== */
+  #guildPage.single-mod {
+    position: relative;
+  }
+  #guildPage.single-mod .section[data-section] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    pointer-events: none !important;
+  }
+  #guildPage.single-mod .section[data-section].is-active-section,
+  #guildPage.single-mod .section[data-section].panel-active {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 0 16px 0 !important;
+    padding: 0 !important;
+    pointer-events: auto !important;
+    max-width: 920px;
+  }
+  #guildPage.single-mod .section[data-section].is-active-section > .section-h {
+    display: none !important;
+  }
+  #guildPage.single-mod .section[data-section].is-active-section > .section-body {
+    display: block !important;
+    padding: 0 !important;
+  }
+  #guildPage.single-mod .mod {
+    display: none !important;
+  }
+  #guildPage.single-mod .mod.is-focused-mod {
+    display: block !important;
+    max-width: 920px;
+    margin: 0 !important;
+  }
+  #guildPage.single-mod.multi-mod-list .mod.is-focused-mod {
+    display: block !important;
+    margin-bottom: 14px !important;
+  }
+  /* contenido principal no se apila en columnas raras */
+  #guildPage .main-scroll,
+  #guildPage .guild-main,
+  .guild-layout .content,
+  .guild-content {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+  #guildPage .mod.is-focused-mod {
+    position: relative;
+    z-index: 2;
+  }
+
   #guildPage.premium-blocked .section.is-active-section,
   #guildPage.premium-blocked .section.panel-active {
     display: none !important;
@@ -2436,6 +2496,7 @@
   </div>
 
   
+  
   <div class="section sec-community" id="sec-suggestions" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">CM</span> 💡 Sugerencias</h2>
@@ -2447,9 +2508,10 @@
           <div class="mod-title">Sugerencias</div>
           <label class="switch"><input type="checkbox" name="suggestions_enabled" data-toggle {% if (config.suggestions or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
         </div>
-        <p class="mod-desc">Canal de ideas con votos. Staff puede aprobar, rechazar o marcar en progreso.</p>
+        <p class="mod-desc">Canal de ideas con votos. El staff puede aprobar, rechazar o marcar “en progreso”.</p>
         <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
           {% set sg = config.suggestions or {} %}
+          <div style="font-size:0.72rem;color:#888;font-weight:600;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.06em">Canales</div>
           <div class="fields">
             <div class="field"><label>Canal de sugerencias</label>
               <select name="suggestions_channel_id">
@@ -2459,6 +2521,14 @@
                 {% endfor %}
               </select>
             </div>
+            <div class="field"><label>Canal de archivadas (opcional)</label>
+              <select name="suggestions_archive_channel">
+                <option value="">— Mismo canal —</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if sg.get('archive_channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
+                {% endfor %}
+              </select>
+            </div>
             <div class="field"><label>Rol staff</label>
               <select name="suggestions_staff_role">
                 <option value="">—</option>
@@ -2469,58 +2539,29 @@
             </div>
             <div class="field"><label>Emoji a favor</label><input type="text" name="suggestions_up" value="{{ sg.get('upvote_emoji') or '👍' }}" /></div>
             <div class="field"><label>Emoji en contra</label><input type="text" name="suggestions_down" value="{{ sg.get('downvote_emoji') or '👎' }}" /></div>
+            <div class="field"><label>Color embed</label><input type="text" name="suggestions_color" value="{{ sg.get('color') or '#AFD7E6' }}" /></div>
           </div>
+          <div style="font-size:0.72rem;color:#888;font-weight:600;margin:14px 0 8px;text-transform:uppercase;letter-spacing:0.06em">Comportamiento</div>
           <label class="check-line"><input type="checkbox" name="suggestions_threads" {% if sg.get('create_thread', true) %}checked{% endif %} /> Crear hilo de discusión</label>
           <label class="check-line"><input type="checkbox" name="suggestions_anon" {% if sg.get('allow_anonymous') %}checked{% endif %} /> Permitir anónimas</label>
           <label class="check-line"><input type="checkbox" name="suggestions_dm" {% if sg.get('dm_on_status') %}checked{% endif %} /> DM al autor al cambiar estado</label>
+          <label class="check-line"><input type="checkbox" name="suggestions_remove_votes" {% if sg.get('staff_remove_votes') %}checked{% endif %} /> Staff puede cerrar votos</label>
+          <label class="check-line"><input type="checkbox" name="suggestions_number" {% if sg.get('numbering', true) %}checked{% endif %} /> Numerar sugerencias (#1, #2…)</label>
           <div class="fields" style="margin-top:10px">
             <div class="field"><label>Cooldown (s)</label><input type="number" name="suggestions_cooldown" min="0" value="{{ sg.get('cooldown_seconds') or 30 }}" /></div>
             <div class="field"><label>Mín. votos para destacar</label><input type="number" name="suggestions_min_votes" min="1" value="{{ sg.get('min_votes_highlight') or 10 }}" /></div>
+            <div class="field"><label>Máx. caracteres</label><input type="number" name="suggestions_max_len" min="20" max="2000" value="{{ sg.get('max_length') or 500 }}" /></div>
           </div>
           <div class="field"><label>Mensaje de guía (opcional)</label>
-            <textarea name="suggestions_guide" rows="2" placeholder="Usa /sugerencia para enviar una idea…">{{ sg.get('guide_message') or '' }}</textarea>
+            <textarea name="suggestions_guide" rows="2">{{ sg.get('guide_message') or 'Usa /sugerencia para enviar una idea. Sé claro y respetuoso.' }}</textarea>
           </div>
-          <p class="hint">Staff: reacciona o usa comandos para Aprobar / Rechazar / En progreso.</p>
+          <p class="hint">Estados: Pendiente · En progreso · Aprobada · Rechazada · Archivada</p>
         </div></div>
       </div>
     </div>
   </div>
 
-<div class="section-body">
-      <div class="mod {% if (config.suggestions or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="suggestions">
-        <div class="mod-top">
-          <div class="mod-title">Sugerencias</div>
-          <label class="switch"><input type="checkbox" name="suggestions_enabled" data-toggle {% if (config.suggestions or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
-        </div>
-        <p class="mod-desc">Canal de sugerencias con votos.</p>
-        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
-          {% set sg = config.suggestions or {} %}
-          <div class="fields">
-            <div class="field"><label>Canal</label>
-              <select name="suggestions_channel_id">
-                <option value="">—</option>
-                {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if sg.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="field"><label>Rol staff</label>
-              <select name="suggestions_staff_role">
-                <option value="">—</option>
-                {% for r in roles or [] %}
-                <option value="{{ r.id }}" {% if sg.get('staff_role_id') == (r.id|string) %}selected{% endif %}>@{{ r.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="field"><label>Emoji a favor</label><input type="text" name="suggestions_up" value="{{ sg.get('upvote_emoji') or '👍' }}" /></div>
-            <div class="field"><label>Emoji en contra</label><input type="text" name="suggestions_down" value="{{ sg.get('downvote_emoji') or '👎' }}" /></div>
-          </div>
-        </div></div>
-      </div>
-    </div>
-  </div>
 
-  
   <div class="section sec-community" id="sec-applications" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">CM</span> 📋 Postulaciones</h2>
@@ -2532,13 +2573,14 @@
           <div class="mod-title">Postulaciones</div>
           <label class="switch"><input type="checkbox" name="applications_enabled" data-toggle {% if (config.applications or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
         </div>
-        <p class="mod-desc">Formulario modal para staff u otros equipos. Las respuestas van a un canal y el staff acepta o rechaza.</p>
+        <p class="mod-desc">Formulario modal para staff u otros equipos. Las respuestas van a un canal; el staff acepta o rechaza con botones.</p>
         <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
           {% set ap = config.applications or {} %}
+          <div style="font-size:0.72rem;color:#888;font-weight:600;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.06em">Canales y roles</div>
           <div class="fields">
             <div class="field"><label>Canal de resultados</label>
               <select name="applications_channel_id">
-                <option value="">—</option>
+                <option value="">— Sin canal —</option>
                 {% for c in channels or [] %}
                 <option value="{{ c.id }}" {% if ap.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
@@ -2552,7 +2594,7 @@
                 {% endfor %}
               </select>
             </div>
-            <div class="field"><label>Rol al aceptar (opcional)</label>
+            <div class="field"><label>Rol al aceptar</label>
               <select name="applications_accept_role">
                 <option value="">— Ninguno —</option>
                 {% for r in roles or [] %}
@@ -2560,64 +2602,54 @@
                 {% endfor %}
               </select>
             </div>
+            <div class="field"><label>Rol al rechazar (opcional)</label>
+              <select name="applications_deny_role">
+                <option value="">— Ninguno —</option>
+                {% for r in roles or [] %}
+                <option value="{{ r.id }}" {% if ap.get('deny_role_id') == (r.id|string) %}selected{% endif %}>@{{ r.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div style="font-size:0.72rem;color:#888;font-weight:600;margin:14px 0 8px;text-transform:uppercase;letter-spacing:0.06em">Panel público</div>
+          <div class="fields">
             <div class="field"><label>Título del panel</label>
               <input type="text" name="applications_title" value="{{ ap.get('title') or 'Postulaciones' }}" />
             </div>
+            <div class="field"><label>Texto del botón</label>
+              <input type="text" name="applications_button" value="{{ ap.get('button_label') or 'Postularme' }}" />
+            </div>
+            <div class="field"><label>Color embed</label>
+              <input type="text" name="applications_color" value="{{ ap.get('color') or '#AFD7E6' }}" />
+            </div>
+            <div class="field"><label>Cooldown (horas)</label>
+              <input type="number" name="applications_cooldown_h" min="0" value="{{ ap.get('cooldown_hours') or 24 }}" />
+            </div>
           </div>
           <div class="field"><label>Descripción del panel</label>
-            <textarea name="applications_description" rows="2">{{ ap.get('description') or 'Pulsa el botón para postularte. Responde con honestidad.' }}</textarea>
+            <textarea name="applications_description" rows="2">{{ ap.get('description') or 'Pulsa el botón para postularte. Responde con honestidad y espera la respuesta del staff.' }}</textarea>
           </div>
           <div class="field"><label>Preguntas (una por línea, máx 5)</label>
-            <textarea name="applications_questions" rows="5">{{ ap.get('questions') or '¿Por qué quieres unirte?\n¿Cuál es tu experiencia?\n¿Cuántas horas a la semana puedes dedicar?' }}</textarea>
+            <textarea name="applications_questions" rows="5">{{ ap.get('questions') or '¿Por qué quieres unirte?\n¿Cuál es tu experiencia?\n¿Cuántas horas a la semana puedes dedicar?\n¿Disponibilidad en eventos?' }}</textarea>
           </div>
+          <div style="font-size:0.72rem;color:#888;font-weight:600;margin:14px 0 8px;text-transform:uppercase;letter-spacing:0.06em">Comportamiento</div>
           <label class="check-line"><input type="checkbox" name="applications_dm" {% if ap.get('dm_result', true) %}checked{% endif %} /> Avisar por DM el resultado</label>
           <label class="check-line"><input type="checkbox" name="applications_one_open" {% if ap.get('one_open_only', true) %}checked{% endif %} /> Solo una postulación abierta por usuario</label>
-          <div class="field"><label>Cooldown entre postulaciones (horas)</label>
-            <input type="number" name="applications_cooldown_h" min="0" value="{{ ap.get('cooldown_hours') or 24 }}" />
+          <label class="check-line"><input type="checkbox" name="applications_log_accept" {% if ap.get('log_accept', true) %}checked{% endif %} /> Log cuando se acepta/rechaza</label>
+          <label class="check-line"><input type="checkbox" name="applications_public_status" {% if ap.get('public_status') %}checked{% endif %} /> Mostrar estado en el mensaje de resultados</label>
+          <div class="field"><label>Mensaje al aceptar</label>
+            <input type="text" name="applications_msg_accept" value="{{ ap.get('msg_accept') or '¡Felicidades! Tu postulación fue aceptada.' }}" />
           </div>
-          <p class="hint">El bot puede publicar un panel con botón “Postularme” en el canal que elijas por comando.</p>
+          <div class="field"><label>Mensaje al rechazar</label>
+            <input type="text" name="applications_msg_deny" value="{{ ap.get('msg_deny') or 'Tu postulación no fue aceptada esta vez.' }}" />
+          </div>
+          <p class="hint">El bot publica el panel con <code>/postulaciones panel</code> o el comando de prefijo equivalente.</p>
         </div></div>
       </div>
     </div>
   </div>
 
-<div class="section-body">
-      <div class="mod {% if (config.applications or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="applications">
-        <div class="mod-top">
-          <div class="mod-title">Postulaciones</div>
-          <label class="switch"><input type="checkbox" name="applications_enabled" data-toggle {% if (config.applications or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
-        </div>
-        <p class="mod-desc">Formulario de postulación a staff u otros roles.</p>
-        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
-          {% set ap = config.applications or {} %}
-          <div class="fields">
-            <div class="field"><label>Canal destino</label>
-              <select name="applications_channel_id">
-                <option value="">—</option>
-                {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if ap.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="field"><label>Rol staff</label>
-              <select name="applications_staff_role">
-                <option value="">—</option>
-                {% for r in roles or [] %}
-                <option value="{{ r.id }}" {% if ap.get('staff_role_id') == (r.id|string) %}selected{% endif %}>@{{ r.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="field"><label>Título</label><input type="text" name="applications_title" value="{{ ap.get('title') or 'Postulaciones' }}" /></div>
-          </div>
-          <div class="field"><label>Preguntas (una por línea)</label>
-            <textarea name="applications_questions" rows="4">{{ ap.get('questions') or '¿Por qué quieres unirte?\n¿Experiencia?' }}</textarea>
-          </div>
-        </div></div>
-      </div>
-    </div>
-  </div>
 
-  
   <div class="section sec-community" id="sec-gem-drops" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">CM</span> 💎 Drops de gemas</h2>
@@ -4141,6 +4173,8 @@ function showPanel(panelId, focusKey, linkEl) {
   document.querySelectorAll('[data-section]').forEach(function(sec) {
     sec.classList.remove('is-active-section', 'panel-active');
     sec.classList.add('collapsed');
+    // forzar ocultar por si CSS viejo quedó cacheado
+    sec.style.display = 'none';
   });
   document.querySelectorAll('[data-mod]').forEach(function(mod) {
     mod.classList.remove('is-focused-mod');
@@ -4154,6 +4188,7 @@ function showPanel(panelId, focusKey, linkEl) {
   }
   el.classList.add('is-active-section', 'panel-active');
   el.classList.remove('collapsed');
+  el.style.display = 'block';
 
   var mods = el.querySelectorAll('[data-mod]');
   var focused = null;
@@ -4181,6 +4216,7 @@ function showPanel(panelId, focusKey, linkEl) {
 
   if (focused) {
     focused.classList.add('is-focused-mod');
+    focused.style.display = 'block';
     var settings = focused.querySelector('.mod-settings');
     if (settings) settings.style.display = 'block';
   } else if (mods.length > 1) {
