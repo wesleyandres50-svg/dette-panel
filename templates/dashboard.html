@@ -7,16 +7,20 @@
       <div class="logo">🦢</div>
       <div>
         <div class="name">Odette</div>
-        <div class="sub">Panel de control</div>
+        <div class="sub">Selecciona un servidor</div>
       </div>
     </div>
     <div class="side-section">Inicio</div>
     <nav class="side-nav">
       <a class="active" href="/dashboard"><span class="ico">🏠</span> Servidores</a>
-      <a href="/owner"><span class="ico">👑</span> Premium</a>
+      <a href="/me/profile"><span class="ico">👤</span> Mi perfil</a>
+      <a href="/me/preferences"><span class="ico">⚙️</span> Preferencias</a>
+      <a href="/me/history"><span class="ico">🕘</span> Historiales</a>
+      <a href="/me/premium"><span class="ico">👑</span> Premium</a>
     </nav>
     <div class="side-footer">
-      <a class="premium" href="/owner">✦ Premium</a>
+      <a class="premium btn-premium-gold" href="/me/premium">✦ Premium</a>
+      <a href="https://discord.gg/V5AFh53sPM" target="_blank" rel="noopener">Soporte</a>
       <a href="/logout">Cerrar sesión</a>
     </div>
   </aside>
@@ -24,42 +28,63 @@
     <div class="topbar">
       <button class="menu-btn" type="button" onclick="toggleSidebar()">☰</button>
       <div class="crumb">Odette · <strong>Servidores</strong></div>
-      <div class="spacer"></div>
+      <div class="od-search-wrap">
+        <span class="od-search-ico">🔍</span>
+        <input type="search" id="dashSearch" placeholder="Buscar servidor..." autocomplete="off" />
+      </div>
       {% if user %}
       <div class="user-chip">
         {% if user.avatar %}
         <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png?size=64" alt="" />
         {% endif %}
-        <span class="hidden-xs">{{ user.username }}</span>
+        <span>{{ user.username }}</span>
       </div>
       {% endif %}
     </div>
     <div class="content">
-      <div style="margin-bottom:28px">
-        <div style="font-size:0.68rem;letter-spacing:0.12em;color:#5a5a5a;font-weight:700;text-transform:uppercase">Bienvenido</div>
-        <h1 style="margin:8px 0 6px;font-size:1.65rem;letter-spacing:-0.03em;font-weight:700">
-          Hola{% if user %}, {{ user.username }}{% endif %} 🦢
+      <div style="margin-bottom:22px">
+        <div style="font-size:0.68rem;letter-spacing:0.12em;color:#5a5a5a;font-weight:700">BIENVENIDO DE VUELTA</div>
+        <h1 style="margin:8px 0 6px;font-size:1.7rem;letter-spacing:-0.03em;display:flex;align-items:center;gap:10px">
+          {% if user and user.avatar %}
+          <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png?size=64" style="width:48px;height:48px;border-radius:50%" alt="" />
+          {% endif %}
+          ¡Hola{% if user %}, {{ user.username }}{% endif %}! 👋
         </h1>
-        <p style="margin:0;color:#888;font-size:0.9rem;line-height:1.5">
-          Elige un servidor para configurar Odette. Solo aparecen servidores donde tienes permisos de administrar.
+        <p style="margin:0;color:#888;font-size:0.9rem">
+          {{ (guilds or [])|length }} servidor{{ 'es' if (guilds or [])|length != 1 else '' }} donde puedes gestionar a Odette
         </p>
       </div>
 
-      <div class="row-between" style="margin-bottom:16px">
-        <h2 style="margin:0;font-size:0.95rem;font-weight:600;color:#aaa">Tus servidores</h2>
-        <a class="btn" href="/dashboard">↻ Actualizar lista</a>
+      <div class="section-label">Mi cuenta</div>
+      <div class="account-grid">
+        <a class="account-card" href="/me/profile">
+          <div class="ac-ico" style="background:rgba(175,215,230,0.12);color:#AFD7E6">👤</div>
+          <div><div class="ac-label">Mi perfil</div><div class="ac-sub">Cuenta Discord</div></div>
+        </a>
+        <a class="account-card" href="/me/preferences">
+          <div class="ac-ico" style="background:rgba(34,197,94,0.12);color:#4ade80">⚙️</div>
+          <div><div class="ac-label">Preferencias</div><div class="ac-sub">Tema del panel</div></div>
+        </a>
+        <a class="account-card" href="/me/history">
+          <div class="ac-ico" style="background:rgba(96,165,250,0.12);color:#60a5fa">🕘</div>
+          <div><div class="ac-label">Historiales</div><div class="ac-sub">Avatares y nombres</div></div>
+        </a>
+        <a class="account-card" href="/me/premium">
+          <div class="ac-ico" style="background:rgba(255,107,43,0.15);color:#ff8a4c">👑</div>
+          <div><div class="ac-label">Premium</div><div class="ac-sub">Planes Odette</div></div>
+        </a>
       </div>
 
+      <div class="section-label">Tus servidores</div>
       {% if not guilds %}
       <div class="card" style="text-align:center;padding:40px 20px">
-        <div style="font-size:2rem;margin-bottom:10px">📭</div>
-        <p style="color:#888;margin:0 0 16px">No hay servidores con permisos de administrador.</p>
-        <a class="btn btn-primary" href="/login">Volver a iniciar sesión</a>
+        <p style="color:#888">No hay servidores con permisos de administrador.</p>
+        <a class="btn btn-primary" href="/login">Actualizar sesión</a>
       </div>
       {% else %}
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
+      <div id="guildGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
         {% for g in guilds %}
-        <a href="/guild/{{ g.id }}" class="guild-card">
+        <a href="/guild/{{ g.id }}" class="guild-card" data-name="{{ g.name|lower }}">
           <div class="guild-card-banner">
             {% if g.icon %}
             <img class="guild-card-icon" src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=128" alt="" />
@@ -70,61 +95,37 @@
           <div class="guild-card-body">
             <div class="guild-card-name">{{ g.name }}</div>
             <div class="guild-card-id">ID {{ g.id }}</div>
+            <div style="margin-top:8px;font-size:0.72rem;color:#4ade80">✓ Gestionable</div>
           </div>
           <div class="guild-card-go">Configurar →</div>
         </a>
         {% endfor %}
       </div>
       {% endif %}
+      <div style="margin-top:32px;padding:18px;border:1px dashed #2a2a2a;border-radius:12px;text-align:center">
+        <a class="btn" href="https://discord.gg/V5AFh53sPM" target="_blank" rel="noopener">💬 Soporte Discord</a>
+      </div>
     </div>
   </div>
 </div>
 <style>
-  .guild-card {
-    display: flex; flex-direction: column;
-    border-radius: 14px;
-    overflow: hidden;
-    border: 1px solid #2a2a2a;
-    background: #141414;
-    text-decoration: none;
-    color: inherit;
-    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
-  }
-  .guild-card:hover {
-    border-color: rgba(175,215,230,0.35);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
-    color: inherit;
-  }
-  .guild-card-banner {
-    height: 72px;
-    background: linear-gradient(135deg, rgba(175,215,230,0.18), #111 55%, #0a0a0a);
-    display: flex; align-items: flex-end;
-    padding: 0 14px 0;
-    position: relative;
-  }
-  .guild-card-icon {
-    width: 52px; height: 52px; border-radius: 14px;
-    border: 3px solid #141414;
-    margin-bottom: -18px;
-    object-fit: cover;
-    background: #1a1a1a;
-  }
-  .guild-card-icon.fallback {
-    display: grid; place-items: center;
-    font-weight: 800; font-size: 1.1rem;
-    color: #AFD7E6;
-    background: linear-gradient(135deg, #1a2a32, #111);
-  }
-  .guild-card-body { padding: 26px 14px 10px; }
-  .guild-card-name { font-weight: 650; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .guild-card-id { font-size: 0.72rem; color: #555; margin-top: 4px; font-family: ui-monospace, monospace; }
-  .guild-card-go {
-    padding: 10px 14px 14px;
-    font-size: 0.78rem; color: #AFD7E6; font-weight: 600;
-  }
-  @media (max-width: 600px) {
-    .user-chip span { display: none; }
-  }
+  .guild-card { display:flex;flex-direction:column;border-radius:14px;overflow:hidden;border:1px solid #2a2a2a;background:#141414;text-decoration:none;color:inherit;transition:0.15s; }
+  .guild-card:hover { border-color:rgba(175,215,230,0.35);transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,0.35);color:inherit; }
+  .guild-card-banner { height:72px;background:linear-gradient(135deg,rgba(175,215,230,0.18),#111 55%,#0a0a0a);display:flex;align-items:flex-end;padding:0 14px; }
+  .guild-card-icon { width:52px;height:52px;border-radius:14px;border:3px solid #141414;margin-bottom:-18px;object-fit:cover;background:#1a1a1a; }
+  .guild-card-icon.fallback { display:grid;place-items:center;font-weight:800;color:#AFD7E6;background:linear-gradient(135deg,#1a2a32,#111); }
+  .guild-card-body { padding:26px 14px 8px; }
+  .guild-card-name { font-weight:650;font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .guild-card-id { font-size:0.72rem;color:#555;margin-top:4px;font-family:ui-monospace,monospace; }
+  .guild-card-go { padding:8px 14px 14px;font-size:0.78rem;color:#AFD7E6;font-weight:600; }
 </style>
+<script>
+document.getElementById('dashSearch')?.addEventListener('input', function() {
+  var q = (this.value || '').toLowerCase().trim();
+  document.querySelectorAll('#guildGrid .guild-card').forEach(function(c) {
+    var n = c.getAttribute('data-name') || '';
+    c.style.display = (!q || n.indexOf(q) >= 0) ? '' : 'none';
+  });
+});
+</script>
 {% endblock %}
