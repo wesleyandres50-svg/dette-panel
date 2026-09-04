@@ -1669,10 +1669,6 @@ async def guild_save(request: Request, guild_id: str):
         "kick_new_accounts": form.get("arw_kick_new") == "on",
         "block_bots": form.get("arw_block_bots") == "on",
     }
-    if not (premium_ok if "premium_ok" in dir() else True):
-        # keep previous if not premium - handled below if var exists
-        pass
-
     # --- auto purge (premium) ---
     config["auto_purge"] = {
         "enabled": form.get("ap_enabled") == "on",
@@ -1706,7 +1702,7 @@ async def guild_save(request: Request, guild_id: str):
         if str(p.get("name", "")).strip()
     ]
 
-config["_panel_saved"] = True
+    config["_panel_saved"] = True
     config["_saved_at"] = time.time()
     try:
         save_guild_config(guild_id, config)
