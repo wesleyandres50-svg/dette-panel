@@ -1,6 +1,64 @@
 {% extends "base.html" %}
 {% block title %}{{ guild.name }} · Odette{% endblock %}
 {% block extra_css %}
+
+  /* === Look Okaa (oscuro plano) + Odette cyan === */
+  #guildPage {
+    --od-accent: #AFD7E6 !important;
+    --od-accent-rgb: 175, 215, 230 !important;
+    --od-accent-2: #7ec8e3 !important;
+  }
+  .section {
+    background: #141414 !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+  }
+  .section-h {
+    background: #1a1a1a !important;
+    border-bottom: 1px solid #2a2a2a !important;
+  }
+  .mod {
+    background: #111 !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+  }
+  .mod.is-on {
+    border-color: rgba(175,215,230,0.35) !important;
+    box-shadow: 0 0 0 1px rgba(175,215,230,0.08) !important;
+  }
+  .mod-nav {
+    background: #111 !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 10px !important;
+  }
+  .mod-nav a:hover, .mod-nav a.active {
+    color: #AFD7E6 !important;
+    border-color: rgba(175,215,230,0.3) !important;
+    background: rgba(175,215,230,0.1) !important;
+  }
+  .page-head h1 {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    color: #fff !important;
+  }
+  .cat-tag {
+    background: rgba(175,215,230,0.15) !important;
+    color: #AFD7E6 !important;
+    border-radius: 5px !important;
+  }
+  .btn-primary, button.btn-primary, .footer-bar .btn-primary {
+    background: linear-gradient(135deg, #AFD7E6, #7ec8e3) !important;
+    color: #0a0a0a !important;
+  }
+  .switch input:checked + .slider { background: #AFD7E6 !important; }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    border-color: rgba(175,215,230,0.45) !important;
+    box-shadow: 0 0 0 2px rgba(175,215,230,0.12) !important;
+  }
+
   #guildPage {
     --od-accent: #AFD7E6;
     --od-accent-rgb: 175, 215, 230;
