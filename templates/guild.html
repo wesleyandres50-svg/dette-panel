@@ -294,6 +294,7 @@
     <a href="#mod-economy" data-panel="sec-economy" class="side-item"><span class="ico">💰</span> Economía</a>
     <a href="#mod-shop" data-panel="sec-shop" class="side-item"><span class="ico">🛒</span> Tienda</a>
     <a href="#mod-tickets" data-panel="sec-tickets" class="side-item"><span class="ico">🎫</span> Tickets</a>
+    <a href="#mod-alianzas" data-panel="sec-alianzas" class="side-item"><span class="ico">🤝</span> Alianzas</a>
   </nav>
 
   <div class="side-section">Seguridad</div>
@@ -2154,7 +2155,75 @@
   </div>
 
   <!-- ===== AntiRaid Rework PREMIUM ===== -->
-  <div class="section sec-security" id="sec-antiraid-rework" data-section>
+  
+  <div class="section sec-community" id="sec-alianzas" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">AL</span> 🤝 Alianzas</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod-grid">
+        <div class="mod {% if config.get('alianzas', {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="alianzas">
+          <div class="mod-top">
+            <div class="mod-title">🤝 Alianzas</div>
+            <label class="switch">
+              <input type="checkbox" name="alianzas_enabled" data-toggle {% if config.get('alianzas', {}).get('enabled') %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="mod-desc">Publicar plantillas de tickets de alianza en un canal del servidor.</p>
+          <div class="mod-settings">
+            <div class="mod-settings-inner">
+              <div class="field">
+                <label>Canal de alianzas (ID)</label>
+                <input type="text" name="alianzas_channel" value="{{ config.get('alianzas', {}).get('channel_id', '') }}" placeholder="ID del canal #alianzas" />
+              </div>
+              <label class="check-line">
+                <input type="checkbox" name="alianzas_auto_publish" {% if config.get('alianzas', {}).get('auto_publish', true) %}checked{% endif %} />
+                Activar publicación desde ticket de alianza
+              </label>
+              <label class="check-line">
+                <input type="checkbox" name="alianzas_require_invite" {% if config.get('alianzas', {}).get('require_invite', true) %}checked{% endif %} />
+                Exigir invite <code>discord.gg</code> en la plantilla
+              </label>
+
+              <div class="grid2">
+                <div>
+                  <label>Canal revisión (ID)</label>
+                  <input type="text" name="alianzas_review_channel" value="{{ config.get('alianzas', {}).get('review_channel_id', '') }}" placeholder="staff revisa capturas" />
+                </div>
+                <div>
+                  <label>Categoría tickets (ID)</label>
+                  <input type="text" name="alianzas_category" value="{{ config.get('alianzas', {}).get('category_id', '') }}" />
+                </div>
+              </div>
+              <div class="grid2">
+                <div>
+                  <label>Rol soporte (ID)</label>
+                  <input type="text" name="alianzas_support_role" value="{{ config.get('alianzas', {}).get('support_role_id', '') }}" />
+                </div>
+                <div>
+                  <label>Color panel</label>
+                  <input type="text" name="alianzas_panel_color" value="{{ config.get('alianzas', {}).get('panel_color', '#AFD7E6') }}" />
+                </div>
+              </div>
+              <label>Título del panel</label>
+              <input type="text" name="alianzas_panel_title" value="{{ config.get('alianzas', {}).get('panel_title', 'Solicitud de Alianza') }}" />
+              <label>Descripción del panel</label>
+              <textarea name="alianzas_panel_description" rows="3">{{ config.get('alianzas', {}).get('panel_description', '') }}</textarea>
+              <label>Imagen del panel (URL)</label>
+              <input type="text" name="alianzas_panel_image" value="{{ config.get('alianzas', {}).get('panel_image', '') }}" placeholder="https://..." />
+              <label>Texto botón</label>
+              <input type="text" name="alianzas_button_label" value="{{ config.get('alianzas', {}).get('button_label', 'Solicitar alianza') }}" />
+              <p class="hint">En el bot: <code>o!panel alianza</code> o <code>o!alianza panel</code> envía el menú. En Tickets usa valor <code>alianza</code>. Staff publica en el canal de alianzas.</p>
+              <p class="hint">En Tickets crea una categoría con valor <code>alianza</code>. El usuario envía la plantilla y el staff pulsa <strong>Publicar en alianzas</strong>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<div class="section sec-security" id="sec-antiraid-rework" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">AR</span> 🛡️ AntiRaid Rework <span class="badge-new">PREMIUM</span></h2>
       <span class="chev">▼</span>
@@ -2315,7 +2384,7 @@
 
 <div class="section sec-tickets" id="sec-tickets" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
-      <h2><span class="cat-tag">06</span> 🎫 Tickets y alianzas</h2>
+      <h2><span class="cat-tag">06</span> 🎫 Tickets</h2>
       <span class="chev">▼</span>
     </div>
     <div class="section-body">
@@ -2342,63 +2411,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.get('alianzas', {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="alianzas">
-          <div class="mod-top">
-            <div class="mod-title">🤝 Alianzas</div>
-            <label class="switch">
-              <input type="checkbox" name="alianzas_enabled" data-toggle {% if config.get('alianzas', {}).get('enabled') %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <p class="mod-desc">Publicar plantillas de tickets de alianza en un canal del servidor.</p>
-          <div class="mod-settings">
-            <div class="mod-settings-inner">
-              <div class="field">
-                <label>Canal de alianzas (ID)</label>
-                <input type="text" name="alianzas_channel" value="{{ config.get('alianzas', {}).get('channel_id', '') }}" placeholder="ID del canal #alianzas" />
-              </div>
-              <label class="check-line">
-                <input type="checkbox" name="alianzas_auto_publish" {% if config.get('alianzas', {}).get('auto_publish', true) %}checked{% endif %} />
-                Activar publicación desde ticket de alianza
-              </label>
-              <label class="check-line">
-                <input type="checkbox" name="alianzas_require_invite" {% if config.get('alianzas', {}).get('require_invite', true) %}checked{% endif %} />
-                Exigir invite <code>discord.gg</code> en la plantilla
-              </label>
-
-              <div class="grid2">
-                <div>
-                  <label>Canal revisión (ID)</label>
-                  <input type="text" name="alianzas_review_channel" value="{{ config.get('alianzas', {}).get('review_channel_id', '') }}" placeholder="staff revisa capturas" />
-                </div>
-                <div>
-                  <label>Categoría tickets (ID)</label>
-                  <input type="text" name="alianzas_category" value="{{ config.get('alianzas', {}).get('category_id', '') }}" />
-                </div>
-              </div>
-              <div class="grid2">
-                <div>
-                  <label>Rol soporte (ID)</label>
-                  <input type="text" name="alianzas_support_role" value="{{ config.get('alianzas', {}).get('support_role_id', '') }}" />
-                </div>
-                <div>
-                  <label>Color panel</label>
-                  <input type="text" name="alianzas_panel_color" value="{{ config.get('alianzas', {}).get('panel_color', '#AFD7E6') }}" />
-                </div>
-              </div>
-              <label>Título del panel</label>
-              <input type="text" name="alianzas_panel_title" value="{{ config.get('alianzas', {}).get('panel_title', 'Solicitud de Alianza') }}" />
-              <label>Descripción del panel</label>
-              <textarea name="alianzas_panel_description" rows="3">{{ config.get('alianzas', {}).get('panel_description', '') }}</textarea>
-              <label>Imagen del panel (URL)</label>
-              <input type="text" name="alianzas_panel_image" value="{{ config.get('alianzas', {}).get('panel_image', '') }}" placeholder="https://..." />
-              <label>Texto botón</label>
-              <input type="text" name="alianzas_button_label" value="{{ config.get('alianzas', {}).get('button_label', 'Solicitar alianza') }}" />
-              <p class="hint">En el bot: <code>o!panel alianza</code> o <code>o!alianza panel</code> envía el menú. En Tickets usa valor <code>alianza</code>. Staff publica en el canal de alianzas.</p>
-              <p class="hint">En Tickets crea una categoría con valor <code>alianza</code>. El usuario envía la plantilla y el staff pulsa <strong>Publicar en alianzas</strong>.</p>
-            </div>
-          </div>
-        </div>
+        
 
       </div>
     </div>
