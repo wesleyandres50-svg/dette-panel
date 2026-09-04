@@ -1,8 +1,134 @@
 {% extends "base.html" %}
-{% block title %}Tickets · Odette{% endblock %}
-{% block content %}
-<div class="card"><h2 style="margin:0">Tickets</h2>
-<p class="hint">Página de tickets. Si falta contenido, el bot o la ruta lo rellenan.</p>
-<p style="margin-top:14px"><a class="btn" href="/dashboard">← Servidores</a></p>
+{% block title %}Tickets · {{ guild.name }} · Odette{% endblock %}
+{% block body %}
+{% set t = config.tickets or {} %}
+{% set opts = t.get('options') or [
+  {"label":"Soporte","emoji":"🛠️","description":"Ayuda general","value":"soporte"},
+  {"label":"Reporte","emoji":"🚨","description":"Reportar usuario","value":"reporte"}
+] %}
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">🦢</div>
+      <div>
+        <div class="name">Odette</div>
+        <div class="sub">{{ guild.name }}</div>
+      </div>
+    </div>
+    <div class="side-section">Tickets</div>
+    <nav class="side-nav">
+      <a class="active" href="/guild/{{ guild.id }}/tickets"><span class="ico">🎫</span> Configuración</a>
+      <a href="/guild/{{ guild.id }}#sec-tickets"><span class="ico">⚙️</span> Volver al servidor</a>
+    </nav>
+    <div class="side-footer">
+      <a href="/guild/{{ guild.id }}">← Configuración</a>
+      <a href="/dashboard">Servidores</a>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-btn" type="button" onclick="toggleSidebar()">☰</button>
+      <div class="crumb">{{ guild.name }} · <strong>Tickets</strong></div>
+      <div class="spacer"></div>
+      {% if user %}<div class="user-chip">{{ user.username }}</div>{% endif %}
+    </div>
+    <div class="content" style="max-width:900px">
+      <div style="margin-bottom:20px">
+        <h1 style="margin:0 0 6px;font-size:1.4rem">🎫 Sistema de tickets</h1>
+        <p style="margin:0;color:#888;font-size:0.9rem">Panel, categorías, mensajes y opciones del menú (estilo Ticket Tool).</p>
+      </div>
+
+      {% if request.query_params.get('ok') %}
+      <div class="alert alert-ok">✅ Tickets guardados. El bot aplicará los cambios al sincronizar.</div>
+      {% endif %}
+      {% if request.query_params.get('err') %}
+      <div class="alert alert-err">No se pudo guardar. Revisa la sesión e inténtalo de nuevo.</div>
+      {% endif %}
+
+      <form method="post" action="/guild/{{ guild.id }}/tickets/save">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+        <div class="card">
+          <div class="row-between" style="margin-bottom:14px">
+            <div>
+              <h2 style="margin:0;font-size:1rem">Activación</h2>
+              <p class="hint" style="margin:4px 0 0">Enciende el sistema y el canal donde se publica el panel.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" name="tickets_enabled" {% if t.get('enabled', true) %}checked{% endif %} />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="fields">
+            <div class="field">
+              <label>Canal del panel</label>
+              <input type="text" name="tickets_channel" value="{{ t.get('channel_id','') }}" placeholder="ID del canal" />
+            </div>
+            <div class="field">
+              <label>Categoría de tickets</label>
+              <input type="text" name="tickets_category" value="{{ t.get('category_id','') }}" placeholder="ID categoría" />
+            </div>
+            <div class="field">
+              <label>Rol de soporte</label>
+              <input type="text" name="tickets_support_role" value="{{ t.get('support_role_id','') }}" placeholder="ID rol staff" />
+            </div>
+            <div class="field">
+              <label>Máx. tickets abiertos / usuario</label>
+              <input type="number" name="tickets_max" value="{{ t.get('max_open_per_user', 1) }}" min="1" max="10" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 12px;font-size:1rem">Panel (mensaje en Discord)</h2>
+          <div class="fields">
+            <div class="field" style="grid-column:1/-1">
+              <label>Título</label>
+              <input type="text" name="tickets_panel_title" value="{{ t.get('panel_title','🎫 Soporte') }}" />
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label>Descripción del panel</label>
+              <textarea name="tickets_panel_message" rows="4">{{ t.get('panel_description') or t.get('panel_message') or 'Elige una opción para abrir un ticket.' }}</textarea>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label>Mensaje al abrir ticket</label>
+              <textarea name="tickets_open_message" rows="3">{{ t.get('welcome_message') or t.get('open_message') or 'Un staff te atenderá pronto.' }}</textarea>
+              <p class="hint">Variables útiles: {user} {server}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row-between" style="margin-bottom:12px">
+            <h2 style="margin:0;font-size:1rem">Opciones del menú</h2>
+            <span class="hint">Hasta 5 opciones en el select de Discord</span>
+          </div>
+          {% for i in range(1, 6) %}
+          {% set o = opts[i-1] if opts|length >= i else {} %}
+          <div style="display:grid;grid-template-columns:70px 1fr 1fr;gap:8px;margin-bottom:10px;padding:12px;background:#111;border:1px solid #2a2a2a;border-radius:10px">
+            <div class="field">
+              <label>Emoji</label>
+              <input type="text" name="tickets_opt_{{ i }}_emoji" value="{{ o.get('emoji','🎫') }}" />
+            </div>
+            <div class="field">
+              <label>Nombre</label>
+              <input type="text" name="tickets_opt_{{ i }}_label" value="{{ o.get('label','') }}" placeholder="Soporte" />
+            </div>
+            <div class="field">
+              <label>Descripción</label>
+              <input type="text" name="tickets_opt_{{ i }}_desc" value="{{ o.get('description','') }}" placeholder="Ayuda general" />
+            </div>
+            <input type="hidden" name="tickets_opt_{{ i }}_value" value="{{ o.get('value','') }}" />
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="row-between" style="margin-top:8px">
+          <a class="btn" href="/guild/{{ guild.id }}#sec-tickets">← Volver</a>
+          <button type="submit" class="btn btn-primary">Guardar tickets</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}
