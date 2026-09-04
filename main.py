@@ -59,14 +59,18 @@ OAUTH_AUTHORIZE = "https://discord.com/api/oauth2/authorize"
 OAUTH_TOKEN = "https://discord.com/api/oauth2/token"
 
 app = FastAPI(title="Odette Panel", docs_url=None, redoc_url=None, openapi_url=None)
+_SESSION_HTTPS = (PUBLIC_BASE_URL or DISCORD_REDIRECT_URI or "").lower().startswith("https://")
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
     max_age=60 * 60 * 24 * 7,
     same_site="lax",
-    https_only=True,
+    https_only=_SESSION_HTTPS,
     session_cookie="odette_session",
 )
+if not os.getenv("SECRET_KEY"):
+    print("[WARN] SECRET_KEY no definida: cada reinicio invalida sesiones (bucle login). Fíjala en Render.")
+
 
 _rate_buckets: dict = defaultdict(list)
 _RATE_WINDOW, _RATE_MAX, _RATE_API_MAX = 60.0, 90, 30
@@ -925,7 +929,7 @@ async def login(request: Request):
         "redirect_uri": DISCORD_REDIRECT_URI,
         "scope": "identify guilds",
         "state": state,
-        "prompt": "none",
+        # sin prompt=none → evita bucle de login
     }
     return RedirectResponse(f"{OAUTH_AUTHORIZE}?{urlencode(params)}", status_code=303)
 
@@ -934,10 +938,20 @@ async def login(request: Request):
 async def callback(request: Request, code: str = "", state: str = "", error: str = ""):
     if error:
         return RedirectResponse("/?error=oauth", status_code=303)
-    if not code or state != request.session.get("oauth_state"):
+    saved_state = request.session.get("oauth_state")
+    if not code or not state or state != saved_state:
         return templates.TemplateResponse(
             "index.html",
-            {"request": request, "user": None, "is_owner": False, "error": "Login inválido."},
+            {
+                "request": request,
+                "user": None,
+                "is_owner": False,
+                "error": (
+                    "Sesión de login expirada o cookie bloqueada. "
+                    "Recarga, acepta cookies y vuelve a iniciar sesión. "
+                    "En Render: fija SECRET_KEY en Environment (no debe cambiar al redeploy)."
+                ),
+            },
             status_code=400,
         )
     async with httpx.AsyncClient(timeout=20) as client:
