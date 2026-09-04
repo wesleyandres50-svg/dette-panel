@@ -1901,15 +1901,30 @@ async def guild_save(request: Request, guild_id: str):
         _panels = []
     if "tickets" not in config or not isinstance(config.get("tickets"), dict):
         config["tickets"] = config.get("tickets") or {}
-    config["tickets"]["panels"] = [
-        {
+    config["tickets"]["panels"] = []
+    for p in _panels[:15]:
+        if not isinstance(p, dict):
+            continue
+        name = str(p.get("name", "")).strip()[:80]
+        if not name:
+            continue
+        config["tickets"]["panels"].append({
+            "id": str(p.get("id") or secrets.token_hex(4))[:16],
             "emoji": str(p.get("emoji", "🎫"))[:16],
-            "name": str(p.get("name", ""))[:80],
-            "category_id": str(p.get("category_id", "")).strip(),
-        }
-        for p in _panels[:20]
-        if str(p.get("name", "")).strip()
-    ]
+            "name": name,
+            "category_id": str(p.get("category_id", "")).strip()[:32],
+            "channel_id": str(p.get("channel_id", "")).strip()[:32],
+            "support_role_id": str(p.get("support_role_id", "")).strip()[:32],
+            "panel_title": str(p.get("panel_title") or name)[:120],
+            "panel_description": str(p.get("panel_description") or "")[:1000],
+            "open_message": str(p.get("open_message") or "")[:1000],
+            "button_label": str(p.get("button_label") or "Abrir ticket")[:80],
+            "color": str(p.get("color") or "#AFD7E6")[:16],
+            "max_open": max(1, min(int(p.get("max_open") or 1), 10)) if str(p.get("max_open") or "").isdigit() or isinstance(p.get("max_open"), int) else 1,
+            "log_channel_id": str(p.get("log_channel_id") or "").strip()[:32],
+            "naming": str(p.get("naming") or "ticket-{user}")[:64],
+            "enabled": bool(p.get("enabled", True)),
+        })
 
     # --- alianzas ---
     config["alianzas"] = {
@@ -1929,19 +1944,23 @@ async def guild_save(request: Request, guild_id: str):
 
 
     
-    # --- Okaa-style modules save ---
-    config["jail"] = {
-        "enabled": form.get("jail_enabled") == "on",
-        "role_id": (form.get("jail_role_id") or "").strip()[:32],
-        "channel_id": (form.get("jail_channel_id") or "").strip()[:32],
-        "category_id": (form.get("jail_category_id") or "").strip()[:32],
-        "log_channel_id": (form.get("jail_log_channel_id") or "").strip()[:32],
-    }
+    # --- Okaa-style modules save (enriched) ---
+
     config["confessions"] = {
         "enabled": form.get("confessions_enabled") == "on",
         "channel_id": (form.get("confessions_channel_id") or "").strip()[:32],
         "log_channel_id": (form.get("confessions_log_channel_id") or "").strip()[:32],
+        "review_channel_id": (form.get("confessions_review_channel_id") or "").strip()[:32],
         "anonymous_default": form.get("confessions_anonymous") == "on",
+        "allow_named": form.get("confessions_allow_named") == "on",
+        "require_review": form.get("confessions_require_review") == "on",
+        "create_thread": form.get("confessions_thread") == "on",
+        "add_reactions": form.get("confessions_reactions") == "on",
+        "cooldown_seconds": max(0, min(_int("confessions_cooldown", 60), 86400)),
+        "max_length": max(50, min(_int("confessions_max_len", 1000), 2000)),
+        "color": (form.get("confessions_color") or "#AFD7E6").strip()[:16],
+        "title": (form.get("confessions_title") or "Confesión anónima")[:120],
+        "blocked_words": (form.get("confessions_blocked") or "")[:500],
     }
     config["birthdays"] = {
         "enabled": form.get("birthdays_enabled") == "on",
@@ -1950,62 +1969,108 @@ async def guild_save(request: Request, guild_id: str):
         "hour": (form.get("birthdays_hour") or "09:00").strip()[:8],
         "timezone": (form.get("birthdays_timezone") or "America/Mexico_City").strip()[:64],
         "message": (form.get("birthdays_message") or "")[:500],
+        "ping_role": form.get("birthdays_ping_role") == "on",
+        "dm_user": form.get("birthdays_dm") == "on",
+        "use_embed": form.get("birthdays_embed") == "on",
+        "group_same_day": form.get("birthdays_group") == "on",
+        "economy_reward": max(0, min(_int("birthdays_reward", 0), 1000000)),
+        "color": (form.get("birthdays_color") or "#FFB6C1")[:16],
     }
     config["suggestions"] = {
         "enabled": form.get("suggestions_enabled") == "on",
         "channel_id": (form.get("suggestions_channel_id") or "").strip()[:32],
+        "archive_channel_id": (form.get("suggestions_archive_channel") or "").strip()[:32],
         "staff_role_id": (form.get("suggestions_staff_role") or "").strip()[:32],
         "upvote_emoji": (form.get("suggestions_up") or "👍")[:16],
         "downvote_emoji": (form.get("suggestions_down") or "👎")[:16],
+        "color": (form.get("suggestions_color") or "#AFD7E6")[:16],
+        "create_thread": form.get("suggestions_threads") == "on",
+        "allow_anonymous": form.get("suggestions_anon") == "on",
+        "dm_on_status": form.get("suggestions_dm") == "on",
+        "staff_remove_votes": form.get("suggestions_remove_votes") == "on",
+        "numbering": form.get("suggestions_number") == "on",
+        "cooldown_seconds": max(0, min(_int("suggestions_cooldown", 30), 86400)),
+        "min_votes_highlight": max(1, min(_int("suggestions_min_votes", 10), 1000)),
+        "max_length": max(20, min(_int("suggestions_max_len", 500), 2000)),
+        "guide_message": (form.get("suggestions_guide") or "")[:500],
     }
     config["applications"] = {
         "enabled": form.get("applications_enabled") == "on",
         "channel_id": (form.get("applications_channel_id") or "").strip()[:32],
         "staff_role_id": (form.get("applications_staff_role") or "").strip()[:32],
+        "accept_role_id": (form.get("applications_accept_role") or "").strip()[:32],
+        "deny_role_id": (form.get("applications_deny_role") or "").strip()[:32],
         "title": (form.get("applications_title") or "Postulaciones")[:80],
+        "description": (form.get("applications_description") or "")[:500],
         "questions": (form.get("applications_questions") or "")[:2000],
+        "button_label": (form.get("applications_button") or "Postularme")[:80],
+        "color": (form.get("applications_color") or "#AFD7E6")[:16],
+        "dm_result": form.get("applications_dm") == "on",
+        "one_open_only": form.get("applications_one_open") == "on",
+        "log_accept": form.get("applications_log_accept") == "on",
+        "public_status": form.get("applications_public_status") == "on",
+        "msg_accept": (form.get("applications_msg_accept") or "")[:300],
+        "msg_deny": (form.get("applications_msg_deny") or "")[:300],
+        "cooldown_hours": max(0, min(_int("applications_cooldown_h", 24), 720)),
+    }
+    config["jail"] = {
+        "enabled": form.get("jail_enabled") == "on",
+        "role_id": (form.get("jail_role_id") or "").strip()[:32],
+        "channel_id": (form.get("jail_channel_id") or "").strip()[:32],
+        "category_id": (form.get("jail_category_id") or "").strip()[:32],
+        "log_channel_id": (form.get("jail_log_channel_id") or "").strip()[:32],
+        "strip_roles": form.get("jail_strip_roles") == "on",
+        "restore_roles": form.get("jail_restore_roles") == "on",
+        "dm_user": form.get("jail_dm") == "on",
+        "disconnect_voice": form.get("jail_voice") == "on",
+        "default_minutes": max(0, min(_int("jail_default_minutes", 0), 10080)),
+        "max_minutes": max(1, min(_int("jail_max_minutes", 10080), 43200)),
+        "message": (form.get("jail_message") or "")[:500],
     }
     config["sticky"] = {
         "enabled": form.get("sticky_enabled") == "on",
         "channel_id": (form.get("sticky_channel_id") or "").strip()[:32],
         "message": (form.get("sticky_message") or "")[:2000],
         "embed": form.get("sticky_embed") == "on",
-    }
-    config["audit"] = {
-        "enabled": form.get("audit_enabled") == "on",
-        "channel_id": (form.get("audit_channel_id") or "").strip()[:32],
-        "keep_days": max(1, min(_int("audit_keep_days", 90), 365)),
-    }
-    config["streamer_alerts"] = {
-        "enabled": form.get("streamer_enabled") == "on",
-        "channel_id": (form.get("streamer_channel_id") or "").strip()[:32],
-        "role_id": (form.get("streamer_role_id") or "").strip()[:32],
-        "twitch": form.get("streamer_twitch") == "on",
-        "youtube": form.get("streamer_youtube") == "on",
-        "kick": form.get("streamer_kick") == "on",
-        "message": (form.get("streamer_message") or "")[:300],
+        "delete_old": form.get("sticky_delete_old") == "on",
+        "after_messages": max(1, min(_int("sticky_after_messages", 1), 50)),
+        "cooldown_seconds": max(0, min(_int("sticky_cooldown", 5), 600)),
+        "title": (form.get("sticky_title") or "")[:120],
+        "color": (form.get("sticky_color") or "#AFD7E6")[:16],
     }
     config["temp_channels"] = {
         "enabled": form.get("temp_channels_enabled") == "on",
         "hub_channel_id": (form.get("temp_hub_channel_id") or "").strip()[:32],
         "category_id": (form.get("temp_category_id") or "").strip()[:32],
         "name_template": (form.get("temp_name_template") or "Canal de {user}")[:80],
-    }
-    config["reaction_roles"] = {
-        "enabled": form.get("reaction_roles_enabled") == "on",
-        "message_id": (form.get("rr_message_id") or "").strip()[:32],
-        "channel_id": (form.get("rr_channel_id") or "").strip()[:32],
-        "pairs": (form.get("rr_pairs") or "")[:3000],
+        "user_limit": max(0, min(_int("temp_user_limit", 0), 99)),
+        "owner_permissions": form.get("temp_owner_perms") == "on",
+        "copy_bitrate": form.get("temp_bitrate_copy") == "on",
+        "delete_when_empty": form.get("temp_delete_empty") == "on",
+        "delete_delay_seconds": max(0, min(_int("temp_delete_delay", 3), 300)),
     }
     config["media_channel"] = {
         "enabled": form.get("media_channel_enabled") == "on",
         "channel_id": (form.get("media_channel_id") or "").strip()[:32],
         "delete_non_media": form.get("media_delete_non") == "on",
+        "allow_links": form.get("media_allow_links") == "on",
+        "allow_gif": form.get("media_allow_gif") == "on",
+        "warn_user": form.get("media_warn") == "on",
+        "ignore_staff": form.get("media_ignore_staff") == "on",
+        "warn_text": (form.get("media_warn_text") or "")[:200],
     }
-    config["threads_mod"] = {
-        "enabled": form.get("threads_enabled") == "on",
-        "auto_archive_minutes": max(60, min(_int("threads_archive", 1440), 10080)),
-        "auto_create_on_react": form.get("threads_auto_react") == "on",
+    config["streamer_alerts"] = {
+        "enabled": form.get("streamer_enabled") == "on",
+        "channel_id": (form.get("streamer_channel_id") or "").strip()[:32],
+        "role_id": (form.get("streamer_role_id") or "").strip()[:32],
+        "streamer_role_id": (form.get("streamer_streamer_role") or "").strip()[:32],
+        "twitch": form.get("streamer_twitch") == "on",
+        "youtube": form.get("streamer_youtube") == "on",
+        "kick": form.get("streamer_kick") == "on",
+        "discord_status": form.get("streamer_discord_status") == "on",
+        "use_embed": form.get("streamer_embed") == "on",
+        "role_only": form.get("streamer_role_only") == "on",
+        "message": (form.get("streamer_message") or "")[:300],
     }
     config["gem_drops"] = {
         "enabled": form.get("gem_drops_enabled") == "on",
@@ -2013,11 +2078,30 @@ async def guild_save(request: Request, guild_id: str):
         "min_amount": max(1, min(_int("gem_min", 10), 100000)),
         "max_amount": max(1, min(_int("gem_max", 100), 1000000)),
         "chance_percent": max(1, min(_int("gem_chance", 5), 100)),
+        "cooldown_seconds": max(10, min(_int("gem_cooldown", 120), 86400)),
+        "claim_seconds": max(5, min(_int("gem_claim_time", 30), 600)),
+        "use_button": form.get("gem_button") == "on",
+        "ignore_bots": form.get("gem_ignore_bots") == "on",
+        "emoji": (form.get("gem_emoji") or "💎")[:16],
+    }
+    config["reaction_roles"] = {
+        "enabled": form.get("reaction_roles_enabled") == "on",
+        "message_id": (form.get("rr_message_id") or "").strip()[:32],
+        "channel_id": (form.get("rr_channel_id") or "").strip()[:32],
+        "pairs": (form.get("rr_pairs") or "")[:3000],
+        "unique": form.get("rr_unique") == "on",
+        "remove_on_unreact": form.get("rr_remove_on_unreact") == "on",
+        "dm_on_add": form.get("rr_dm") == "on",
     }
     config["command_access"] = {
         "admin_bypass": form.get("cmd_admin_bypass") == "on",
         "notify_blocked": form.get("cmd_notify_blocked") == "on",
+        "block_dms": form.get("cmd_block_dms") == "on",
+        "strict_channels": form.get("cmd_disabled_channels_strict") == "on",
         "exempt_role_ids": (form.get("cmd_exempt_roles") or "")[:500],
+        "allow_channel_ids": (form.get("cmd_allow_channels") or "")[:500],
+        "deny_channel_ids": (form.get("cmd_deny_channels") or "")[:500],
+        "disabled_commands": (form.get("cmd_disabled") or "")[:500],
         "rules": (form.get("cmd_rules") or "")[:4000],
     }
     config["embeds_panels"] = {
@@ -2026,6 +2110,25 @@ async def guild_save(request: Request, guild_id: str):
         "description": (form.get("embeds_description") or "")[:2000],
         "color": (form.get("embeds_color") or "#AFD7E6")[:16],
         "channel_id": (form.get("embeds_channel_id") or "").strip()[:32],
+        "url": (form.get("embeds_url") or "")[:300],
+        "footer": (form.get("embeds_footer") or "")[:120],
+        "image": (form.get("embeds_image") or "")[:300],
+        "thumbnail": (form.get("embeds_thumb") or "")[:300],
+    }
+    config["threads_mod"] = {
+        "enabled": form.get("threads_enabled") == "on",
+        "auto_archive_minutes": max(60, min(_int("threads_archive", 1440), 10080)),
+        "auto_create_on_react": form.get("threads_auto_react") == "on",
+        "auto_channel_ids": (form.get("threads_auto_channels") or "")[:500],
+        "name_from_message": form.get("threads_name_from_msg") == "on",
+        "invitable": form.get("threads_invitable") == "on",
+    }
+    config["audit"] = {
+        "enabled": form.get("audit_enabled") == "on",
+        "channel_id": (form.get("audit_channel_id") or "").strip()[:32],
+        "keep_days": max(1, min(_int("audit_keep_days", 90), 365)),
+        "log_saves": form.get("audit_log_saves") == "on",
+        "log_premium": form.get("audit_log_premium") == "on",
     }
 
     config["_panel_saved"] = True
@@ -2081,6 +2184,10 @@ async def tickets_page(request: Request, guild_id: str):
         config = get_guild_config(guild_id)
     except Exception:
         config = _default_config()
+    try:
+        channels, roles = await fetch_guild_channels_and_roles(str(guild_id))
+    except Exception:
+        channels, roles = [], []
     return _safe_template_response(
         "tickets.html",
         {
@@ -2089,8 +2196,11 @@ async def tickets_page(request: Request, guild_id: str):
             "guild": guild,
             "config": config,
             "csrf_token": _csrf_token(request),
+            "channels": channels,
+            "roles": roles,
         },
     )
+
 
 
 @app.post("/guild/{guild_id}/tickets/save")
@@ -2111,57 +2221,85 @@ async def tickets_save(request: Request, guild_id: str):
         return _form_str(form, name, default)
 
     def _int(name, default=0):
-        return _form_int(form, name, default)
+        try:
+            return int(str(form.get(name) or default))
+        except Exception:
+            return default
 
+    # Multi-panel JSON from editor
+    panels = []
+    raw = _s("ticket_panels_json") or "[]"
+    try:
+        import json as _json
+        data = _json.loads(raw)
+        if isinstance(data, list):
+            for p in data[:15]:
+                if not isinstance(p, dict):
+                    continue
+                name = str(p.get("name") or "").strip()[:80]
+                if not name:
+                    continue
+                panels.append({
+                    "id": str(p.get("id") or secrets.token_hex(4))[:16],
+                    "emoji": str(p.get("emoji") or "🎫")[:16],
+                    "name": name,
+                    "category_id": str(p.get("category_id") or "").strip()[:32],
+                    "channel_id": str(p.get("channel_id") or "").strip()[:32],
+                    "support_role_id": str(p.get("support_role_id") or "").strip()[:32],
+                    "panel_title": str(p.get("panel_title") or name)[:120],
+                    "panel_description": str(p.get("panel_description") or "")[:1000],
+                    "open_message": str(p.get("open_message") or "")[:1000],
+                    "button_label": str(p.get("button_label") or "Abrir ticket")[:80],
+                    "color": str(p.get("color") or "#AFD7E6")[:16],
+                    "max_open": max(1, min(int(p.get("max_open") or 1), 10)),
+                    "log_channel_id": str(p.get("log_channel_id") or "").strip()[:32],
+                    "naming": str(p.get("naming") or "ticket-{user}")[:64],
+                    "enabled": bool(p.get("enabled", True)),
+                })
+    except Exception as e:
+        print(f"[tickets_save] panels json: {e}")
+
+    # Global defaults (also used as fallback if no panels)
     config = get_guild_config(guild_id)
-    options = []
-    for i in range(25):
+    prev = config.get("tickets") if isinstance(config.get("tickets"), dict) else {}
+    config["tickets"] = {
+        **prev,
+        "enabled": form.get("tickets_enabled") == "on",
+        "channel_id": _s("tickets_channel").strip()[:32],
+        "category_id": _s("tickets_category").strip()[:32],
+        "support_role_id": _s("tickets_support_role").strip()[:32],
+        "max_open_per_user": max(1, min(_int("tickets_max", 1), 10)),
+        "panel_title": _s("tickets_panel_title", "🎫 Soporte")[:100],
+        "panel_description": _s("tickets_panel_message")[:1000],
+        "panel_message": _s("tickets_panel_message")[:1000],
+        "open_message": _s("tickets_open_message")[:1000],
+        "welcome_message": _s("tickets_open_message")[:1000],
+        "button_label": _s("tickets_button_label", "Abrir ticket")[:80],
+        "log_channel_id": _s("tickets_log_channel").strip()[:32],
+        "naming": _s("tickets_naming", "ticket-{user}")[:64],
+        "close_confirmation": form.get("tickets_close_confirm") == "on",
+        "transcript": form.get("tickets_transcript") == "on",
+        "claim_button": form.get("tickets_claim") == "on",
+        "panels": panels,
+    }
+    # Menu options (legacy single-panel options)
+    opts = []
+    for i in range(1, 6):
         label = (form.get(f"tickets_opt_{i}_label") or "").strip()[:100]
         if not label:
             continue
-        value = (form.get(f"tickets_opt_{i}_value") or "").strip()[:50]
-        if not value:
-            value = "".join(c for c in label.lower().replace(" ", "-") if c.isalnum() or c in "-_")[:50] or f"opt{i}"
-        options.append({
-            "label": label,
+        opts.append({
             "emoji": (form.get(f"tickets_opt_{i}_emoji") or "🎫").strip()[:8] or "🎫",
+            "label": label,
+            "value": (form.get(f"tickets_opt_{i}_value") or label.lower().replace(" ", "-"))[:50],
             "description": (form.get(f"tickets_opt_{i}_desc") or "").strip()[:100],
-            "value": value,
         })
-    if not options:
-        options = [
-            {"label": "Soporte", "emoji": "🛠️", "description": "Ayuda general", "value": "soporte"},
-            {"label": "Reporte", "emoji": "🚨", "description": "Reportar usuario", "value": "reporte"},
-        ]
-    panel_desc = _s("tickets_panel_message").strip()[:1500]
-    welcome = _s("tickets_open_message").strip()[:1500]
-    try:
-        tmax = max(1, min(int(form.get("tickets_max") or 1), 10))
-    except Exception:
-        tmax = 1
-    prev_t = config.get("tickets") if isinstance(config.get("tickets"), dict) else {}
-    config["tickets"] = {
-        "enabled": form.get("tickets_enabled") == "on",
-        "channel_id": _s("tickets_channel").strip(),
-        "category_id": _s("tickets_category").strip(),
-        "support_role_id": _s("tickets_support_role").strip(),
-        "panel_title": (form.get("tickets_panel_title") or "🎫 Soporte").strip()[:100],
-        "panel_description": panel_desc,
-        "panel_message": panel_desc,
-        "welcome_message": welcome,
-        "open_message": welcome,
-        "max_open_per_user": tmax,
-        "options": options,
-        "button_label": "Abrir ticket",
-        "panels": prev_t.get("panels") or [],
-    }
+    config["tickets"]["options"] = opts
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
     save_guild_config(guild_id, config)
     return RedirectResponse(f"/guild/{guild_id}/tickets?ok=1", status_code=303)
 
-
-# ── Verificación web ──
 
 @app.get("/verify/{guild_id}", response_class=HTMLResponse)
 async def verify_start(request: Request, guild_id: str, token: str = ""):
