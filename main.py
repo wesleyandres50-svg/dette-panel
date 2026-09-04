@@ -2131,6 +2131,22 @@ async def guild_save(request: Request, guild_id: str):
         "log_premium": form.get("audit_log_premium") == "on",
     }
 
+
+    # welcome extras
+    if isinstance(config.get("welcome"), dict):
+        config["welcome"]["title"] = _s("welcome_title", config["welcome"].get("title") or "¡Bienvenido/a!")[:120]
+        config["welcome"]["color"] = _s("welcome_color", "#AFD7E6")[:16]
+        config["welcome"]["image"] = _s("welcome_image").strip()[:500]
+        config["welcome"]["use_embed"] = form.get("welcome_embed") == "on"
+        config["welcome"]["dm_enabled"] = form.get("welcome_dm") == "on"
+        config["welcome"]["ping_user"] = form.get("welcome_ping") == "on"
+        config["welcome"]["delete_after"] = form.get("welcome_delete_after") == "on"
+        try:
+            config["welcome"]["delete_seconds"] = max(0, min(int(form.get("welcome_delete_seconds") or 0), 600))
+        except Exception:
+            config["welcome"]["delete_seconds"] = 0
+        config["welcome"]["dm_message"] = _s("welcome_dm_message")[:500]
+
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
     try:
