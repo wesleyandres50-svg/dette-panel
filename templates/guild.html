@@ -364,6 +364,7 @@
 
   <div class="side-section">Moderación+</div>
   <nav class="side-nav">
+    <a href="#mod-logs" data-panel="sec-logs" class="side-item"><span class="ico">📋</span> Registros (logs)</a>
     <a href="#mod-jail" data-panel="sec-jail" class="side-item"><span class="ico">🔒</span> Cárcel <span class="badge-new">NUEVO</span></a>
     <a href="#mod-audit" data-panel="sec-audit" class="side-item"><span class="ico">📜</span> Auditoría <span class="badge-new">NUEVO</span></a>
     <a href="#mod-rr" data-panel="sec-rr" class="side-item"><span class="ico">🎯</span> Roles por reacción <span class="badge-new">NUEVO</span></a>
@@ -2602,6 +2603,68 @@
             <div class="field"><label>Título</label><input type="text" name="embeds_title" value="{{ ep.get('title') or '' }}" /></div>
           </div>
           <div class="field"><label>Descripción</label><textarea name="embeds_description" rows="4">{{ ep.get('description') or '' }}</textarea></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="section sec-mod" id="sec-logs" data-section>
+    <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2><span class="cat-tag">MD</span> 📋 Registros (logs)</h2>
+      <span class="chev">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="mod {% if (config.logs or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="logs">
+        <div class="mod-top">
+          <div class="mod-title">Registros / Logs</div>
+          <label class="switch">
+            <input type="checkbox" name="logs_enabled" data-toggle {% if (config.logs or {}).get('enabled') %}checked{% endif %} />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="mod-desc">Registro de moderación y actividad del servidor (estilo Carl / Dyno / Wick). Elige el canal y qué eventos enviar.</p>
+        <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+          {% set lg = config.logs or {} %}
+          {% set ev = lg.events or {} %}
+          <div class="fields">
+            <div class="field">
+              <label>Canal de logs</label>
+              <select name="logs_channel">
+                <option value="">— Sin canal —</option>
+                {% for c in channels or [] %}
+                <option value="{{ c.id }}" {% if lg.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px">
+            <button type="button" class="btn" id="logSelectAll">Seleccionar todos</button>
+            <button type="button" class="btn" id="logSelectNone">Ninguno</button>
+          </div>
+          <div style="font-size:0.72rem;color:#888;font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.06em">Mensajes</div>
+          <label class="check-line"><input type="checkbox" name="log_ev_message_delete" class="log-ev" {% if ev.get('message_delete', true) %}checked{% endif %} /> Mensaje eliminado</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_message_edit" class="log-ev" {% if ev.get('message_edit', true) %}checked{% endif %} /> Mensaje editado</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_message_bulk" class="log-ev" {% if ev.get('message_bulk', true) %}checked{% endif %} /> Borrado masivo</label>
+          <div style="font-size:0.72rem;color:#888;font-weight:600;margin:12px 0 4px;text-transform:uppercase;letter-spacing:0.06em">Miembros</div>
+          <label class="check-line"><input type="checkbox" name="log_ev_member_join" class="log-ev" {% if ev.get('member_join', true) %}checked{% endif %} /> Entrada</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_member_leave" class="log-ev" {% if ev.get('member_leave', true) %}checked{% endif %} /> Salida</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_member_ban" class="log-ev" {% if ev.get('member_ban', true) %}checked{% endif %} /> Ban</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_member_unban" class="log-ev" {% if ev.get('member_unban', true) %}checked{% endif %} /> Unban</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_nickname" class="log-ev" {% if ev.get('nickname', true) %}checked{% endif %} /> Apodo</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_roles" class="log-ev" {% if ev.get('roles', true) %}checked{% endif %} /> Roles</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_avatar" class="log-ev" {% if ev.get('avatar', true) %}checked{% endif %} /> Avatar</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_username" class="log-ev" {% if ev.get('username', true) %}checked{% endif %} /> Username</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_timeout" class="log-ev" {% if ev.get('timeout', true) %}checked{% endif %} /> Timeout</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_voice" class="log-ev" {% if ev.get('voice', false) %}checked{% endif %} /> Voz (join/leave/move)</label>
+          <div style="font-size:0.72rem;color:#888;font-weight:600;margin:12px 0 4px;text-transform:uppercase;letter-spacing:0.06em">Servidor</div>
+          <label class="check-line"><input type="checkbox" name="log_ev_channel_create" class="log-ev" {% if ev.get('channel_create', true) %}checked{% endif %} /> Canal creado</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_channel_delete" class="log-ev" {% if ev.get('channel_delete', true) %}checked{% endif %} /> Canal eliminado</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_role_create" class="log-ev" {% if ev.get('role_create', false) %}checked{% endif %} /> Rol creado</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_role_delete" class="log-ev" {% if ev.get('role_delete', false) %}checked{% endif %} /> Rol eliminado</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_invite_create" class="log-ev" {% if ev.get('invite_create', false) %}checked{% endif %} /> Invite creada</label>
+          <label class="check-line"><input type="checkbox" name="log_ev_invite_delete" class="log-ev" {% if ev.get('invite_delete', false) %}checked{% endif %} /> Invite eliminada</label>
+          <p class="hint" style="margin-top:12px">El bot debe tener permiso de Ver registro de auditoría y Enviar mensajes en el canal de logs.</p>
         </div></div>
       </div>
     </div>
