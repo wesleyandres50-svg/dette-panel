@@ -2,6 +2,96 @@
 {% block title %}{{ guild.name }} · Odette{% endblock %}
 {% block extra_css %}
 
+  /* === Single module view (Okaa-style) === */
+  #guildPage.single-mod .page-head {
+    margin-bottom: 12px;
+  }
+  #guildPage.single-mod .page-head .head-actions {
+    display: none;
+  }
+  #guildPage .fields {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+    gap: 14px !important;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .fields {
+    margin-top: 8px;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .field label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #666;
+  }
+
+  #guildPage.single-mod .section { display: none !important; border: none !important; background: transparent !important; }
+  #guildPage.single-mod .section.is-active-section {
+    display: block !important;
+  }
+  #guildPage.single-mod .section.is-active-section > .section-h {
+    display: none !important; /* el título lo pone el page-head */
+  }
+  #guildPage.single-mod .section.is-active-section > .section-body {
+    padding: 0 !important;
+  }
+  #guildPage.single-mod .mod-grid {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+  #guildPage.single-mod .mod {
+    display: none !important;
+    margin: 0 !important;
+    max-width: 920px;
+  }
+  #guildPage.single-mod .mod.is-focused-mod {
+    display: block !important;
+    background: #141414 !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 14px !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .mod-top {
+    padding: 18px 20px;
+    border-bottom: 1px solid #2a2a2a;
+    background: #1a1a1a;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .mod-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .mod-desc {
+    padding: 12px 20px 0;
+    color: #888;
+    font-size: 0.85rem;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .mod-settings {
+    display: block !important;
+    border-top: none !important;
+    padding: 8px 20px 20px !important;
+  }
+  #guildPage.single-mod .mod.is-focused-mod.is-on {
+    border-color: rgba(175,215,230,0.35) !important;
+  }
+  #guildPage.single-mod .mod-nav { display: none !important; }
+  #guildPage .module-page-title {
+    margin: 0 0 18px;
+  }
+  #guildPage .module-page-title h2 {
+    margin: 0 0 6px;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  #guildPage .module-page-title p {
+    margin: 0;
+    color: #888;
+    font-size: 0.88rem;
+  }
+  @media (max-width: 900px) {
+    #guildPage.single-mod .mod.is-focused-mod { border-radius: 12px !important; }
+  }
+
+
   /* === Look Okaa (oscuro plano) + Odette cyan === */
   #guildPage {
     --od-accent: #AFD7E6 !important;
@@ -166,44 +256,47 @@
     <div class="logo">🦢</div>
     <div>
       <div class="name">Odette</div>
-      <div style="font-size:0.68rem;color:var(--muted-2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ guild.name }}</div>
+      <div class="sub" title="{{ guild.name }}">{{ guild.name }}</div>
     </div>
   </div>
 
   <div class="side-section">General</div>
   <nav class="side-nav">
-    <a href="#sec-estilo" data-panel="sec-estilo" class="side-item active"><span class="ico">⚙️</span> Ajustes</a>
-    <a href="#sec-perfilbot" data-panel="sec-perfilbot" class="side-item"><span class="ico">🎨</span> Perfil del bot <span class="badge-new">NUEVO</span></a>
+    <a href="#mod-estilo" data-panel="sec-estilo" class="side-item active"><span class="ico">🎨</span> Estilo / Color</a>
+    <a href="#mod-perfil" data-panel="sec-perfilbot" class="side-item"><span class="ico">🏷️</span> Perfil del bot</a>
   </nav>
 
   <div class="side-section">Miembros</div>
   <nav class="side-nav">
-    <a href="#sec-comunidad" data-panel="sec-comunidad" class="side-item"><span class="ico">👋</span> Bienvenidas</a>
-    <a href="#sec-comunidad" data-panel="sec-comunidad" data-focus="booster" class="side-item"><span class="ico">💎</span> Boosts <span class="badge-new">NUEVO</span></a>
-    <a href="#sec-comunidad" data-panel="sec-comunidad" data-focus="autorole" class="side-item"><span class="ico">👤</span> Auto Roles</a>
+    <a href="#mod-welcome" data-panel="sec-comunidad" data-focus="welcome" class="side-item"><span class="ico">👋</span> Bienvenida</a>
+    <a href="#mod-autorole" data-panel="sec-comunidad" data-focus="autorole" class="side-item"><span class="ico">👤</span> Auto Roles</a>
+    <a href="#mod-booster" data-panel="sec-comunidad" data-focus="booster" class="side-item"><span class="ico">💎</span> Boosts</a>
   </nav>
 
   <div class="side-section">Comunidad</div>
   <nav class="side-nav">
-    <a href="#sec-levels" data-panel="sec-levels" class="side-item"><span class="ico">📊</span> Niveles (XP) <span class="badge-new">NUEVO</span></a>
-    <a href="#sec-comunidad" data-panel="sec-comunidad" data-focus="starboard" class="side-item"><span class="ico">⭐</span> Starboard</a>
-    <a href="#sec-economy" data-panel="sec-economy" class="side-item"><span class="ico">💰</span> Economía</a>
-    <a href="#sec-tickets" data-panel="sec-tickets" class="side-item"><span class="ico">🎫</span> Tickets</a>
-    <a href="#sec-shop" data-panel="sec-shop" class="side-item"><span class="ico">🛒</span> Tienda</a>
+    <a href="#mod-levels" data-panel="sec-levels" class="side-item"><span class="ico">⭐</span> Niveles (XP)</a>
+    <a href="#mod-starboard" data-panel="sec-comunidad" data-focus="starboard" class="side-item"><span class="ico">⭐</span> Starboard</a>
+    <a href="#mod-nsfw" data-panel="sec-comunidad" data-focus="nsfw" class="side-item"><span class="ico">🔞</span> NSFW</a>
+    <a href="#mod-economy" data-panel="sec-economy" class="side-item"><span class="ico">💰</span> Economía</a>
+    <a href="#mod-shop" data-panel="sec-shop" class="side-item"><span class="ico">🛒</span> Tienda</a>
+    <a href="#mod-tickets" data-panel="sec-tickets" class="side-item"><span class="ico">🎫</span> Tickets</a>
   </nav>
 
-  <div class="side-section">Moderación</div>
+  <div class="side-section">Seguridad</div>
   <nav class="side-nav">
-    <a href="#sec-seguridad" data-panel="sec-seguridad" class="side-item"><span class="ico">🛡️</span> Anti-raid</a>
-    <a href="#sec-moderacion" data-panel="sec-moderacion" class="side-item"><span class="ico">🔨</span> Moderación</a>
-    <a href="#sec-utilidad" data-panel="sec-utilidad" class="side-item"><span class="ico">🧰</span> Utilidad</a>
-    <a href="#sec-social" data-panel="sec-social" class="side-item"><span class="ico">🎉</span> Social / Fun</a>
+    <a href="#mod-antiraid" data-panel="sec-seguridad" data-focus="antiraid" class="side-item"><span class="ico">🛡️</span> Anti-Raid</a>
+    <a href="#mod-automod" data-panel="sec-seguridad" data-focus="automod" class="side-item"><span class="ico">🤖</span> AutoMod</a>
+    <a href="#mod-verify" data-panel="sec-seguridad" data-focus="verify" class="side-item"><span class="ico">✅</span> Verificación</a>
+    <a href="#mod-mod" data-panel="sec-moderacion" class="side-item"><span class="ico">🔨</span> Moderación</a>
   </nav>
 
-  <div class="side-section">Avanzado</div>
+  <div class="side-section">Extra</div>
   <nav class="side-nav">
-    <a href="#sec-socialnet" data-panel="sec-socialnet" class="side-item"><span class="ico">🌐</span> Redes</a>
-    <a href="#sec-owner" data-panel="sec-owner" class="side-item"><span class="ico">👑</span> Owner</a>
+    <a href="#mod-util" data-panel="sec-utilidad" class="side-item"><span class="ico">🧰</span> Utilidad</a>
+    <a href="#mod-social" data-panel="sec-social" class="side-item"><span class="ico">🎉</span> Social / Fun</a>
+    <a href="#mod-redes" data-panel="sec-socialnet" class="side-item"><span class="ico">🌐</span> Redes</a>
+    {% if is_owner %}<a href="#mod-owner" data-panel="sec-owner" class="side-item"><span class="ico">👑</span> Owner</a>{% endif %}
   </nav>
 
   <div class="side-footer">
@@ -211,7 +304,7 @@
     <a href="/dashboard">← Servidores</a>
   </div>
 </aside>
-{% endblock %}
+
 {% block topbar %}
 <div class="topbar">
   <button class="menu-btn" type="button" onclick="toggleSidebar()">☰</button>
@@ -730,6 +823,12 @@
   <a href="https://discord.gg/CfmZtJZ2w" target="_blank" rel="noopener">💬 Soporte</a>
 </nav>
 
+
+<div class="module-page-title" id="modulePageTitle">
+  <h2>Configuración</h2>
+  <p>Elige un módulo en el menú lateral</p>
+</div>
+
 <form method="post" action="/guild/{{ guild.id }}/save" id="guildForm">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
 
@@ -744,9 +843,9 @@
       <span class="chev">▼</span>
     </div>
     <div class="section-body">
-      <div class="mod is-on" style="max-width:100%">
-        <div class="mod-top">
-          <div class="mod-title">Color de embeds</div>
+      <div class="mod is-on" data-mod data-mod-id="color-de-embeds">
+          <div class="mod-top">
+            <div class="mod-title">Color de embeds</div>
         </div>
         <p class="mod-desc">Color principal de los embeds de respuesta en este servidor (comandos, bienvenidas, utilidades…).</p>
         <div class="mod-settings" style="display:block;border-top:none">
@@ -798,9 +897,9 @@
     </div>
     <div class="section-body">
       {% if is_owner %}
-      <div class="mod is-on" style="max-width:100%;margin-bottom:12px;border:1px solid rgba(59,165,93,0.35)">
-        <div class="mod-top">
-          <div class="mod-title">🆓 Free · perfil global</div>
+      <div class="mod is-on" data-mod data-mod-id="free-perfil-global">
+          <div class="mod-top">
+            <div class="mod-title">🆓 Free · perfil global</div>
           <label class="switch">
             <input type="checkbox" name="free_profile" {% if free_on %}checked{% endif %} />
             <span class="slider"></span>
@@ -813,9 +912,9 @@
       </div>
       {% endif %}
 
-      <div class="mod {% if can_profile %}is-on{% endif %}" style="max-width:100%;{% if not can_profile %}opacity:0.65{% endif %}">
-        <div class="mod-top">
-          <div class="mod-title">Apodo y marca en <b>este</b> servidor</div>
+      <div class="mod {% if can_profile %}is-on{% endif %}" data-mod data-mod-id="apodo-y-marca-en">
+          <div class="mod-top">
+            <div class="mod-title">Apodo y marca en<b>este</b> servidor</div>
           {% if can_profile %}
             <span class="badge badge-gold">Disponible</span>
           {% else %}
@@ -902,7 +1001,7 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod mod-wide {% if config.anti_raid.enabled %}is-on{% endif %}" data-mod id="sec-antiraid">
+        <div class="mod mod-wide {% if config.anti_raid.enabled %}is-on{% endif %}" data-mod data-mod-id="antiraid">
           <div class="mod-top">
             <div class="mod-title">Anti-Raid + Anti-Nuke</div>
             <label class="switch">
@@ -976,7 +1075,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.automod.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.automod.enabled %}is-on{% endif %}" data-mod data-mod-id="automod">
           <div class="mod-top">
             <div class="mod-title">AutoMod</div>
             <label class="switch">
@@ -1010,9 +1109,9 @@
           </div>
         </div>
 
-        <div class="mod mod-wide {% if config.ia.enabled and premium %}is-on{% endif %} {% if not premium %}prem-lock{% endif %}" data-mod>
+        <div class="mod mod-wide {% if config.ia.enabled and premium %}is-on{% endif %} {% if not premium %}prem-lock{% endif %}" data-mod data-mod-id="ia-del-servidor">
           <div class="mod-top">
-            <div class="mod-title">🤖 IA del servidor <span class="badge badge-gold">Premium</span></div>
+            <div class="mod-title">🤖 IA del servidor<span class="badge badge-gold">Premium</span></div>
             <label class="switch">
               <input type="checkbox" name="ia_enabled" data-toggle
                 {% if config.ia.enabled and premium %}checked{% endif %}
@@ -1091,7 +1190,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.raidmode.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.raidmode.enabled %}is-on{% endif %}" data-mod data-mod-id="raidmode">
           <div class="mod-top">
             <div class="mod-title">Raid Mode</div>
             <label class="switch">
@@ -1107,7 +1206,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.antihoist.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.antihoist.enabled %}is-on{% endif %}" data-mod data-mod-id="antihoist">
           <div class="mod-top">
             <div class="mod-title">Anti-Hoist</div>
             <label class="switch">
@@ -1123,7 +1222,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.quarantine.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.quarantine.enabled %}is-on{% endif %}" data-mod data-mod-id="quarantine">
           <div class="mod-top">
             <div class="mod-title">Cuarentena</div>
             <label class="switch">
@@ -1160,7 +1259,7 @@
           </div>
         </div>
 
-        <div class="mod mod-wide {% if config.verify.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod mod-wide {% if config.verify.enabled %}is-on{% endif %}" data-mod data-mod-id="verify">
           <div class="mod-top">
             <div class="mod-title">Verificación web</div>
             <label class="switch">
@@ -1202,7 +1301,7 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod {% if config.welcome.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.welcome.enabled %}is-on{% endif %}" data-mod data-mod-id="welcome">
           <div class="mod-top">
             <div class="mod-title">Bienvenida</div>
             <label class="switch">
@@ -1233,7 +1332,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.autorole.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.autorole.enabled %}is-on{% endif %}" data-mod data-mod-id="autorole">
           <div class="mod-top">
             <div class="mod-title">Autorole</div>
             <label class="switch">
@@ -1259,7 +1358,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.booster.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.booster.enabled %}is-on{% endif %}" data-mod data-mod-id="booster">
           <div class="mod-top">
             <div class="mod-title">Booster</div>
             <label class="switch">
@@ -1287,7 +1386,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.levels.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.levels.enabled %}is-on{% endif %}" data-mod data-mod-id="levels">
           <div class="mod-top">
             <div class="mod-title">Niveles / XP</div>
             <span style="font-size:0.78rem;opacity:0.75">{% if config.levels.enabled %}🟢 ON{% else %}🔴 OFF{% endif %}</span>
@@ -1298,7 +1397,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.starboard.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.starboard.enabled %}is-on{% endif %}" data-mod data-mod-id="starboard">
           <div class="mod-top">
             <div class="mod-title">Starboard</div>
             <label class="switch">
@@ -1328,7 +1427,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.nsfw.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.nsfw.enabled %}is-on{% endif %}" data-mod data-mod-id="nsfw">
           <div class="mod-top">
             <div class="mod-title">NSFW</div>
             <label class="switch">
@@ -1357,7 +1456,7 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod mod-wide {% if config.logs.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod mod-wide {% if config.logs.enabled %}is-on{% endif %}" data-mod data-mod-id="logs-carl-wick-dyno">
           <div class="mod-top">
             <div class="mod-title">📋 Logs (Carl / Wick / Dyno)</div>
             <label class="switch">
@@ -1406,7 +1505,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.reports.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.reports.enabled %}is-on{% endif %}" data-mod data-mod-id="reportes">
           <div class="mod-top">
             <div class="mod-title">Reportes</div>
             <label class="switch">
@@ -1425,7 +1524,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.suggest.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.suggest.enabled %}is-on{% endif %}" data-mod data-mod-id="sugerencias">
           <div class="mod-top">
             <div class="mod-title">Sugerencias</div>
             <label class="switch">
@@ -1444,7 +1543,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.modnotes.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.modnotes.enabled %}is-on{% endif %}" data-mod data-mod-id="mod-notes">
           <div class="mod-top">
             <div class="mod-title">Mod Notes</div>
             <label class="switch">
@@ -1460,7 +1559,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.watchlist.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.watchlist.enabled %}is-on{% endif %}" data-mod data-mod-id="watchlist">
           <div class="mod-top">
             <div class="mod-title">Watchlist</div>
             <label class="switch">
@@ -1476,7 +1575,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.reaction_roles.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.reaction_roles.enabled %}is-on{% endif %}" data-mod data-mod-id="reaction-roles">
           <div class="mod-top">
             <div class="mod-title">Reaction Roles</div>
             <label class="switch">
@@ -1505,7 +1604,7 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod {% if config.invites.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.invites.enabled %}is-on{% endif %}" data-mod data-mod-id="invites-tracker">
           <div class="mod-top">
             <div class="mod-title">Invites tracker</div>
             <label class="switch"><input type="checkbox" name="invites_enabled" data-toggle {% if config.invites.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1514,7 +1613,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Cuenta invites por usuario.</p></div></div>
         </div>
 
-        <div class="mod {% if config.sticky.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.sticky.enabled %}is-on{% endif %}" data-mod data-mod-id="sticky-messages">
           <div class="mod-top">
             <div class="mod-title">Sticky messages</div>
             <label class="switch"><input type="checkbox" name="sticky_enabled" data-toggle {% if config.sticky.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1523,7 +1622,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Configura stickies con comandos del bot.</p></div></div>
         </div>
 
-        <div class="mod {% if config.autoresponse.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.autoresponse.enabled %}is-on{% endif %}" data-mod data-mod-id="autorespuestas">
           <div class="mod-top">
             <div class="mod-title">Autorespuestas</div>
             <label class="switch"><input type="checkbox" name="autoresponse_enabled" data-toggle {% if config.autoresponse.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1532,7 +1631,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Añade triggers con los comandos de autoresponse.</p></div></div>
         </div>
 
-        <div class="mod {% if config.afk.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.afk.enabled %}is-on{% endif %}" data-mod data-mod-id="afk">
           <div class="mod-top">
             <div class="mod-title">AFK</div>
             <label class="switch"><input type="checkbox" name="afk_enabled" data-toggle {% if config.afk.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1541,7 +1640,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!afk [motivo]</p></div></div>
         </div>
 
-        <div class="mod {% if config.snipe.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.snipe.enabled %}is-on{% endif %}" data-mod data-mod-id="snipe">
           <div class="mod-top">
             <div class="mod-title">Snipe</div>
             <label class="switch"><input type="checkbox" name="snipe_enabled" data-toggle {% if config.snipe.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1550,7 +1649,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!snipe · o!editsnipe</p></div></div>
         </div>
 
-        <div class="mod {% if config.tempvc.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.tempvc.enabled %}is-on{% endif %}" data-mod data-mod-id="temp-vc">
           <div class="mod-top">
             <div class="mod-title">Temp VC</div>
             <label class="switch"><input type="checkbox" name="tempvc_enabled" data-toggle {% if config.tempvc.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1559,7 +1658,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Configura el canal hub con comandos del bot.</p></div></div>
         </div>
 
-        <div class="mod {% if config.giveaways.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.giveaways.enabled %}is-on{% endif %}" data-mod data-mod-id="giveaways">
           <div class="mod-top">
             <div class="mod-title">Giveaways</div>
             <label class="switch"><input type="checkbox" name="giveaways_enabled" data-toggle {% if config.giveaways.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1568,7 +1667,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!gstart …</p></div></div>
         </div>
 
-        <div class="mod {% if config.reminders.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.reminders.enabled %}is-on{% endif %}" data-mod data-mod-id="recordatorios">
           <div class="mod-top">
             <div class="mod-title">Recordatorios</div>
             <label class="switch"><input type="checkbox" name="reminders_enabled" data-toggle {% if config.reminders.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1590,7 +1689,7 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod {% if config.economy.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.economy.enabled %}is-on{% endif %}" data-mod data-mod-id="econom-a">
           <div class="mod-top">
             <div class="mod-title">Economía</div>
             <label class="switch"><input type="checkbox" name="economy_enabled" data-toggle {% if config.economy.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1599,7 +1698,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!balance · o!daily · o!pay</p></div></div>
         </div>
 
-        <div class="mod {% if config.profiles.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.profiles.enabled %}is-on{% endif %}" data-mod data-mod-id="perfiles">
           <div class="mod-top">
             <div class="mod-title">Perfiles</div>
             <label class="switch"><input type="checkbox" name="profiles_enabled" data-toggle {% if config.profiles.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1608,7 +1707,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!profile</p></div></div>
         </div>
 
-        <div class="mod {% if config.marriage.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.marriage.enabled %}is-on{% endif %}" data-mod data-mod-id="matrimonios">
           <div class="mod-top">
             <div class="mod-title">Matrimonios</div>
             <label class="switch"><input type="checkbox" name="marriage_enabled" data-toggle {% if config.marriage.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1617,7 +1716,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">o!marry @user</p></div></div>
         </div>
 
-        <div class="mod {% if config.actions_sfw.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.actions_sfw.enabled %}is-on{% endif %}" data-mod data-mod-id="acciones-sfw">
           <div class="mod-top">
             <div class="mod-title">Acciones SFW</div>
             <label class="switch"><input type="checkbox" name="actions_sfw_enabled" data-toggle {% if config.actions_sfw.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1626,7 +1725,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Roleplay GIFs SFW.</p></div></div>
         </div>
 
-        <div class="mod {% if config.music.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.music.enabled %}is-on{% endif %}" data-mod data-mod-id="m-sica">
           <div class="mod-top">
             <div class="mod-title">Música</div>
             <label class="switch"><input type="checkbox" name="music_enabled" data-toggle {% if config.music.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1635,7 +1734,7 @@
           <div class="mod-settings"><div class="mod-settings-inner"><p class="hint">Si el módulo de música está activo en el bot.</p></div></div>
         </div>
 
-        <div class="mod {% if config.fun.enabled %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.fun.enabled %}is-on{% endif %}" data-mod data-mod-id="fun-trivia">
           <div class="mod-top">
             <div class="mod-title">Fun / trivia</div>
             <label class="switch"><input type="checkbox" name="fun_enabled" data-toggle {% if config.fun.enabled %}checked{% endif %} /><span class="slider"></span></label>
@@ -1661,9 +1760,9 @@
     <div class="section-body">
       {% set shop = config.shop or {} %}
       {% set reps = config.reports or {} %}
-      <div class="mod mod-wide {% if shop.get('enabled') %}is-on{% endif %}" data-mod>
-        <div class="mod-top">
-          <div class="mod-title">🛒 Tienda de roles (coins)</div>
+      <div class="mod mod-wide {% if shop.get('enabled') %}is-on{% endif %}" data-mod data-mod-id="tienda-de-roles-coins">
+          <div class="mod-top">
+            <div class="mod-title">🛒 Tienda de roles (coins)</div>
           <label class="switch">
             <input type="checkbox" name="shop_enabled" data-toggle {% if shop.get('enabled') %}checked{% endif %} />
             <span class="slider"></span>
@@ -1681,9 +1780,9 @@
           </div>
         </div>
       </div>
-      <div class="mod mod-wide {% if reps.get('enabled') %}is-on{% endif %}" data-mod>
-        <div class="mod-top">
-          <div class="mod-title">🚨 Reportes de usuarios</div>
+      <div class="mod mod-wide {% if reps.get('enabled') %}is-on{% endif %}" data-mod data-mod-id="reportes-de-usuarios">
+          <div class="mod-top">
+            <div class="mod-title">🚨 Reportes de usuarios</div>
           <label class="switch">
             <input type="checkbox" name="reports_enabled" data-toggle {% if reps.get('enabled') %}checked{% endif %} />
             <span class="slider"></span>
@@ -1714,9 +1813,9 @@
       {% set lv = config.levels or {} %}
       {% set _roles = lv.get('roles') or {} %}
 
-      <div class="mod mod-wide is-on" data-mod>
-        <div class="mod-top">
-          <div class="mod-title">⭐ Sistema de niveles</div>
+      <div class="mod mod-wide is-on" data-mod data-mod-id="levels-full">
+          <div class="mod-top">
+            <div class="mod-title">⭐ Sistema de niveles</div>
           <label class="switch">
             <input type="checkbox" name="levels_enabled" data-toggle {% if lv.get('enabled') %}checked{% endif %} />
             <span class="slider"></span>
@@ -1783,9 +1882,9 @@
       {% set shop_roles = eco.get('shop_roles') or [] %}
       {% set shop_items = eco.get('shop_items') or [] %}
 
-      <div class="mod mod-wide {% if eco.get('enabled', True) %}is-on{% endif %}" data-mod>
-        <div class="mod-top">
-          <div class="mod-title">Sistema de economía</div>
+      <div class="mod mod-wide {% if eco.get('enabled', True) %}is-on{% endif %}" data-mod data-mod-id="sistema-de-econom-a">
+          <div class="mod-top">
+            <div class="mod-title">Sistema de economía</div>
           <label class="switch">
             <input type="checkbox" name="economy_enabled" data-toggle {% if eco.get('enabled', True) %}checked{% endif %} />
             <span class="slider"></span>
@@ -1920,9 +2019,9 @@
     </div>
     <div class="section-body">
       {% set soc = config.social or {} %}
-      <div class="mod mod-wide {% if soc.get('enabled') %}is-on{% endif %}" data-mod>
-        <div class="mod-top">
-          <div class="mod-title">Notificaciones de redes</div>
+      <div class="mod mod-wide {% if soc.get('enabled') %}is-on{% endif %}" data-mod data-mod-id="notificaciones-de-redes">
+          <div class="mod-top">
+            <div class="mod-title">Notificaciones de redes</div>
           <label class="switch">
             <input type="checkbox" name="social_enabled" data-toggle {% if soc.get('enabled') %}checked{% endif %} />
             <span class="slider"></span>
@@ -1972,9 +2071,9 @@
       <span class="chev">▼</span>
     </div>
     <div class="section-body">
-      <div class="mod mod-wide is-on">
-        <div class="mod-top">
-          <div class="mod-title">⛔ Blacklist global</div>
+      <div class="mod mod-wide is-on" data-mod data-mod-id="blacklist-global">
+          <div class="mod-top">
+            <div class="mod-title">⛔ Blacklist global</div>
         </div>
         <p class="mod-desc">Solo la dueña. Quien esté aquí es baneado al entrar a cualquier server con Odette.</p>
         <div class="mod-settings" style="display:block">
@@ -2013,7 +2112,7 @@
     <div class="section-body">
       <div class="mod-grid">
 
-        <div class="mod is-on" data-mod>
+        <div class="mod is-on" data-mod data-mod-id="sistema-de-tickets">
           <div class="mod-top">
             <div class="mod-title">🎫 Sistema de tickets</div>
           </div>
@@ -2028,7 +2127,7 @@
           </div>
         </div>
 
-        <div class="mod {% if config.get('alianzas', {}).get('enabled') %}is-on{% endif %}" data-mod>
+        <div class="mod {% if config.get('alianzas', {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="alianzas">
           <div class="mod-top">
             <div class="mod-title">🤝 Alianzas</div>
             <label class="switch">
@@ -2461,58 +2560,108 @@
 
 })();
 function showPanel(panelId, focusKey, linkEl) {
-  if (!panelId) panelId = 'sec-estilo';
-  var sections = document.querySelectorAll('#guildPage .section[data-section]');
-  sections.forEach(function(s) {
-    s.classList.remove('panel-active');
-    s.classList.add('collapsed');
+  var page = document.getElementById('guildPage');
+  if (page) page.classList.add('single-mod');
+
+  // hide all sections
+  document.querySelectorAll('[data-section]').forEach(function(sec) {
+    sec.classList.remove('is-active-section');
+    sec.classList.add('collapsed');
   });
+  // clear mod focus
+  document.querySelectorAll('[data-mod]').forEach(function(mod) {
+    mod.classList.remove('is-focused-mod');
+  });
+
   var el = document.getElementById(panelId);
   if (!el) {
-    console.warn('[panel] no existe', panelId);
-    el = document.getElementById('sec-estilo');
+    console.warn('panel missing', panelId);
+    return;
   }
-  if (el) {
-    el.classList.add('panel-active');
+  el.classList.add('is-active-section');
+  el.classList.remove('collapsed');
+
+  var mods = el.querySelectorAll('[data-mod]');
+  var focused = null;
+
+  if (focusKey && mods.length) {
+    mods.forEach(function(mod) {
+      var id = (mod.getAttribute('data-mod-id') || '').toLowerCase();
+      var title = ((mod.querySelector('.mod-title') || {}).textContent || '').toLowerCase();
+      var hit = false;
+      if (id === focusKey || id.indexOf(focusKey) >= 0) hit = true;
+      if (!hit && title.indexOf(focusKey) >= 0) hit = true;
+      // aliases
+      if (!hit && focusKey === 'welcome' && title.indexOf('bienven') >= 0) hit = true;
+      if (!hit && focusKey === 'booster' && title.indexOf('boost') >= 0) hit = true;
+      if (!hit && focusKey === 'autorole' && (title.indexOf('auto') >= 0 || title.indexOf('autorole') >= 0)) hit = true;
+      if (!hit && focusKey === 'starboard' && title.indexOf('star') >= 0) hit = true;
+      if (!hit && focusKey === 'nsfw' && title.indexOf('nsfw') >= 0) hit = true;
+      if (!hit && focusKey === 'antiraid' && (title.indexOf('anti-raid') >= 0 || title.indexOf('antiraid') >= 0 || title.indexOf('nuke') >= 0)) hit = true;
+      if (!hit && focusKey === 'automod' && title.indexOf('automod') >= 0) hit = true;
+      if (!hit && focusKey === 'verify' && title.indexOf('verific') >= 0) hit = true;
+      if (hit) focused = mod;
+    });
+  }
+
+  if (!focused && mods.length === 1) {
+    focused = mods[0];
+  }
+
+  if (focused) {
+    focused.classList.add('is-focused-mod');
+    var settings = focused.querySelector('.mod-settings');
+    if (settings) settings.style.display = 'block';
+  } else if (mods.length === 1) {
+    mods[0].classList.add('is-focused-mod');
+    var settings = mods[0].querySelector('.mod-settings');
+    if (settings) settings.style.display = 'block';
+  } else if (mods.length > 1) {
+    // overview de varios módulos: grid clásico
+    if (page) page.classList.remove('single-mod');
     el.classList.remove('collapsed');
+  } else {
+    // sección sin cards (contenido directo)
+    if (page) page.classList.remove('single-mod');
   }
-  document.querySelectorAll('.side-nav a, .side-nav .side-item').forEach(function(a) {
+
+  // sidebar active
+  document.querySelectorAll('.side-nav .side-item').forEach(function(a) {
     a.classList.remove('active');
   });
   if (linkEl) {
     linkEl.classList.add('active');
   } else {
-    var match = document.querySelector('.side-nav [data-panel="'+panelId+'"]');
+    var sel = '.side-nav [data-panel="'+panelId+'"]';
+    if (focusKey) sel += '[data-focus="'+focusKey+'"]';
+    var match = document.querySelector(sel) || document.querySelector('.side-nav [data-panel="'+panelId+'"]');
     if (match) match.classList.add('active');
   }
-  // título en topbar
-  var crumb = document.querySelector('.topbar .crumb strong');
-  if (crumb && linkEl) {
-    var txt = linkEl.textContent.replace(/NUEVO/g,'').trim();
-    crumb.textContent = txt || 'Configuración';
-  }
-  // focus en sub-módulo
-  document.querySelectorAll('.mod.flash-focus').forEach(function(m){ m.classList.remove('flash-focus'); });
-  if (focusKey && el) {
-    var mods = el.querySelectorAll('.mod');
-    var found = null;
-    mods.forEach(function(m) {
-      var t = (m.querySelector('.mod-title') || {}).textContent || '';
-      t = t.toLowerCase();
-      if (focusKey === 'booster' && t.indexOf('boost') >= 0) found = m;
-      if (focusKey === 'autorole' && (t.indexOf('auto') >= 0 || t.indexOf('autorole') >= 0)) found = m;
-      if (focusKey === 'starboard' && t.indexOf('star') >= 0) found = m;
-      if (focusKey === 'welcome' && (t.indexOf('bienven') >= 0 || t.indexOf('welcome') >= 0)) found = m;
-    });
-    if (found) {
-      found.classList.add('flash-focus');
-      setTimeout(function(){ found.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
-      setTimeout(function(){ found.classList.remove('flash-focus'); }, 2200);
+
+  // page title
+  var titleBox = document.getElementById('modulePageTitle');
+  if (titleBox) {
+    var name = 'Configuración';
+    var desc = '';
+    if (linkEl) {
+      name = (linkEl.textContent || '').replace(/NUEVO/g,'').trim();
+    } else if (focused) {
+      name = ((focused.querySelector('.mod-title') || {}).textContent || name).trim();
+      desc = ((focused.querySelector('.mod-desc') || {}).textContent || '').trim();
     }
-  } else {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    titleBox.querySelector('h2').textContent = name;
+    titleBox.querySelector('p').textContent = desc || 'Ajustes de este módulo · guardado automático';
   }
-  try { history.replaceState(null, '', '#' + panelId); } catch (e) {}
+
+  // crumb
+  var crumb = document.querySelector('.topbar .crumb strong');
+  if (crumb) {
+    var t = name || 'Configuración';
+    crumb.textContent = t;
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  try { history.replaceState(null, '', '#' + panelId + (focusKey ? ('/' + focusKey) : '')); } catch (e) {}
 }
 function goSec(e, id) {
   if (e) e.preventDefault();
@@ -2547,15 +2696,26 @@ document.addEventListener('DOMContentLoaded', function() {
       var pid = a.getAttribute('data-panel');
       var focus = a.getAttribute('data-focus');
       showPanel(pid, focus, a);
-      // close mobile sidebar
       var sb = document.getElementById('guildSidebar');
-      if (sb && window.innerWidth < 900) sb.classList.remove('open');
+      var ov = document.getElementById('sidebarOverlay');
+      if (sb && window.innerWidth < 900) {
+        sb.classList.remove('open');
+        if (ov) ov.classList.remove('show');
+      }
     });
   });
-  // hash inicial
   var hash = (location.hash || '').replace('#','');
+  var focus0 = null;
+  if (hash.indexOf('/') >= 0) {
+    var parts = hash.split('/');
+    hash = parts[0];
+    focus0 = parts[1] || null;
+  }
   if (hash && document.getElementById(hash)) {
-    showPanel(hash, null, document.querySelector('.side-nav [data-panel="'+hash+'"]'));
+    var link = focus0
+      ? document.querySelector('.side-nav [data-panel="'+hash+'"][data-focus="'+focus0+'"]')
+      : document.querySelector('.side-nav [data-panel="'+hash+'"]');
+    showPanel(hash, focus0, link);
   } else {
     showPanel('sec-estilo', null, document.querySelector('.side-nav [data-panel="sec-estilo"]'));
   }
