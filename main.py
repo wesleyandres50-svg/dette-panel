@@ -1616,7 +1616,97 @@ async def guild_save(request: Request, guild_id: str):
 
     if not (ok_g or ok_u):
         config["ia"]["enabled"] = False
-    config["_panel_saved"] = True
+    
+    # --- selfroles ---
+    try:
+        import json as _json
+        _sr = _s("selfroles_roles_json") or "[]"
+        _sr_roles = _json.loads(_sr) if _sr else []
+        if not isinstance(_sr_roles, list):
+            _sr_roles = []
+    except Exception:
+        _sr_roles = []
+    config["selfroles"] = {
+        "channel_id": _s("selfroles_channel").strip(),
+        "title": _s("selfroles_title").strip()[:120] or "Selección de Roles",
+        "description": _s("selfroles_description").strip()[:500],
+        "image": _s("selfroles_image").strip()[:500],
+        "soft_role_id": _s("selfroles_soft_role").strip(),
+        "roles": [
+            {
+                "emoji": str(x.get("emoji", ""))[:32],
+                "label": str(x.get("label", ""))[:80],
+                "role_id": str(x.get("role_id", "")).strip(),
+            }
+            for x in _sr_roles[:40]
+            if str(x.get("role_id", "")).strip()
+        ],
+    }
+
+    # --- disabled commands ---
+    _all_cmds = [
+        "daily","work","bal","pay","shop","buy","rank","levels","leaderboard",
+        "welcome","autorole","ticket","close","add","remove","ban","kick","mute","warn",
+        "purge","clear","lock","unlock","slowmode","snipe","avatar","userinfo","serverinfo",
+        "ship","hug","kiss","slap","meme","nsfw","play","skip","stop","queue",
+    ]
+    _disabled = []
+    for _c in _all_cmds:
+        if form.get(f"cmd_enabled_{_c}") != "on":
+            _disabled.append(_c)
+    config["disabled_commands"] = _disabled
+
+    # --- antiraid rework (premium) ---
+    config["antiraid_rework"] = {
+        "enabled": form.get("arw_enabled") == "on",
+        "max_joins": max(2, min(_int("arw_max_joins", 5), 50)),
+        "window_seconds": max(1, min(_int("arw_window", 3), 30)),
+        "min_account_days": max(0, min(_int("arw_min_age", 7), 365)),
+        "log_channel_id": _s("arw_log_channel").strip(),
+        "action": (_s("arw_action") or "kick").lower()[:16],
+        "emergency_minutes": max(1, min(_int("arw_duration", 10), 120)),
+        "pause_invites": form.get("arw_pause_invites") == "on",
+        "kick_new_accounts": form.get("arw_kick_new") == "on",
+        "block_bots": form.get("arw_block_bots") == "on",
+    }
+    if not (premium_ok if "premium_ok" in dir() else True):
+        # keep previous if not premium - handled below if var exists
+        pass
+
+    # --- auto purge (premium) ---
+    config["auto_purge"] = {
+        "enabled": form.get("ap_enabled") == "on",
+        "channel_id": _s("ap_channel").strip(),
+        "channel_ids": [x.strip() for x in (_s("ap_channels") or "").split(",") if x.strip()][:15],
+        "interval_minutes": max(5, min(_int("ap_interval", 60), 1440)),
+        "limit": max(10, min(_int("ap_limit", 100), 1000)),
+        "filter": (_s("ap_filter") or "all").lower()[:16],
+        "keep_pinned": form.get("ap_pinned") == "on",
+        "notify": form.get("ap_notify") == "on",
+    }
+
+    # --- ticket panels ---
+    try:
+        import json as _json2
+        _tp = _s("ticket_panels_json") or "[]"
+        _panels = _json2.loads(_tp) if _tp else []
+        if not isinstance(_panels, list):
+            _panels = []
+    except Exception:
+        _panels = []
+    if "tickets" not in config or not isinstance(config.get("tickets"), dict):
+        config["tickets"] = config.get("tickets") or {}
+    config["tickets"]["panels"] = [
+        {
+            "emoji": str(p.get("emoji", "🎫"))[:16],
+            "name": str(p.get("name", ""))[:80],
+            "category_id": str(p.get("category_id", "")).strip(),
+        }
+        for p in _panels[:20]
+        if str(p.get("name", "")).strip()
+    ]
+
+config["_panel_saved"] = True
     config["_saved_at"] = time.time()
     try:
         save_guild_config(guild_id, config)
