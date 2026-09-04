@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Perfil · Odette{% endblock %}
+{% block body %}
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="logo">🦢</div><div><div class="name">Odette</div><div class="sub">Mi cuenta</div></div></div>
+    <div class="side-section">Cuenta</div>
+    <nav class="side-nav">
+      <a class="active" href="/me/profile"><span class="ico">👤</span> Perfil</a>
+      <a href="/me/preferences"><span class="ico">⚙️</span> Preferencias</a>
+      <a href="/me/history"><span class="ico">🕘</span> Historiales</a>
+      <a href="/me/premium"><span class="ico">👑</span> Premium</a>
+      <a href="/dashboard"><span class="ico">🏠</span> Servidores</a>
+    </nav>
+    <div class="side-footer">
+      <a class="premium btn-premium-gold" href="/me/premium">✦ Premium</a>
+      <a href="https://discord.gg/V5AFh53sPM" target="_blank" rel="noopener">Soporte</a>
+      <a href="/logout">Cerrar sesión</a>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar"><button class="menu-btn" type="button" onclick="toggleSidebar()">☰</button><div class="crumb">Mi cuenta · <strong>Perfil</strong></div><div class="spacer"></div></div>
+    <div class="content" style="max-width:900px">
+      <div class="card" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+        {% if user and user.avatar %}
+        <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png?size=128" style="width:72px;height:72px;border-radius:50%" alt="" />
+        {% endif %}
+        <div>
+          <h1 style="margin:0;font-size:1.35rem">{{ user.username if user else 'Usuario' }}</h1>
+          <div style="margin-top:6px;font-size:0.8rem;color:#888;font-family:ui-monospace,monospace">{{ user.id if user else '' }}</div>
+        </div>
+      </div>
+      <div class="fields" style="margin-top:14px">
+        <div class="card">
+          <div style="font-size:0.68rem;color:#666;text-transform:uppercase">Servidores gestionables</div>
+          <div style="font-size:1.4rem;font-weight:700;margin-top:6px">{{ (guilds or [])|length }}</div>
+        </div>
+        <div class="card">
+          <div style="font-size:0.68rem;color:#666;text-transform:uppercase">Premium</div>
+          <div style="font-size:1.1rem;font-weight:700;margin-top:6px;color:{% if user_premium %}#4ade80{% else %}#888{% endif %}">{% if user_premium %}Activo{% else %}Sin premium{% endif %}</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:8px">
+        <h2 style="margin:0 0 10px;font-size:1rem">Tus servidores</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          {% for g in guilds or [] %}<a href="/guild/{{ g.id }}" class="btn">{{ g.name }}</a>{% else %}<span style="color:#666">Ninguno</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Historiales · Odette{% endblock %}
+{% block body %}
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="logo">🦢</div><div><div class="name">Odette</div><div class="sub">Mi cuenta</div></div></div>
+    <nav class="side-nav" style="padding-top:12px">
+      <a href="/me/profile"><span class="ico">👤</span> Perfil</a>
+      <a href="/me/preferences"><span class="ico">⚙️</span> Preferencias</a>
+      <a class="active" href="/me/history"><span class="ico">🕘</span> Historiales</a>
+      <a href="/me/premium"><span class="ico">👑</span> Premium</a>
+      <a href="/dashboard"><span class="ico">🏠</span> Servidores</a>
+    </nav>
+    <div class="side-footer"><a class="premium btn-premium-gold" href="/me/premium">✦ Premium</a><a href="https://discord.gg/V5AFh53sPM" target="_blank" rel="noopener">Soporte</a><a href="/logout">Cerrar sesión</a></div>
+  </aside>
+  <div class="main">
+    <div class="topbar"><button class="menu-btn" type="button" onclick="toggleSidebar()">☰</button><div class="crumb">Mi cuenta · <strong>Historiales</strong></div><div class="spacer"></div></div>
+    <div class="content" style="max-width:900px">
+      <h1 style="margin:0 0 6px;font-size:1.35rem">Historiales</h1>
+      <p style="color:#888;margin:0 0 16px;font-size:0.9rem">Avatares y nombres. El bot los registra con <code style="color:#AFD7E6">!historial</code> / cambios de perfil.</p>
+      <div class="card">
+        <form method="get" action="/me/history" style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="text" name="uid" value="{{ request.query_params.get('uid','') }}" placeholder="ID de Discord" style="flex:1;min-width:200px" />
+          <button class="btn btn-primary" type="submit">Buscar</button>
+        </form>
+      </div>
+      {% if history %}
+      <div class="card">
+        <h2 style="margin:0 0 12px">Usuario {{ history.user_id }}</h2>
+        <h3 style="font-size:0.85rem;color:#888">Avatares</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin:10px 0 18px">
+          {% for a in history.avatars %}
+          <div style="background:#111;border:1px solid #2a2a2a;border-radius:10px;padding:8px;text-align:center">
+            {% if a.url %}<img src="{{ a.url }}" style="width:72px;height:72px;border-radius:8px;object-fit:cover" alt="" />{% endif %}
+            <div style="font-size:0.65rem;color:#666;margin-top:6px">{{ a.at or '' }}</div>
+          </div>
+          {% else %}<span style="color:#666">Sin avatares</span>{% endfor %}
+        </div>
+        <h3 style="font-size:0.85rem;color:#888">Nombres</h3>
+        <ul style="margin:8px 0;padding-left:18px;color:#ccc">
+          {% for n in history.names %}<li><strong>{{ n.name }}</strong> <span style="color:#666;font-size:0.8rem">{{ n.at or '' }}</span></li>
+          {% else %}<li style="color:#666">Sin nombres</li>{% endfor %}
+        </ul>
+      </div>
+      {% elif request.query_params.get('uid') %}
+      <div class="card" style="text-align:center;color:#888">Sin historial para ese ID.</div>
+      {% else %}
+      <div class="card" style="text-align:center;padding:36px;color:#888">Introduce un ID de usuario.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

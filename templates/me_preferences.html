@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Preferencias · Odette{% endblock %}
+{% block body %}
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="logo">🦢</div><div><div class="name">Odette</div><div class="sub">Mi cuenta</div></div></div>
+    <nav class="side-nav" style="padding-top:12px">
+      <a href="/me/profile"><span class="ico">👤</span> Perfil</a>
+      <a class="active" href="/me/preferences"><span class="ico">⚙️</span> Preferencias</a>
+      <a href="/me/history"><span class="ico">🕘</span> Historiales</a>
+      <a href="/me/premium"><span class="ico">👑</span> Premium</a>
+      <a href="/dashboard"><span class="ico">🏠</span> Servidores</a>
+    </nav>
+    <div class="side-footer"><a class="premium btn-premium-gold" href="/me/premium">✦ Premium</a><a href="https://discord.gg/V5AFh53sPM" target="_blank" rel="noopener">Soporte</a><a href="/logout">Cerrar sesión</a></div>
+  </aside>
+  <div class="main">
+    <div class="topbar"><button class="menu-btn" type="button" onclick="toggleSidebar()">☰</button><div class="crumb">Mi cuenta · <strong>Preferencias</strong></div><div class="spacer"></div></div>
+    <div class="content" style="max-width:900px">
+      <h1 style="margin:0 0 6px;font-size:1.35rem">Preferencias</h1>
+      <p style="color:#888;margin:0 0 20px">Se guardan en este navegador.</p>
+      <div class="card">
+        <h2 style="margin:0 0 12px;font-size:0.95rem">Acento</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+          <button type="button" class="btn accent-opt" data-accent="#AFD7E6">Odette</button>
+          <button type="button" class="btn accent-opt" data-accent="#ff6b2b">Coral</button>
+          <button type="button" class="btn accent-opt" data-accent="#c084fc">Ciruela</button>
+          <button type="button" class="btn accent-opt" data-accent="#4ade80">Matcha</button>
+          <button type="button" class="btn accent-opt" data-accent="#fbbf24">Dorado</button>
+          <button type="button" class="btn accent-opt" data-accent="#60a5fa">Cielo</button>
+        </div>
+      </div>
+      <script>
+      (function(){
+        var s=localStorage.getItem('odette_accent');
+        if(s) document.documentElement.style.setProperty('--accent',s);
+        document.querySelectorAll('.accent-opt').forEach(function(b){
+          b.onclick=function(){ localStorage.setItem('odette_accent',b.dataset.accent); document.documentElement.style.setProperty('--accent',b.dataset.accent); };
+        });
+      })();
+      </script>
+    </div>
+  </div>
+</div>
+{% endblock %}
