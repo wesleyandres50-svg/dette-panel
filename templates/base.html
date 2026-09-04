@@ -77,33 +77,49 @@
     }
     .side-nav { padding: 0 10px 12px; display: flex; flex-direction: column; gap: 2px; }
     .side-nav a, .side-nav .side-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 12px;
-      border-radius: 10px;
-      color: var(--muted);
-      font-size: 0.88rem;
+      display: flex; align-items: center; gap: 11px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      color: #a1a1aa;
+      font-size: 0.875rem;
       font-weight: 500;
       border: 1px solid transparent;
-      transition: 0.15s;
+      transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.12s;
       cursor: pointer;
+      text-decoration: none;
+      margin-bottom: 2px;
     }
     .side-nav a:hover, .side-nav .side-item:hover {
-      background: rgba(255,255,255,0.04);
-      color: var(--text);
+      background: rgba(255,255,255,0.045);
+      color: #fafafa;
     }
     .side-nav a.active, .side-nav .side-item.active {
-      background: var(--accent-soft);
+      background: linear-gradient(90deg, rgba(242,107,71,0.18), rgba(242,107,71,0.06));
       color: #fff;
-      border-color: var(--accent-border);
+      border-color: rgba(242,107,71,0.28);
+      box-shadow: inset 3px 0 0 var(--accent);
     }
     .side-nav .ico {
-      width: 22px; height: 22px; border-radius: 7px;
+      width: 28px; height: 28px; border-radius: 9px;
       display: grid; place-items: center;
       background: rgba(255,255,255,0.05);
-      font-size: 0.78rem;
+      font-size: 0.85rem;
       flex-shrink: 0;
+      transition: 0.15s;
     }
-    .side-nav a.active .ico { background: rgba(242,107,71,0.25); }
+    .side-nav a.active .ico {
+      background: rgba(242,107,71,0.28);
+      box-shadow: 0 0 12px rgba(242,107,71,0.2);
+    }
+    .side-nav a:hover .ico { background: rgba(255,255,255,0.08); }
+    .side-section {
+      padding: 16px 14px 6px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #52525b;
+    }
     .badge-new {
       margin-left: auto;
       font-size: 0.62rem;
