@@ -1563,27 +1563,39 @@
                 <label style="display:block;margin-top:8px">Más roles bots (IDs coma)</label>
                 <input type="text" name="autorole_bot_roles" value="{{ (config.autorole.get('bot_role_ids') or [])|join(',') if config.autorole else '' }}" />
                 <hr style="border:none;border-top:1px solid #2a2a2a;margin:16px 0" />
-                
-                <div style="margin:14px 0 0;padding:14px;background:#111;border:1px solid #2a2a2a;border-radius:12px">
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-                    <div>
-                      <div style="font-weight:700;font-size:0.9rem">Self-roles (paneles en Discord)</div>
-                      <div class="hint" style="margin:4px 0 0">Varios paneles · cada uno con sus roles · el miembro se autoasigna</div>
-                    </div>
-                    <button type="button" class="btn btn-primary" id="btnAddSelfPanel" type="button">+ Añadir panel</button>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+                  <div>
+                    <div style="font-weight:700;font-size:0.9rem">Self-roles (panel en Discord)</div>
+                    <div class="hint" style="margin:4px 0 0">Como el mensaje de “Selección de Roles” · el miembro elige roles</div>
                   </div>
-                  <input type="hidden" name="selfroles_panels_json" id="selfroles_panels_json" value='{{ (config.selfroles.get("panels") or [])|tojson if config.selfroles else "[]" }}' />
-                  <!-- legacy single-panel fields kept for bot compat -->
-                  <input type="hidden" name="selfroles_channel" id="selfroles_channel_legacy" value="{{ config.selfroles.get('channel_id','') if config.selfroles else '' }}" />
-                  <input type="hidden" name="selfroles_title" value="{{ config.selfroles.get('title','Selección de Roles') if config.selfroles else 'Selección de Roles' }}" />
-                  <input type="hidden" name="selfroles_description" value="{{ config.selfroles.get('description','') if config.selfroles else '' }}" />
-                  <input type="hidden" name="selfroles_image" value="{{ config.selfroles.get('image','') if config.selfroles else '' }}" />
-                  <input type="hidden" name="selfroles_soft_role" value="{{ config.selfroles.get('soft_role_id','') if config.selfroles else '' }}" />
-                  <input type="hidden" name="selfroles_roles_json" id="selfroles_roles_json" value='{{ (config.selfroles.get("roles") or [])|tojson if config.selfroles else "[]" }}' />
-                  <div id="selfPanelsList" style="display:flex;flex-direction:column;gap:10px"></div>
-                  <p class="hint" style="margin-top:10px">En cada panel: canal, título, soft-role y filas emoji · nombre · Role ID. Usa “+ Añadir rol” dentro del panel.</p>
+                  <button type="button" class="btn btn-primary" onclick="addSelfRoleRow()">+ Añadir rol</button>
                 </div>
+                <div class="field">
+                  <label>Canal del panel</label>
+                  <input type="text" name="selfroles_channel" value="{{ config.selfroles.get('channel_id','') if config.selfroles else '' }}" placeholder="ID del canal" />
+                </div>
+                <div class="field">
+                  <label>Título del embed</label>
+                  <input type="text" name="selfroles_title" value="{{ config.selfroles.get('title','Selección de Roles') if config.selfroles else 'Selección de Roles' }}" />
+                </div>
+                <div class="field">
+                  <label>Descripción</label>
+                  <textarea name="selfroles_description" rows="2">{{ config.selfroles.get('description','Usa el menú para autoasignarte un rol.') if config.selfroles else 'Usa el menú para autoasignarte un rol.' }}</textarea>
+                </div>
+                <div class="field">
+                  <label>Imagen URL</label>
+                  <input type="text" name="selfroles_image" value="{{ config.selfroles.get('image','') if config.selfroles else '' }}" placeholder="https://..." />
+                </div>
+                <div class="field">
+                  <label>Soft-role (rol base al elegir cualquiera)</label>
+                  <input type="text" name="selfroles_soft_role" value="{{ config.selfroles.get('soft_role_id','') if config.selfroles else '' }}" placeholder="ID rol soft / staff base" />
+                  <p class="hint">Se asigna junto al rol elegido (ej. “staff” genérico).</p>
+                </div>
+                <input type="hidden" name="selfroles_roles_json" id="selfroles_roles_json" value='{{ (config.selfroles.get("roles") or [])|tojson if config.selfroles else "[]" }}' />
+                <div id="selfRoleRows" style="display:flex;flex-direction:column;gap:8px;margin-top:10px"></div>
+                <p class="hint">Cada fila: emoji · nombre visible · ID del rol de Discord</p>
 
+              </div>
             </div>
           </div>
         </div>
@@ -2311,13 +2323,10 @@
           <div class="mod-settings-inner">
             {% set cmds = config.disabled_commands if config.disabled_commands is defined else [] %}
             {% set all_cmds = [
-              'daily','work','bal','pay','shop','buy','rank','levels','leaderboard','xp',
-              'welcome','autorole','selfroles','ticket','close','add','remove','claim',
-              'ban','kick','mute','unmute','warn','warnings','timeout','jail','unjail',
-              'purge','clear','lock','unlock','slowmode','snipe','avatares','userinfo','serverinfo','banner',
-              'ship','hug','kiss','slap','pat','cuddle','meme','nsfw','confesar','sugerencia','cumpleaños',
-              'play','skip','stop','queue','pause','resume','nowplaying','volume',
-              'antiraid','automod','verify','sticky','embed','poll','remind'
+              'daily','work','bal','pay','shop','buy','rank','levels','leaderboard',
+              'welcome','autorole','ticket','close','add','remove','ban','kick','mute','warn',
+              'purge','clear','lock','unlock','slowmode','snipe','avatar','userinfo','serverinfo',
+              'ship','hug','kiss','slap','meme','nsfw','play','skip','stop','queue'
             ] %}
             <div class="fields" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
               {% for c in all_cmds %}
@@ -4409,130 +4418,42 @@ function syncTicketPanels() {
   } catch(e) { addTicketPanelRow(); }
 })();
 
-
-function uidSR(){ return Math.random().toString(16).slice(2, 10); }
-
-function syncSelfPanels() {
-  var list = document.getElementById('selfPanelsList');
-  var hidden = document.getElementById('selfroles_panels_json');
-  var rolesLegacy = document.getElementById('selfroles_roles_json');
-  var chLegacy = document.getElementById('selfroles_channel_legacy');
-  if (!list || !hidden) return;
-  var panels = [];
-  list.querySelectorAll('.sr-panel').forEach(function(card){
-    var roles = [];
-    card.querySelectorAll('.sr-role-row').forEach(function(row){
-      var emoji = (row.querySelector('.sr-emoji')||{}).value || '';
-      var label = (row.querySelector('.sr-label')||{}).value || '';
-      var rid = (row.querySelector('.sr-id')||{}).value || '';
-      if (rid || label) roles.push({emoji:emoji, label:label, role_id:rid});
-    });
-    panels.push({
-      id: card.getAttribute('data-id') || uidSR(),
-      channel_id: (card.querySelector('.sr-channel')||{}).value || '',
-      title: (card.querySelector('.sr-title')||{}).value || 'Selección de Roles',
-      description: (card.querySelector('.sr-desc')||{}).value || '',
-      image: (card.querySelector('.sr-image')||{}).value || '',
-      soft_role_id: (card.querySelector('.sr-soft')||{}).value || '',
-      roles: roles
-    });
-  });
-  hidden.value = JSON.stringify(panels);
-  if (panels.length) {
-    if (rolesLegacy) rolesLegacy.value = JSON.stringify(panels[0].roles || []);
-    if (chLegacy) chLegacy.value = panels[0].channel_id || '';
-  } else if (rolesLegacy) {
-    rolesLegacy.value = '[]';
-  }
-}
-
-function addSelfRoleRowTo(panelEl, data) {
+function addSelfRoleRow(data) {
   data = data || {emoji:'', label:'', role_id:''};
-  var box = panelEl.querySelector('.sr-roles');
+  var box = document.getElementById('selfRoleRows');
   if (!box) return;
   var row = document.createElement('div');
-  row.className = 'sr-role-row';
-  row.style.cssText = 'display:grid;grid-template-columns:70px 1fr 1fr auto;gap:8px;align-items:center;margin-top:6px';
-  row.innerHTML = '<input type="text" placeholder="Emoji" class="sr-emoji" value="'+(data.emoji||'').replace(/"/g,'&quot;')+'" />'
-    + '<input type="text" placeholder="Nombre" class="sr-label" value="'+(data.label||'').replace(/"/g,'&quot;')+'" />'
-    + '<input type="text" placeholder="Role ID" class="sr-id" value="'+(data.role_id||'').replace(/"/g,'&quot;')+'" />'
-    + '<button type="button" class="btn" title="Quitar">✕</button>';
-  row.querySelector('button').onclick = function(){ row.remove(); syncSelfPanels(); };
-  row.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', syncSelfPanels); });
+  row.style.cssText = 'display:grid;grid-template-columns:70px 1fr 1fr auto;gap:8px;align-items:center';
+  row.innerHTML = '<input type="text" placeholder="Emoji" value="'+(data.emoji||'').replace(/"/g,'&quot;')+'" class="sr-emoji" />'
+    + '<input type="text" placeholder="Nombre" value="'+(data.label||'').replace(/"/g,'&quot;')+'" class="sr-label" />'
+    + '<input type="text" placeholder="Role ID" value="'+(data.role_id||'').replace(/"/g,'&quot;')+'" class="sr-id" />'
+    + '<button type="button" class="btn" onclick="this.parentElement.remove();syncSelfRolesJson()">✕</button>';
   box.appendChild(row);
-  syncSelfPanels();
+  row.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', syncSelfRolesJson); });
+  syncSelfRolesJson();
 }
-
-function addSelfPanel(data) {
-  data = data || {id: uidSR(), channel_id:'', title:'Selección de Roles', description:'Usa el menú para autoasignarte un rol.', image:'', soft_role_id:'', roles:[]};
-  var list = document.getElementById('selfPanelsList');
-  if (!list) return;
-  var card = document.createElement('div');
-  card.className = 'sr-panel';
-  card.setAttribute('data-id', data.id || uidSR());
-  card.style.cssText = 'background:#0c0c0c;border:1px solid #2a2a2a;border-radius:12px;padding:12px';
-  card.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">'
-    + '<strong style="font-size:0.9rem">Panel self-roles</strong>'
-    + '<button type="button" class="btn sr-del-panel" style="border-color:#7f1d1d;color:#fca5a5">Eliminar panel</button>'
-    + '</div>'
-    + '<div class="fields">'
-    + '<div class="field"><label>Canal del panel</label><input type="text" class="sr-channel" placeholder="ID canal" value="'+(data.channel_id||'').replace(/"/g,'&quot;')+'" /></div>'
-    + '<div class="field"><label>Título del embed</label><input type="text" class="sr-title" value="'+(data.title||'Selección de Roles').replace(/"/g,'&quot;')+'" /></div>'
-    + '<div class="field"><label>Imagen URL</label><input type="text" class="sr-image" placeholder="https://..." value="'+(data.image||'').replace(/"/g,'&quot;')+'" /></div>'
-    + '<div class="field"><label>Soft-role (rol base)</label><input type="text" class="sr-soft" placeholder="ID rol" value="'+(data.soft_role_id||'').replace(/"/g,'&quot;')+'" /></div>'
-    + '</div>'
-    + '<div class="field" style="margin-top:8px"><label>Descripción</label><textarea class="sr-desc" rows="2">'+(data.description||'')+'</textarea></div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 6px">'
-    + '<span class="hint" style="margin:0">Roles del panel</span>'
-    + '<button type="button" class="btn btn-primary sr-add-role">+ Añadir rol</button>'
-    + '</div>'
-    + '<div class="sr-roles"></div>'
-    + '<p class="hint" style="margin-top:6px">Cada fila: emoji · nombre · Role ID</p>';
-  list.appendChild(card);
-  card.querySelector('.sr-del-panel').onclick = function(){
-    if (!confirm('¿Eliminar este panel?')) return;
-    card.remove();
-    syncSelfPanels();
-  };
-  card.querySelector('.sr-add-role').onclick = function(){ addSelfRoleRowTo(card, {}); };
-  card.querySelectorAll('input,textarea').forEach(function(el){ el.addEventListener('input', syncSelfPanels); });
-  var roles = (data.roles && data.roles.length) ? data.roles : [{emoji:'',label:'',role_id:''}];
-  roles.forEach(function(r){ addSelfRoleRowTo(card, r); });
-  syncSelfPanels();
+function syncSelfRolesJson() {
+  var box = document.getElementById('selfRoleRows');
+  var hidden = document.getElementById('selfroles_roles_json');
+  if (!box || !hidden) return;
+  var roles = [];
+  box.querySelectorAll(':scope > div').forEach(function(row){
+    var emoji = (row.querySelector('.sr-emoji')||{}).value || '';
+    var label = (row.querySelector('.sr-label')||{}).value || '';
+    var rid = (row.querySelector('.sr-id')||{}).value || '';
+    if (rid || label) roles.push({emoji: emoji, label: label, role_id: rid});
+  });
+  hidden.value = JSON.stringify(roles);
 }
-
-function addSelfRoleRow(data) {
-  var first = document.querySelector('#selfPanelsList .sr-panel');
-  if (first) addSelfRoleRowTo(first, data || {});
-  else addSelfPanel({roles:[data||{}]});
-}
-function syncSelfRolesJson(){ syncSelfPanels(); }
-
-(function initSelfPanels(){
-  var btn = document.getElementById('btnAddSelfPanel');
-  if (btn) btn.addEventListener('click', function(){ addSelfPanel({}); });
-  var h = document.getElementById('selfroles_panels_json');
-  var legacyRoles = document.getElementById('selfroles_roles_json');
-  var legacyCh = document.getElementById('selfroles_channel_legacy');
-  var panels = [];
-  try { panels = JSON.parse((h && h.value) || '[]'); } catch(e) { panels = []; }
-  if (!panels.length) {
-    var roles = [];
-    try { roles = JSON.parse((legacyRoles && legacyRoles.value) || '[]'); } catch(e) { roles = []; }
-    panels = [{
-      id: uidSR(),
-      channel_id: (legacyCh && legacyCh.value) || '',
-      title: 'Selección de Roles',
-      description: 'Usa el menú para autoasignarte un rol.',
-      image: '',
-      soft_role_id: '',
-      roles: roles
-    }];
-  }
-  panels.forEach(function(p){ addSelfPanel(p); });
+(function initSelfRoles(){
+  var hidden = document.getElementById('selfroles_roles_json');
+  if (!hidden) return;
+  try {
+    var arr = JSON.parse(hidden.value || '[]');
+    if (!arr.length) addSelfRoleRow();
+    else arr.forEach(addSelfRoleRow);
+  } catch(e) { addSelfRoleRow(); }
 })();
-
 
 
 (function(){
