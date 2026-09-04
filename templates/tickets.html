@@ -1,134 +1,327 @@
 {% extends "base.html" %}
-{% block title %}Tickets · {{ guild.name }} · Odette{% endblock %}
-{% block body %}
+{% block title %}Tickets · {{ guild.name }}{% endblock %}
+{% block content %}
+<style>
+  .tk-wrap { max-width: 920px; margin: 0 auto; padding: 20px 16px 80px; }
+  .tk-wrap h1 { font-size: 1.35rem; margin: 0 0 4px; }
+  .tk-sub { color: #888; font-size: 0.88rem; margin-bottom: 18px; }
+  .card { background: #141414; border: 1px solid #2a2a2a; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
+  .card h2 { margin: 0 0 12px; font-size: 1rem; }
+  .fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .field label { display: block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: #777; margin-bottom: 4px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 11px; border-radius: 9px; border: 1px solid #2a2a2a;
+    background: #0c0c0c; color: #eee; font: inherit;
+  }
+  .field textarea { min-height: 70px; resize: vertical; }
+  .hint { font-size: 0.78rem; color: #666; margin-top: 6px; }
+  .row-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9px; border: 1px solid #333; background: #1a1a1a; color: #eee; cursor: pointer; font: inherit; text-decoration: none; }
+  .btn-primary { background: linear-gradient(135deg, #0ea5e9, #6366f1); border: none; font-weight: 600; }
+  .btn-danger { border-color: #7f1d1d; color: #fca5a5; }
+  .alert-ok { background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.35); color: #6ee7b7; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
+  .alert-err { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.35); color: #fca5a5; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
+  .panel-card { border: 1px solid #2a2a2a; border-radius: 12px; background: #111; margin-bottom: 10px; overflow: hidden; }
+  .panel-card-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; background: #161616; }
+  .panel-card-head:hover { background: #1a1a1a; }
+  .panel-card-head .em { font-size: 1.2rem; }
+  .panel-card-head .nm { font-weight: 600; flex: 1; }
+  .panel-card-body { display: none; padding: 14px; border-top: 1px solid #2a2a2a; }
+  .panel-card.open .panel-card-body { display: block; }
+  .panel-card.open .panel-card-head { border-bottom: 1px solid transparent; }
+  .check-line { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; margin: 6px 0; color: #ccc; }
+  .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #333; border-radius: 999px; cursor: pointer; transition: .2s; }
+  .slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  .switch input:checked + .slider { background: #0ea5e9; }
+  .switch input:checked + .slider:before { transform: translateX(20px); }
+</style>
 {% set t = config.tickets or {} %}
-{% set opts = t.get('options') or [
-  {"label":"Soporte","emoji":"🛠️","description":"Ayuda general","value":"soporte"},
-  {"label":"Reporte","emoji":"🚨","description":"Reportar usuario","value":"reporte"}
-] %}
-<div class="shell">
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="logo">🦢</div>
-      <div>
-        <div class="name">Odette</div>
-        <div class="sub">{{ guild.name }}</div>
-      </div>
+{% set panels = t.get('panels') or [] %}
+{% set opts = t.get('options') or [] %}
+
+<div class="tk-wrap">
+  <div class="row-between" style="margin-bottom:8px">
+    <div>
+      <h1>🎫 Tickets · {{ guild.name }}</h1>
+      <p class="tk-sub">Varios paneles editables (soporte, reportes, compras…). Cada uno con su canal, categoría y textos.</p>
     </div>
-    <div class="side-section">Tickets</div>
-    <nav class="side-nav">
-      <a class="active" href="/guild/{{ guild.id }}/tickets"><span class="ico">🎫</span> Configuración</a>
-      <a href="/guild/{{ guild.id }}#sec-tickets"><span class="ico">⚙️</span> Volver al servidor</a>
-    </nav>
-    <div class="side-footer">
-      <a href="/guild/{{ guild.id }}">← Configuración</a>
-      <a href="/dashboard">Servidores</a>
-    </div>
-  </aside>
-  <div class="main">
-    <div class="topbar">
-      <button class="menu-btn" type="button" onclick="toggleSidebar()">☰</button>
-      <div class="crumb">{{ guild.name }} · <strong>Tickets</strong></div>
-      <div class="spacer"></div>
-      {% if user %}<div class="user-chip">{{ user.username }}</div>{% endif %}
-    </div>
-    <div class="content" style="max-width:900px">
-      <div style="margin-bottom:20px">
-        <h1 style="margin:0 0 6px;font-size:1.4rem">🎫 Sistema de tickets</h1>
-        <p style="margin:0;color:#888;font-size:0.9rem">Panel, categorías, mensajes y opciones del menú (estilo Ticket Tool).</p>
-      </div>
-
-      {% if request.query_params.get('ok') %}
-      <div class="alert alert-ok">✅ Tickets guardados. El bot aplicará los cambios al sincronizar.</div>
-      {% endif %}
-      {% if request.query_params.get('err') %}
-      <div class="alert alert-err">No se pudo guardar. Revisa la sesión e inténtalo de nuevo.</div>
-      {% endif %}
-
-      <form method="post" action="/guild/{{ guild.id }}/tickets/save">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-
-        <div class="card">
-          <div class="row-between" style="margin-bottom:14px">
-            <div>
-              <h2 style="margin:0;font-size:1rem">Activación</h2>
-              <p class="hint" style="margin:4px 0 0">Enciende el sistema y el canal donde se publica el panel.</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" name="tickets_enabled" {% if t.get('enabled', true) %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="fields">
-            <div class="field">
-              <label>Canal del panel</label>
-              <input type="text" name="tickets_channel" value="{{ t.get('channel_id','') }}" placeholder="ID del canal" />
-            </div>
-            <div class="field">
-              <label>Categoría de tickets</label>
-              <input type="text" name="tickets_category" value="{{ t.get('category_id','') }}" placeholder="ID categoría" />
-            </div>
-            <div class="field">
-              <label>Rol de soporte</label>
-              <input type="text" name="tickets_support_role" value="{{ t.get('support_role_id','') }}" placeholder="ID rol staff" />
-            </div>
-            <div class="field">
-              <label>Máx. tickets abiertos / usuario</label>
-              <input type="number" name="tickets_max" value="{{ t.get('max_open_per_user', 1) }}" min="1" max="10" />
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2 style="margin:0 0 12px;font-size:1rem">Panel (mensaje en Discord)</h2>
-          <div class="fields">
-            <div class="field" style="grid-column:1/-1">
-              <label>Título</label>
-              <input type="text" name="tickets_panel_title" value="{{ t.get('panel_title','🎫 Soporte') }}" />
-            </div>
-            <div class="field" style="grid-column:1/-1">
-              <label>Descripción del panel</label>
-              <textarea name="tickets_panel_message" rows="4">{{ t.get('panel_description') or t.get('panel_message') or 'Elige una opción para abrir un ticket.' }}</textarea>
-            </div>
-            <div class="field" style="grid-column:1/-1">
-              <label>Mensaje al abrir ticket</label>
-              <textarea name="tickets_open_message" rows="3">{{ t.get('welcome_message') or t.get('open_message') or 'Un staff te atenderá pronto.' }}</textarea>
-              <p class="hint">Variables útiles: {user} {server}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="row-between" style="margin-bottom:12px">
-            <h2 style="margin:0;font-size:1rem">Opciones del menú</h2>
-            <span class="hint">Hasta 5 opciones en el select de Discord</span>
-          </div>
-          {% for i in range(1, 6) %}
-          {% set o = opts[i-1] if opts|length >= i else {} %}
-          <div style="display:grid;grid-template-columns:70px 1fr 1fr;gap:8px;margin-bottom:10px;padding:12px;background:#111;border:1px solid #2a2a2a;border-radius:10px">
-            <div class="field">
-              <label>Emoji</label>
-              <input type="text" name="tickets_opt_{{ i }}_emoji" value="{{ o.get('emoji','🎫') }}" />
-            </div>
-            <div class="field">
-              <label>Nombre</label>
-              <input type="text" name="tickets_opt_{{ i }}_label" value="{{ o.get('label','') }}" placeholder="Soporte" />
-            </div>
-            <div class="field">
-              <label>Descripción</label>
-              <input type="text" name="tickets_opt_{{ i }}_desc" value="{{ o.get('description','') }}" placeholder="Ayuda general" />
-            </div>
-            <input type="hidden" name="tickets_opt_{{ i }}_value" value="{{ o.get('value','') }}" />
-          </div>
-          {% endfor %}
-        </div>
-
-        <div class="row-between" style="margin-top:8px">
-          <a class="btn" href="/guild/{{ guild.id }}#sec-tickets">← Volver</a>
-          <button type="submit" class="btn btn-primary">Guardar tickets</button>
-        </div>
-      </form>
-    </div>
+    <a class="btn" href="/guild/{{ guild.id }}#sec-tickets">← Volver al servidor</a>
   </div>
+
+  {% if request.query_params.get('ok') %}
+  <div class="alert-ok">Guardado correctamente.</div>
+  {% endif %}
+  {% if request.query_params.get('err') %}
+  <div class="alert-err">No se pudo guardar. Revisa la sesión e inténtalo de nuevo.</div>
+  {% endif %}
+
+  <form method="post" action="/guild/{{ guild.id }}/tickets/save" id="ticketsForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <input type="hidden" name="ticket_panels_json" id="ticket_panels_json" value="[]" />
+
+    <div class="card">
+      <div class="row-between" style="margin-bottom:14px">
+        <div>
+          <h2 style="margin:0;font-size:1rem">Activación global</h2>
+          <p class="hint" style="margin:4px 0 0">Enciende el sistema de tickets del servidor.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" name="tickets_enabled" {% if t.get('enabled', true) %}checked{% endif %} />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <label>Canal panel por defecto</label>
+          <select name="tickets_channel">
+            <option value="">—</option>
+            {% for c in channels or [] %}
+            <option value="{{ c.id }}" {% if t.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Categoría por defecto (ID)</label>
+          <input type="text" name="tickets_category" value="{{ t.get('category_id','') }}" placeholder="ID categoría" />
+        </div>
+        <div class="field">
+          <label>Rol soporte por defecto</label>
+          <select name="tickets_support_role">
+            <option value="">—</option>
+            {% for r in roles or [] %}
+            <option value="{{ r.id }}" {% if t.get('support_role_id') == (r.id|string) %}selected{% endif %}>@{{ r.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Máx. tickets / usuario</label>
+          <input type="number" name="tickets_max" value="{{ t.get('max_open_per_user', 1) }}" min="1" max="10" />
+        </div>
+        <div class="field">
+          <label>Canal de logs</label>
+          <select name="tickets_log_channel">
+            <option value="">—</option>
+            {% for c in channels or [] %}
+            <option value="{{ c.id }}" {% if t.get('log_channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Nombre del canal ticket</label>
+          <input type="text" name="tickets_naming" value="{{ t.get('naming') or 'ticket-{user}' }}" />
+        </div>
+      </div>
+      <label class="check-line"><input type="checkbox" name="tickets_close_confirm" {% if t.get('close_confirmation', true) %}checked{% endif %} /> Confirmar al cerrar</label>
+      <label class="check-line"><input type="checkbox" name="tickets_transcript" {% if t.get('transcript', true) %}checked{% endif %} /> Guardar transcript al cerrar</label>
+      <label class="check-line"><input type="checkbox" name="tickets_claim" {% if t.get('claim_button', true) %}checked{% endif %} /> Botón “Reclamar” para staff</label>
+    </div>
+
+    <div class="card">
+      <div class="row-between" style="margin-bottom:12px">
+        <div>
+          <h2 style="margin:0;font-size:1rem">Paneles de tickets</h2>
+          <p class="hint" style="margin:4px 0 0">Añade paneles y <strong>haz clic en uno para editarlo</strong>. Se guardan todos al pulsar Guardar.</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="btnAddPanel">+ Añadir panel</button>
+      </div>
+      <div id="panelsList"></div>
+      <p class="hint" id="panelsEmpty" style="display:none">No hay paneles. Pulsa “Añadir panel”.</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 12px;font-size:1rem">Textos por defecto (si un panel no tiene los suyos)</h2>
+      <div class="fields">
+        <div class="field" style="grid-column:1/-1">
+          <label>Título</label>
+          <input type="text" name="tickets_panel_title" value="{{ t.get('panel_title','🎫 Soporte') }}" />
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Descripción del panel</label>
+          <textarea name="tickets_panel_message" rows="3">{{ t.get('panel_description') or t.get('panel_message') or 'Elige una opción para abrir un ticket.' }}</textarea>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Mensaje al abrir</label>
+          <textarea name="tickets_open_message" rows="3">{{ t.get('welcome_message') or t.get('open_message') or 'Un staff te atenderá pronto.' }}</textarea>
+        </div>
+        <div class="field">
+          <label>Texto del botón</label>
+          <input type="text" name="tickets_button_label" value="{{ t.get('button_label') or 'Abrir ticket' }}" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row-between" style="margin-bottom:12px">
+        <h2 style="margin:0;font-size:1rem">Opciones del menú (select)</h2>
+        <span class="hint">Hasta 5 opciones</span>
+      </div>
+      {% for i in range(1, 6) %}
+      {% set o = opts[i-1] if opts|length >= i else {} %}
+      <div style="display:grid;grid-template-columns:70px 1fr 1fr;gap:8px;margin-bottom:10px;padding:12px;background:#0c0c0c;border:1px solid #2a2a2a;border-radius:10px">
+        <div class="field">
+          <label>Emoji</label>
+          <input type="text" name="tickets_opt_{{ i }}_emoji" value="{{ o.get('emoji','🎫') }}" />
+        </div>
+        <div class="field">
+          <label>Nombre</label>
+          <input type="text" name="tickets_opt_{{ i }}_label" value="{{ o.get('label','') }}" placeholder="Soporte" />
+        </div>
+        <div class="field">
+          <label>Descripción</label>
+          <input type="text" name="tickets_opt_{{ i }}_desc" value="{{ o.get('description','') }}" placeholder="Ayuda general" />
+        </div>
+        <input type="hidden" name="tickets_opt_{{ i }}_value" value="{{ o.get('value','') }}" />
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="row-between" style="margin-top:8px">
+      <a class="btn" href="/guild/{{ guild.id }}#sec-tickets">← Volver</a>
+      <button type="submit" class="btn btn-primary">Guardar tickets</button>
+    </div>
+  </form>
 </div>
+
+<script>
+(function(){
+  var CHANNELS = [
+    {% for c in channels or [] %}
+    {id: "{{ c.id }}", label: {{ (c.label if c.label is defined else ("#" ~ c.name))|tojson }} },
+    {% endfor %}
+  ];
+  var ROLES = [
+    {% for r in roles or [] %}
+    {id: "{{ r.id }}", name: {{ r.name|tojson }} },
+    {% endfor %}
+  ];
+  var INITIAL = {{ (t.get('panels') or [])|tojson }};
+
+  var list = document.getElementById('panelsList');
+  var hidden = document.getElementById('ticket_panels_json');
+  var empty = document.getElementById('panelsEmpty');
+  var panels = Array.isArray(INITIAL) ? INITIAL.slice() : [];
+
+  function uid(){ return Math.random().toString(16).slice(2, 10); }
+
+  function sync(){
+    hidden.value = JSON.stringify(panels);
+    empty.style.display = panels.length ? 'none' : 'block';
+  }
+
+  function chOptions(selected){
+    var h = '<option value="">— Sin canal —</option>';
+    CHANNELS.forEach(function(c){
+      h += '<option value="'+c.id+'"'+(String(selected)===String(c.id)?' selected':'')+'>'+c.label+'</option>';
+    });
+    return h;
+  }
+  function roleOptions(selected){
+    var h = '<option value="">— Sin rol —</option>';
+    ROLES.forEach(function(r){
+      h += '<option value="'+r.id+'"'+(String(selected)===String(r.id)?' selected':'')+'>@'+r.name+'</option>';
+    });
+    return h;
+  }
+
+  function render(){
+    list.innerHTML = '';
+    panels.forEach(function(p, idx){
+      if (!p.id) p.id = uid();
+      var card = document.createElement('div');
+      card.className = 'panel-card' + (p._open ? ' open' : '');
+      card.innerHTML =
+        '<div class="panel-card-head">' +
+          '<span class="em">'+(p.emoji||'🎫')+'</span>' +
+          '<span class="nm">'+(p.name||'Panel')+'</span>' +
+          '<span class="hint">'+(p.enabled===false?'Off':'On')+'</span>' +
+          '<button type="button" class="btn btn-danger btn-del" title="Eliminar">✕</button>' +
+        '</div>' +
+        '<div class="panel-card-body">' +
+          '<div class="fields">' +
+            '<div class="field"><label>Emoji</label><input data-k="emoji" value="'+(p.emoji||'🎫').replace(/"/g,'&quot;')+'" /></div>' +
+            '<div class="field"><label>Nombre del panel</label><input data-k="name" value="'+(p.name||'').replace(/"/g,'&quot;')+'" /></div>' +
+            '<div class="field"><label>Título embed</label><input data-k="panel_title" value="'+(p.panel_title||p.name||'').replace(/"/g,'&quot;')+'" /></div>' +
+            '<div class="field"><label>Texto botón</label><input data-k="button_label" value="'+(p.button_label||'Abrir ticket').replace(/"/g,'&quot;')+'" /></div>' +
+            '<div class="field"><label>Canal del panel</label><select data-k="channel_id">'+chOptions(p.channel_id)+'</select></div>' +
+            '<div class="field"><label>Categoría tickets (ID)</label><input data-k="category_id" value="'+(p.category_id||'').replace(/"/g,'&quot;')+'" placeholder="ID" /></div>' +
+            '<div class="field"><label>Rol soporte</label><select data-k="support_role_id">'+roleOptions(p.support_role_id)+'</select></div>' +
+            '<div class="field"><label>Canal logs</label><select data-k="log_channel_id">'+chOptions(p.log_channel_id)+'</select></div>' +
+            '<div class="field"><label>Color</label><input data-k="color" value="'+(p.color||'#AFD7E6')+'" /></div>' +
+            '<div class="field"><label>Máx. abiertos</label><input type="number" min="1" max="10" data-k="max_open" value="'+(p.max_open||1)+'" /></div>' +
+            '<div class="field"><label>Nombre canal</label><input data-k="naming" value="'+(p.naming||'ticket-{user}').replace(/"/g,'&quot;')+'" /></div>' +
+          '</div>' +
+          '<div class="field" style="margin-top:10px"><label>Descripción del panel</label><textarea data-k="panel_description" rows="2">'+(p.panel_description||'')+'</textarea></div>' +
+          '<div class="field" style="margin-top:8px"><label>Mensaje al abrir ticket</label><textarea data-k="open_message" rows="2">'+(p.open_message||'')+'</textarea></div>' +
+          '<label class="check-line" style="margin-top:10px"><input type="checkbox" data-k="enabled" '+(p.enabled===false?'':'checked')+' /> Panel activo</label>' +
+        '</div>';
+
+      card.querySelector('.panel-card-head').addEventListener('click', function(e){
+        if (e.target.closest('.btn-del')) return;
+        p._open = !p._open;
+        render();
+      });
+      card.querySelector('.btn-del').addEventListener('click', function(e){
+        e.stopPropagation();
+        if (!confirm('¿Eliminar panel "'+(p.name||'')+'"?')) return;
+        panels.splice(idx, 1);
+        sync(); render();
+      });
+      card.querySelectorAll('[data-k]').forEach(function(el){
+        el.addEventListener('input', function(){
+          var k = el.getAttribute('data-k');
+          if (el.type === 'checkbox') p[k] = el.checked;
+          else if (k === 'max_open') p[k] = parseInt(el.value, 10) || 1;
+          else p[k] = el.value;
+          if (k === 'name' || k === 'emoji' || k === 'enabled') {
+            // update head without full re-render of open state
+            var head = card.querySelector('.nm');
+            if (k === 'name' && head) head.textContent = p.name || 'Panel';
+            var em = card.querySelector('.em');
+            if (k === 'emoji' && em) em.textContent = p.emoji || '🎫';
+          }
+          sync();
+        });
+        el.addEventListener('change', function(){
+          var k = el.getAttribute('data-k');
+          if (el.type === 'checkbox') p[k] = el.checked;
+          else p[k] = el.value;
+          sync();
+        });
+      });
+      list.appendChild(card);
+    });
+    sync();
+  }
+
+  document.getElementById('btnAddPanel').addEventListener('click', function(){
+    panels.push({
+      id: uid(),
+      emoji: '🎫',
+      name: 'Nuevo panel',
+      panel_title: 'Nuevo panel',
+      panel_description: 'Describe tu problema y el staff te ayudará.',
+      open_message: 'Ticket abierto. Un staff te atenderá pronto.',
+      button_label: 'Abrir ticket',
+      color: '#AFD7E6',
+      max_open: 1,
+      naming: 'ticket-{user}',
+      enabled: true,
+      _open: true
+    });
+    render();
+  });
+
+  document.getElementById('ticketsForm').addEventListener('submit', function(){
+    panels.forEach(function(p){ delete p._open; });
+    sync();
+  });
+
+  if (!panels.length) {
+    panels.push({ id: uid(), emoji: '🎫', name: 'Soporte', panel_title: '🎫 Soporte', enabled: true, max_open: 1, naming: 'ticket-{user}', color: '#AFD7E6', button_label: 'Abrir ticket' });
+  }
+  render();
+})();
+</script>
 {% endblock %}
