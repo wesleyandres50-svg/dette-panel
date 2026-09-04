@@ -907,6 +907,12 @@
 </nav>
 
 
+{% if not channels %}
+<div class="alert alert-err" id="channelsEmptyHint" style="margin:0 0 12px">
+  No se cargaron canales del servidor. En Render define <code>BOT_TOKEN</code> o <code>DISCORD_TOKEN</code> (token del bot)
+  y asegúrate de que el bot esté en el servidor. Luego recarga la página.
+</div>
+{% endif %}
 <div class="module-page-title" id="modulePageTitle">
   <h2>Configuración</h2>
   <p>Elige un módulo en el menú lateral</p>
@@ -2244,7 +2250,7 @@
               <select name="confessions_channel_id">
                 <option value="">— Sin canal —</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if cf.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if cf.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2252,7 +2258,7 @@
               <select name="confessions_log_channel_id">
                 <option value="">— Sin canal —</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if cf.get('log_channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if cf.get('log_channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2283,7 +2289,7 @@
               <select name="birthdays_channel_id">
                 <option value="">—</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if bd.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if bd.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2326,7 +2332,7 @@
               <select name="suggestions_channel_id">
                 <option value="">—</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if sg.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if sg.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2365,7 +2371,7 @@
               <select name="applications_channel_id">
                 <option value="">—</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if ap.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if ap.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2406,7 +2412,7 @@
               <select name="gem_drops_channel_id">
                 <option value="">—</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if gd.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if gd.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2438,7 +2444,7 @@
               <select name="streamer_channel_id">
                 <option value="">—</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if st.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if st.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2478,7 +2484,7 @@
             <select name="sticky_channel_id">
               <option value="">—</option>
               {% for c in channels or [] %}
-              <option value="{{ c.id }}" {% if sk.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+              <option value="{{ c.id }}" {% if sk.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
               {% endfor %}
             </select>
           </div>
@@ -2537,7 +2543,7 @@
             <select name="media_channel_id">
               <option value="">—</option>
               {% for c in channels or [] %}
-              <option value="{{ c.id }}" {% if mc.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+              <option value="{{ c.id }}" {% if mc.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
               {% endfor %}
             </select>
           </div>
@@ -2588,7 +2594,7 @@
               <select name="embeds_channel_id">
                 <option value="">—</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if ep.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if ep.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2628,7 +2634,7 @@
               <select name="jail_channel_id">
                 <option value="">— Sin canal —</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if j.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if j.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2639,7 +2645,7 @@
               <select name="jail_log_channel_id">
                 <option value="">— Sin canal —</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if j.get('log_channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if j.get('log_channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2669,7 +2675,7 @@
               <select name="audit_channel_id">
                 <option value="">—</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if au.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if au.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -2701,7 +2707,7 @@
               <select name="rr_channel_id">
                 <option value="">—</option>
                 {% for c in channels or [] %}
-                <option value="{{ c.id }}" {% if rr.get('channel_id') == (c.id|string) %}selected{% endif %}>#{{ c.name }}</option>
+                <option value="{{ c.id }}" {% if rr.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
                 {% endfor %}
               </select>
             </div>
