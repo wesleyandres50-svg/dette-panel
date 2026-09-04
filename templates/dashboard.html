@@ -5,16 +5,18 @@
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="logo">🦢</div>
-      <div class="name">Odette</div>
+      <div>
+        <div class="name">Odette</div>
+        <div class="sub">Panel de control</div>
+      </div>
     </div>
     <div class="side-section">Inicio</div>
     <nav class="side-nav">
       <a class="active" href="/dashboard"><span class="ico">🏠</span> Servidores</a>
-      <a href="/dashboard" title="Tu cuenta de Discord"><span class="ico">👤</span> Mi perfil</a>
       <a href="/owner"><span class="ico">👑</span> Premium</a>
     </nav>
     <div class="side-footer">
-      <a class="premium" href="/owner">✦ Gestionar Premium</a>
+      <a class="premium" href="/owner">✦ Premium</a>
       <a href="/logout">Cerrar sesión</a>
     </div>
   </aside>
@@ -28,59 +30,101 @@
         {% if user.avatar %}
         <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png?size=64" alt="" />
         {% endif %}
-        {{ user.username }}
+        <span class="hidden-xs">{{ user.username }}</span>
       </div>
       {% endif %}
     </div>
     <div class="content">
-      <div style="margin-bottom:22px">
-        <div style="font-size:0.72rem;letter-spacing:0.08em;color:var(--muted-2);font-weight:600">BIENVENIDO DE VUELTA</div>
-        <h1 style="margin:6px 0 4px;font-size:1.75rem;letter-spacing:-0.03em">
-          ¡Hola{% if user %}, {{ user.username }}{% endif %}! 👋
+      <div style="margin-bottom:28px">
+        <div style="font-size:0.68rem;letter-spacing:0.12em;color:#5a5a5a;font-weight:700;text-transform:uppercase">Bienvenido</div>
+        <h1 style="margin:8px 0 6px;font-size:1.65rem;letter-spacing:-0.03em;font-weight:700">
+          Hola{% if user %}, {{ user.username }}{% endif %} 🦢
         </h1>
-        <p style="margin:0;color:var(--muted);font-size:0.92rem">
-          Elige un servidor para configurar Odette.
+        <p style="margin:0;color:#888;font-size:0.9rem;line-height:1.5">
+          Elige un servidor para configurar Odette. Solo aparecen servidores donde tienes permisos de administrar.
         </p>
       </div>
 
-      <div class="row-between" style="margin-bottom:14px">
-        <h2 style="margin:0;font-size:1rem;color:var(--muted)">Tus servidores</h2>
-        <a class="btn" href="/dashboard">↻ Actualizar</a>
+      <div class="row-between" style="margin-bottom:16px">
+        <h2 style="margin:0;font-size:0.95rem;font-weight:600;color:#aaa">Tus servidores</h2>
+        <a class="btn" href="/dashboard">↻ Actualizar lista</a>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">
-        {% for g in guilds or [] %}
-        <a href="/guild/{{ g.id }}" style="display:block;border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--bg-card);transition:0.15s;text-decoration:none;color:inherit">
-          <div style="height:88px;background:linear-gradient(135deg,#2a1a14,#1a1220 50%,#12141c)">
+      {% if not guilds %}
+      <div class="card" style="text-align:center;padding:40px 20px">
+        <div style="font-size:2rem;margin-bottom:10px">📭</div>
+        <p style="color:#888;margin:0 0 16px">No hay servidores con permisos de administrador.</p>
+        <a class="btn btn-primary" href="/login">Volver a iniciar sesión</a>
+      </div>
+      {% else %}
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
+        {% for g in guilds %}
+        <a href="/guild/{{ g.id }}" class="guild-card">
+          <div class="guild-card-banner">
             {% if g.icon %}
-            <div style="padding:16px">
-              <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=64" style="width:48px;height:48px;border-radius:14px;border:2px solid rgba(255,255,255,0.1)" />
-            </div>
+            <img class="guild-card-icon" src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=128" alt="" />
             {% else %}
-            <div style="padding:16px">
-              <div style="width:48px;height:48px;border-radius:14px;background:var(--accent-soft);display:grid;place-items:center;font-weight:800;color:var(--accent-2)">
-                {{ (g.name or '?')[0] }}
-              </div>
-            </div>
+            <div class="guild-card-icon fallback">{{ (g.name or 'S')[0] }}</div>
             {% endif %}
           </div>
-          <div style="padding:14px 16px 16px">
-            <div style="font-weight:700;font-size:0.98rem">{{ g.name }}</div>
-            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:0.72rem">
-              <span style="padding:3px 8px;border-radius:999px;background:rgba(34,197,94,0.12);color:#86efac">Bot instalado</span>
-              {% if g.owner %}<span style="padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:#ffd0c0">Owner</span>{% endif %}
-            </div>
+          <div class="guild-card-body">
+            <div class="guild-card-name">{{ g.name }}</div>
+            <div class="guild-card-id">ID {{ g.id }}</div>
           </div>
+          <div class="guild-card-go">Configurar →</div>
         </a>
-        {% else %}
-        <div class="card" style="grid-column:1/-1;text-align:center;padding:40px">
-          <p style="color:var(--muted)">No hay servidores gestionables.</p>
-          <p class="hint">Invita el bot y asegúrate de tener permiso de Administrar servidor.</p>
-          {% if invite_url %}<p style="margin-top:14px"><a class="btn btn-primary" href="{{ invite_url }}" target="_blank">+ Invitar Odette</a></p>{% endif %}
-        </div>
         {% endfor %}
       </div>
+      {% endif %}
     </div>
   </div>
 </div>
+<style>
+  .guild-card {
+    display: flex; flex-direction: column;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #2a2a2a;
+    background: #141414;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  }
+  .guild-card:hover {
+    border-color: rgba(175,215,230,0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    color: inherit;
+  }
+  .guild-card-banner {
+    height: 72px;
+    background: linear-gradient(135deg, rgba(175,215,230,0.18), #111 55%, #0a0a0a);
+    display: flex; align-items: flex-end;
+    padding: 0 14px 0;
+    position: relative;
+  }
+  .guild-card-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    border: 3px solid #141414;
+    margin-bottom: -18px;
+    object-fit: cover;
+    background: #1a1a1a;
+  }
+  .guild-card-icon.fallback {
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 1.1rem;
+    color: #AFD7E6;
+    background: linear-gradient(135deg, #1a2a32, #111);
+  }
+  .guild-card-body { padding: 26px 14px 10px; }
+  .guild-card-name { font-weight: 650; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .guild-card-id { font-size: 0.72rem; color: #555; margin-top: 4px; font-family: ui-monospace, monospace; }
+  .guild-card-go {
+    padding: 10px 14px 14px;
+    font-size: 0.78rem; color: #AFD7E6; font-weight: 600;
+  }
+  @media (max-width: 600px) {
+    .user-chip span { display: none; }
+  }
+</style>
 {% endblock %}
