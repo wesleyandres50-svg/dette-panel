@@ -1826,41 +1826,7 @@ async def guild_save(request: Request, guild_id: str):
     if not (ok_g or ok_u):
         config["ia"]["enabled"] = False
     
-    
-    # --- selfroles (multi-panel) ---
-    try:
-        import json as _json
-        _panels_raw = _s("selfroles_panels_json") or "[]"
-        _panels = _json.loads(_panels_raw) if _panels_raw else []
-        if not isinstance(_panels, list):
-            _panels = []
-    except Exception:
-        _panels = []
-    _clean_panels = []
-    for p in _panels[:15]:
-        if not isinstance(p, dict):
-            continue
-        roles = []
-        for x in (p.get("roles") or [])[:25]:
-            if not isinstance(x, dict):
-                continue
-            rid = str(x.get("role_id", "")).strip()
-            if not rid and not str(x.get("label", "")).strip():
-                continue
-            roles.append({
-                "emoji": str(x.get("emoji", ""))[:32],
-                "label": str(x.get("label", ""))[:80],
-                "role_id": rid[:32],
-            })
-        _clean_panels.append({
-            "id": str(p.get("id") or secrets.token_hex(4))[:16],
-            "channel_id": str(p.get("channel_id") or "").strip()[:32],
-            "title": str(p.get("title") or "Selección de Roles")[:120],
-            "description": str(p.get("description") or "")[:500],
-            "image": str(p.get("image") or "")[:500],
-            "soft_role_id": str(p.get("soft_role_id") or "").strip()[:32],
-            "roles": roles,
-        })
+    # --- selfroles ---
     try:
         import json as _json
         _sr = _s("selfroles_roles_json") or "[]"
@@ -1869,52 +1835,28 @@ async def guild_save(request: Request, guild_id: str):
             _sr_roles = []
     except Exception:
         _sr_roles = []
-    if _clean_panels:
-        _first = _clean_panels[0]
-        _sr_roles = _first.get("roles") or _sr_roles
-        _ch = _first.get("channel_id") or _s("selfroles_channel").strip()
-        _title = _first.get("title") or "Selección de Roles"
-        _desc = _first.get("description") or ""
-        _img = _first.get("image") or ""
-        _soft = _first.get("soft_role_id") or ""
-    else:
-        _ch = _s("selfroles_channel").strip()
-        _title = _s("selfroles_title").strip()[:120] or "Selección de Roles"
-        _desc = _s("selfroles_description").strip()[:500]
-        _img = _s("selfroles_image").strip()[:500]
-        _soft = _s("selfroles_soft_role").strip()
-        if _ch or _sr_roles:
-            _clean_panels = [{
-                "id": secrets.token_hex(4),
-                "channel_id": _ch,
-                "title": _title,
-                "description": _desc,
-                "image": _img,
-                "soft_role_id": _soft,
-                "roles": [
-                    {
-                        "emoji": str(x.get("emoji", ""))[:32],
-                        "label": str(x.get("label", ""))[:80],
-                        "role_id": str(x.get("role_id", "")).strip()[:32],
-                    }
-                    for x in _sr_roles[:25] if isinstance(x, dict)
-                ],
-            }]
     config["selfroles"] = {
-        "channel_id": _ch,
-        "title": _title,
-        "description": _desc,
-        "image": _img,
-        "soft_role_id": _soft,
-        "roles": list(_sr_roles)[:25] if isinstance(_sr_roles, list) else [],
-        "panels": _clean_panels,
+        "channel_id": _s("selfroles_channel").strip(),
+        "title": _s("selfroles_title").strip()[:120] or "Selección de Roles",
+        "description": _s("selfroles_description").strip()[:500],
+        "image": _s("selfroles_image").strip()[:500],
+        "soft_role_id": _s("selfroles_soft_role").strip(),
+        "roles": [
+            {
+                "emoji": str(x.get("emoji", ""))[:32],
+                "label": str(x.get("label", ""))[:80],
+                "role_id": str(x.get("role_id", "")).strip(),
+            }
+            for x in _sr_roles[:40]
+            if str(x.get("role_id", "")).strip()
+        ],
     }
 
     # --- disabled commands ---
     _all_cmds = [
         "daily","work","bal","pay","shop","buy","rank","levels","leaderboard",
         "welcome","autorole","ticket","close","add","remove","ban","kick","mute","warn",
-        "purge","clear","lock","unlock","slowmode","snipe","avatares","userinfo","serverinfo",
+        "purge","clear","lock","unlock","slowmode","snipe","avatar","userinfo","serverinfo",
         "ship","hug","kiss","slap","meme","nsfw","play","skip","stop","queue",
     ]
     _disabled = []
