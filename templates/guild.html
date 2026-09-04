@@ -3,6 +3,27 @@
 {% block extra_css %}
 
   /* === Single module view (Okaa-style) === */
+  .premium-gate {
+    display: none;
+    margin: 0 0 18px;
+    padding: 28px 22px;
+    border-radius: 14px;
+    border: 1px solid rgba(175,215,230,0.35);
+    background: linear-gradient(145deg, #141820, #0e1014);
+    text-align: center;
+    max-width: 560px;
+  }
+  .premium-gate.show { display: block; }
+  .premium-gate .lock-ico { font-size: 2.2rem; margin-bottom: 10px; }
+  .premium-gate h3 { margin: 0 0 8px; font-size: 1.15rem; }
+  .premium-gate p { margin: 0 0 16px; color: #9a9a9a; font-size: 0.9rem; line-height: 1.5; }
+  .premium-gate .btn-primary { min-width: 160px; }
+  #guildPage.premium-blocked .section.is-active-section,
+  #guildPage.premium-blocked .section.panel-active {
+    display: none !important;
+  }
+  #guildPage.premium-blocked #modulePageTitle p { color: #f59e0b; }
+
   #guildPage.single-mod.multi-mod-list .mod.is-focused-mod {
     display: block !important;
     margin-bottom: 14px !important;
@@ -305,6 +326,13 @@
     <a href="#mod-mod" data-panel="sec-moderacion" class="side-item"><span class="ico">🔨</span> Moderación</a>
   </nav>
 
+  <div class="side-section">IA · Premium</div>
+  <nav class="side-nav">
+    <a href="#mod-ia-antiraid" data-panel="sec-seguridad" data-focus="ia-del-servidor" data-premium="1" class="side-item"><span class="ico">🧠</span> AntiRaid IA <span class="badge-new">PRO</span></a>
+    <a href="#mod-ia-automod" data-panel="sec-seguridad" data-focus="ia-del-servidor" data-premium="1" class="side-item"><span class="ico">✨</span> AutoMod IA <span class="badge-new">PRO</span></a>
+    <a href="#mod-ia-full" data-panel="sec-seguridad" data-focus="ia-del-servidor" data-premium="1" class="side-item"><span class="ico">🤖</span> IA del servidor <span class="badge-new">PRO</span></a>
+  </nav>
+
   <div class="side-section">Extra</div>
   <nav class="side-nav">
     <a href="#mod-util" data-panel="sec-utilidad" class="side-item"><span class="ico">🧰</span> Utilidad</a>
@@ -316,8 +344,8 @@
 
   <div class="side-section">Premium</div>
   <nav class="side-nav">
-    <a href="#mod-arw" data-panel="sec-antiraid-rework" class="side-item"><span class="ico">🛡️</span> AntiRaid Rework <span class="badge-new">PRO</span></a>
-    <a href="#mod-ap" data-panel="sec-autopurge" class="side-item"><span class="ico">🧹</span> Auto Purge <span class="badge-new">PRO</span></a>
+    <a href="#mod-arw" data-panel="sec-antiraid-rework" data-premium="1" class="side-item"><span class="ico">🛡️</span> AntiRaid Rework <span class="badge-new">PRO</span></a>
+    <a href="#mod-ap" data-panel="sec-autopurge" data-premium="1" class="side-item"><span class="ico">🧹</span> Auto Purge <span class="badge-new">PRO</span></a>
   </nav>
 
   <div class="side-footer">
@@ -848,6 +876,12 @@
 <div class="module-page-title" id="modulePageTitle">
   <h2>Configuración</h2>
   <p>Elige un módulo en el menú lateral</p>
+</div>
+<div class="premium-gate" id="premiumGate">
+  <div class="lock-ico">🔒</div>
+  <h3>Esta función es Premium</h3>
+  <p id="premiumGateText">No tienes Premium en este servidor. Activa Premium para usar este módulo.</p>
+  <a class="btn btn-primary" href="/owner">Ver Premium →</a>
 </div>
 
 <form method="post" action="/guild/{{ guild.id }}/save" id="guildForm">
@@ -2787,7 +2821,43 @@
   })();
 
 })();
+window.ODETTE_PREMIUM = {{ 'true' if premium or is_owner else 'false' }};
+
+function showPremiumGate(show, title) {
+  var page = document.getElementById('guildPage');
+  var gate = document.getElementById('premiumGate');
+  var txt = document.getElementById('premiumGateText');
+  if (page) page.classList.toggle('premium-blocked', !!show);
+  if (gate) gate.classList.toggle('show', !!show);
+  if (txt && title) {
+    txt.textContent = 'No tienes Premium. El módulo «' + title + '» solo está disponible con Premium.';
+  }
+  if (show) {
+    var titleBox = document.getElementById('modulePageTitle');
+    if (titleBox) {
+      titleBox.querySelector('h2').textContent = title || 'Premium';
+      titleBox.querySelector('p').textContent = 'Función bloqueada';
+    }
+  }
+}
+
 function showPanel(panelId, focusKey, linkEl) {
+  // Premium gate
+  var needsPrem = linkEl && linkEl.getAttribute('data-premium') === '1';
+  if (!needsPrem && (panelId === 'sec-antiraid-rework' || panelId === 'sec-autopurge')) needsPrem = true;
+  if (!needsPrem && focusKey && String(focusKey).indexOf('ia') >= 0) needsPrem = true;
+  if (needsPrem && !window.ODETTE_PREMIUM) {
+    var nm = linkEl ? (linkEl.textContent || '').replace(/PRO|NUEVO|PREMIUM/gi,'').trim() : 'Premium';
+    showPremiumGate(true, nm);
+    document.querySelectorAll('.side-nav .side-item').forEach(function(a){ a.classList.remove('active'); });
+    if (linkEl) linkEl.classList.add('active');
+    document.querySelectorAll('[data-section]').forEach(function(sec) {
+      sec.classList.remove('is-active-section', 'panel-active');
+    });
+    return;
+  }
+  showPremiumGate(false);
+
   var page = document.getElementById('guildPage');
   if (page) { page.classList.add('single-mod'); page.classList.remove('multi-mod-list'); }
 
