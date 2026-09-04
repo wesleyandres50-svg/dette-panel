@@ -1702,6 +1702,23 @@ async def guild_save(request: Request, guild_id: str):
         if str(p.get("name", "")).strip()
     ]
 
+    # --- alianzas ---
+    config["alianzas"] = {
+        "enabled": form.get("alianzas_enabled") == "on",
+        "channel_id": _s("alianzas_channel").strip(),
+        "auto_publish": form.get("alianzas_auto_publish") == "on",
+        "require_invite": form.get("alianzas_require_invite") == "on",
+        "review_channel_id": _s("alianzas_review_channel").strip(),
+        "category_id": _s("alianzas_category").strip(),
+        "support_role_id": _s("alianzas_support_role").strip(),
+        "panel_color": (_s("alianzas_panel_color") or "#AFD7E6").strip()[:16],
+        "panel_title": _s("alianzas_panel_title").strip()[:120],
+        "panel_description": _s("alianzas_panel_description").strip()[:1500],
+        "panel_image": _s("alianzas_panel_image").strip()[:500],
+        "button_label": _s("alianzas_button_label").strip()[:80] or "Solicitar alianza",
+    }
+
+
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
     try:
@@ -1813,6 +1830,7 @@ async def tickets_save(request: Request, guild_id: str):
         tmax = max(1, min(int(form.get("tickets_max") or 1), 10))
     except Exception:
         tmax = 1
+    prev_t = config.get("tickets") if isinstance(config.get("tickets"), dict) else {}
     config["tickets"] = {
         "enabled": form.get("tickets_enabled") == "on",
         "channel_id": _s("tickets_channel").strip(),
@@ -1826,6 +1844,7 @@ async def tickets_save(request: Request, guild_id: str):
         "max_open_per_user": tmax,
         "options": options,
         "button_label": "Abrir ticket",
+        "panels": prev_t.get("panels") or [],
     }
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
