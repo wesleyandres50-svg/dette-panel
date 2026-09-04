@@ -19,6 +19,39 @@
   .premium-gate p { margin: 0 0 16px; color: #9a9a9a; font-size: 0.9rem; line-height: 1.5; }
   .premium-gate .btn-primary { min-width: 160px; }
 
+  
+  /* NUCLEAR: nada fuera del módulo activo */
+  #guildPage.single-mod form > .section[data-section]:not(.is-active-section),
+  #guildPage.single-mod .section[data-section]:not(.is-active-section) {
+    display: none !important;
+    position: absolute !important;
+    left: -10000px !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  #guildPage.single-mod .mod:not(.is-focused-mod) {
+    display: none !important;
+    position: absolute !important;
+    left: -10000px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  #guildPage.single-mod .mod.is-focused-mod {
+    display: block !important;
+    position: relative !important;
+    left: auto !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    max-width: 920px !important;
+  }
+  #guildPage .page-head, #guildPage .guild-header, #guildPage .footer-bar {
+    position: relative;
+    z-index: 5;
+  }
+
   /* ===== FIX: un solo módulo visible (anti-solapado) ===== */
   #guildPage.single-mod {
     position: relative;
@@ -1465,30 +1498,51 @@
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Mensaje al unirse un miembro.</p>
-          <div class="mod-settings">
+          
+          <p class="mod-desc">Mensaje (y opcionalmente DM) cuando alguien entra al servidor. Puedes usar embed, imagen y variables.</p>
+          <div class="mod-settings" style="display:block">
             <div class="mod-settings-inner">
-              <div class="field">
-                <label>Canal ID</label>
-                <input type="text" name="welcome_channel" value="{{ config.welcome.channel_id }}" />
+              {% set w = config.welcome or {} %}
+              <div class="fields">
+                <div class="field"><label>Canal de bienvenida</label>
+                  <select name="welcome_channel">
+                    <option value="">— Sin canal —</option>
+                    {% for c in channels or [] %}
+                    <option value="{{ c.id }}" {% if w.get('channel_id') == (c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="field"><label>Título del embed</label>
+                  <input type="text" name="welcome_title" value="{{ w.get('title') or '¡Bienvenido/a!' }}" />
+                </div>
+                <div class="field"><label>Color embed</label>
+                  <input type="text" name="welcome_color" value="{{ w.get('color') or '#AFD7E6' }}" />
+                </div>
+                <div class="field"><label>Imagen / banner URL</label>
+                  <input type="text" name="welcome_image" value="{{ w.get('image') or w.get('banner') or '' }}" placeholder="https://..." />
+                </div>
               </div>
-              <div class="field">
-                <label>Mensaje</label>
-                <textarea name="welcome_message" rows="3">{{ config.welcome.message }}</textarea>
-                <label style="display:block;margin-top:8px">Título</label>
-                <input type="text" name="welcome_title" value="{{ config.welcome.get('title','¡Bienvenido/a!') if config.welcome else '¡Bienvenido/a!' }}" />
-                <label style="display:block;margin-top:8px">Imagen / banner URL</label>
-                <input type="text" name="welcome_image" value="{{ config.welcome.get('image','') if config.welcome else '' }}" placeholder="https://..." />
-                <input type="text" name="welcome_banner" value="{{ config.welcome.get('banner_url','') if config.welcome else '' }}" placeholder="Banner URL" style="margin-top:4px" />
-                <label class="check-line" style="margin-top:8px"><input type="checkbox" name="welcome_card_enabled" {% if config.welcome.get('card_enabled') %}checked{% endif %} /> Tarjeta editable (avatar + nombre + fondo)</label>
-
+              <div class="field"><label>Mensaje</label>
+                <textarea name="welcome_message" rows="4">{{ w.get('message') or '¡Bienvenido {user} a **{server}**!' }}</textarea>
               </div>
-              <p class="hint">Variables: {user} {server} {membercount}</p>
+              <label class="check-line"><input type="checkbox" name="welcome_embed" {% if w.get('use_embed', true) %}checked{% endif %} /> Enviar como embed</label>
+              <label class="check-line"><input type="checkbox" name="welcome_dm" {% if w.get('dm_enabled') %}checked{% endif %} /> También enviar por DM</label>
+              <label class="check-line"><input type="checkbox" name="welcome_ping" {% if w.get('ping_user', true) %}checked{% endif %} /> Mencionar al usuario</label>
+              <label class="check-line"><input type="checkbox" name="welcome_delete_after" {% if w.get('delete_after') %}checked{% endif %} /> Borrar mensaje tras X segundos</label>
+              <div class="fields">
+                <div class="field"><label>Borrar tras (s, 0=no)</label>
+                  <input type="number" name="welcome_delete_seconds" min="0" max="600" value="{{ w.get('delete_seconds') or 0 }}" />
+                </div>
+                <div class="field"><label>Mensaje DM (si aplica)</label>
+                  <input type="text" name="welcome_dm_message" value="{{ w.get('dm_message') or '¡Gracias por unirte a {server}!' }}" />
+                </div>
+              </div>
+              <p class="hint">Variables: {user} {user.mention} {server} {member.count} {member.name}</p>
             </div>
           </div>
         </div>
 
-        <div class="mod {% if config.autorole.enabled %}is-on{% endif %}" data-mod data-mod-id="autorole">
+<div class="mod {% if config.autorole.enabled %}is-on{% endif %}" data-mod data-mod-id="autorole">
           <div class="mod-top">
             <div class="mod-title">Autorole</div>
             <label class="switch">
@@ -2395,7 +2449,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-community" id="sec-birthdays" data-section>
@@ -2493,7 +2547,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   
@@ -2715,7 +2769,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-community" id="sec-streamers" data-section>
@@ -2808,7 +2862,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-util" id="sec-sticky" data-section>
@@ -2880,7 +2934,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-util" id="sec-temp" data-section>
@@ -2951,7 +3005,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-util" id="sec-media" data-section>
@@ -3010,7 +3064,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-util" id="sec-threads" data-section>
@@ -3059,7 +3113,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-util" id="sec-embeds" data-section>
@@ -3126,7 +3180,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-mod" id="sec-logs" data-section>
@@ -3299,7 +3353,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-mod" id="sec-audit" data-section>
@@ -3362,7 +3416,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-mod" id="sec-rr" data-section>
@@ -3432,7 +3486,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
   
   <div class="section sec-mod" id="sec-cmd-access" data-section>
@@ -3491,7 +3545,7 @@
         </div></div>
       </div>
     </div>
-  </div>
+  
 
 
   <!-- ===== AntiRaid Rework PREMIUM ===== -->
@@ -3783,7 +3837,8 @@
           </button>
         </div>
         <p style="margin:8px 0 0;font-size:0.75rem;opacity:0.65">png / jpg / webp · máx 8 MB · el bot usará la URL del panel (estable)</p>
-      </form>
+      </div></div>
+</form>
     </div>
   </div>
   {% endif %}
