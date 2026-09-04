@@ -17,10 +17,10 @@
       --text: #f4f4f5;
       --muted: #a1a1aa;
       --muted-2: #71717a;
-      --accent: #f26b47;
-      --accent-2: #ff8a65;
-      --accent-soft: rgba(242,107,71,0.14);
-      --accent-border: rgba(242,107,71,0.35);
+      --accent: #AFD7E6;
+      --accent-2: #7ec8e3;
+      --accent-soft: rgba(175,215,230,0.16);
+      --accent-border: rgba(175,215,230,0.40);
       --success: #22c55e;
       --danger: #ef4444;
       --sidebar-w: 248px;
@@ -61,7 +61,7 @@
     }
     .sidebar-brand img, .sidebar-brand .logo {
       width: 36px; height: 36px; border-radius: 10px;
-      background: linear-gradient(135deg, var(--accent), #ff9a6b);
+      background: linear-gradient(135deg, #AFD7E6, #7ec8e3);
       display: grid; place-items: center; font-weight: 800; font-size: 0.95rem;
     }
     .sidebar-brand .name { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em; }
@@ -94,9 +94,9 @@
       color: #fafafa;
     }
     .side-nav a.active, .side-nav .side-item.active {
-      background: linear-gradient(90deg, rgba(242,107,71,0.18), rgba(242,107,71,0.06));
+      background: linear-gradient(90deg, rgba(175,215,230,0.20), rgba(175,215,230,0.06));
       color: #fff;
-      border-color: rgba(242,107,71,0.28);
+      border-color: rgba(175,215,230,0.32);
       box-shadow: inset 3px 0 0 var(--accent);
     }
     .side-nav .ico {
@@ -108,8 +108,8 @@
       transition: 0.15s;
     }
     .side-nav a.active .ico {
-      background: rgba(242,107,71,0.28);
-      box-shadow: 0 0 12px rgba(242,107,71,0.2);
+      background: rgba(175,215,230,0.32);
+      box-shadow: 0 0 12px rgba(175,215,230,0.22);
     }
     .side-nav a:hover .ico { background: rgba(255,255,255,0.08); }
     .side-section {
@@ -145,9 +145,9 @@
       color: var(--muted); font-size: 0.84rem;
     }
     .side-footer a.premium {
-      background: linear-gradient(135deg, rgba(242,107,71,0.2), rgba(255,154,107,0.08));
+      background: linear-gradient(135deg, rgba(175,215,230,0.22), rgba(255,154,107,0.08));
       border: 1px solid var(--accent-border);
-      color: #ffd0c0;
+      color: #d7eef7;
       font-weight: 600;
     }
 
@@ -267,10 +267,10 @@
     }
     .btn:hover { border-color: var(--border-strong); background: #222226; }
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent), #ff8f66);
+      background: linear-gradient(135deg, #AFD7E6, #7ec8e3);
       border-color: transparent;
       color: #fff;
-      box-shadow: 0 4px 16px rgba(242,107,71,0.25);
+      box-shadow: 0 4px 16px rgba(175,215,230,0.28);
     }
     .btn-primary:hover { filter: brightness(1.06); color: #fff; }
     .btn-ghost { background: transparent; }
@@ -295,7 +295,7 @@
       transition: 0.2s;
     }
     .switch input:checked + .slider {
-      background: linear-gradient(135deg, var(--accent), #ff8f66);
+      background: linear-gradient(135deg, #AFD7E6, #7ec8e3);
     }
     .switch input:checked + .slider:before { transform: translateX(20px); }
 
@@ -351,11 +351,26 @@
       .content { padding: 16px; }
     }
 
+    
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:35;backdrop-filter:blur(2px)}
+    .sidebar-overlay.show{display:block}
+    @media (max-width:900px){
+      .sidebar{position:fixed;left:0;top:0;width:min(86vw,300px);transform:translateX(-105%);transition:transform .25s ease;box-shadow:8px 0 32px rgba(0,0,0,.45)}
+      .sidebar.open{transform:none}
+      .menu-btn{display:inline-flex;align-items:center;justify-content:center;min-width:42px;min-height:42px}
+      .content{padding:14px 12px 40px;max-width:100%}
+      .topbar{padding:10px 12px;gap:8px}
+      .fields{grid-template-columns:1fr!important}
+      .mod-grid,.mod-grid.two{grid-template-columns:1fr!important}
+      input,select,textarea,button{font-size:16px!important}
+    }
+
     {% block extra_css %}{% endblock %}
   </style>
 </head>
 <body>
   {% block body %}
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
   <div class="shell">
     {% block sidebar %}{% endblock %}
     <div class="main">
@@ -377,7 +392,15 @@
     }
     function toggleSidebar() {
       var s = document.querySelector('.sidebar');
+      var o = document.getElementById('sidebarOverlay');
       if (s) s.classList.toggle('open');
+      if (o) o.classList.toggle('show', s && s.classList.contains('open'));
+    }
+    function closeSidebar() {
+      var s = document.querySelector('.sidebar');
+      var o = document.getElementById('sidebarOverlay');
+      if (s) s.classList.remove('open');
+      if (o) o.classList.remove('show');
     }
     {% block extra_js %}{% endblock %}
   </script>
