@@ -128,7 +128,7 @@
     color: #666;
   }
 
-  #guildPage.single-mod .section { display: none !important; border: none !important; background: transparent !important; }
+  /* neutralized bare .section hide */
   #guildPage.single-mod .section.is-active-section {
     display: block !important;
   }
@@ -308,13 +308,8 @@
 
   /* === Panel mode Okaa: solo un módulo visible === */
   #guildPage .mod-nav { display: none !important; }
-  #guildPage .section[data-section] {
-    display: none !important;
-    margin: 0;
-    border: none;
-    background: transparent;
-    animation: none;
-  }
+  /* neutralized: was hiding ALL sections */
+  #guildPage .section[data-section]:not(.is-active-section):not(.panel-active) { display: none !important; }
   #guildPage .section[data-section].panel-active {
     display: block !important;
   }
@@ -993,6 +988,70 @@
 </style>
 
 <div id="guildPage">
+
+<style id="odette-force-visible">
+/* FORCE VISIBLE — pisa cualquier CSS viejo/cacheado */
+#guildPage.single-mod .section[data-section].is-active-section,
+#guildPage.single-mod .section[data-section].panel-active,
+#guildPage .section[data-section].is-active-section,
+#guildPage .section[data-section].panel-active {
+  display: block !important;
+  visibility: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  left: auto !important;
+  width: 100% !important;
+  margin: 0 0 16px 0 !important;
+  padding: 0 !important;
+  pointer-events: auto !important;
+}
+#guildPage.single-mod .section[data-section].is-active-section > .section-body,
+#guildPage .section[data-section].panel-active > .section-body,
+#guildPage.single-mod .section[data-section].is-active-section .section-body {
+  display: block !important;
+  visibility: visible !important;
+  height: auto !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+}
+#guildPage.single-mod .mod.is-focused-mod,
+#guildPage .mod.is-focused-mod {
+  display: block !important;
+  visibility: visible !important;
+  height: auto !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  max-width: 920px !important;
+  margin: 0 0 14px 0 !important;
+  padding: 0 !important;
+  background: #141414 !important;
+  border: 1px solid #2a2a2a !important;
+  border-radius: 14px !important;
+  pointer-events: auto !important;
+}
+#guildPage.single-mod .mod.is-focused-mod .mod-settings,
+#guildPage .mod.is-focused-mod .mod-settings,
+#guildPage.single-mod .mod.is-focused-mod .mod-settings-inner {
+  display: block !important;
+  visibility: visible !important;
+}
+/* inactivos sí ocultos */
+#guildPage.single-mod .section[data-section]:not(.is-active-section):not(.panel-active) {
+  display: none !important;
+}
+#guildPage.single-mod .mod:not(.is-focused-mod) {
+  display: none !important;
+}
+/* collapsed no debe ganar sobre activo */
+#guildPage .section.is-active-section.collapsed > .section-body,
+#guildPage .section.panel-active.collapsed > .section-body {
+  display: block !important;
+}
+</style>
+
 
 <div class="page-head">
   <div style="display:flex;gap:12px;align-items:center">
@@ -4281,133 +4340,138 @@ function showPremiumGate(show, title) {
 }
 
 function showPanel(panelId, focusKey, linkEl) {
-  // Premium gate
-  var needsPrem = linkEl && linkEl.getAttribute('data-premium') === '1';
-  if (!needsPrem && (panelId === 'sec-antiraid-rework' || panelId === 'sec-autopurge')) needsPrem = true;
-  if (!needsPrem && focusKey && String(focusKey).indexOf('ia') >= 0) needsPrem = true;
-  if (needsPrem && !window.ODETTE_PREMIUM) {
-    var nm = linkEl ? (linkEl.textContent || '').replace(/PRO|NUEVO|PREMIUM/gi,'').trim() : 'Premium';
-    showPremiumGate(true, nm);
-    document.querySelectorAll('.side-nav .side-item').forEach(function(a){ a.classList.remove('active'); });
-    if (linkEl) linkEl.classList.add('active');
+  try {
+    var needsPrem = linkEl && linkEl.getAttribute('data-premium') === '1';
+    if (!needsPrem && (panelId === 'sec-antiraid-rework' || panelId === 'sec-autopurge')) needsPrem = true;
+    if (!needsPrem && focusKey && String(focusKey).indexOf('ia') >= 0) needsPrem = true;
+    if (needsPrem && !window.ODETTE_PREMIUM) {
+      var nm = linkEl ? (linkEl.textContent || '').replace(/PRO|NUEVO|PREMIUM/gi,'').trim() : 'Premium';
+      if (typeof showPremiumGate === 'function') showPremiumGate(true, nm);
+      document.querySelectorAll('.side-nav .side-item').forEach(function(a){ a.classList.remove('active'); });
+      if (linkEl) linkEl.classList.add('active');
+      return;
+    }
+    if (typeof showPremiumGate === 'function') showPremiumGate(false);
+
+    var page = document.getElementById('guildPage');
+    if (page) {
+      page.classList.add('single-mod');
+      page.classList.remove('multi-mod-list');
+    }
+
+    // Ocultar todas las secciones
     document.querySelectorAll('[data-section]').forEach(function(sec) {
       sec.classList.remove('is-active-section', 'panel-active');
+      sec.classList.add('collapsed');
+      sec.style.display = 'none';
     });
-    return;
-  }
-  showPremiumGate(false);
-
-  var page = document.getElementById('guildPage');
-  if (page) { page.classList.add('single-mod'); page.classList.remove('multi-mod-list'); }
-
-  document.querySelectorAll('[data-section]').forEach(function(sec) {
-    sec.classList.remove('is-active-section', 'panel-active');
-    sec.classList.add('collapsed');
-    // forzar ocultar por si CSS viejo quedó cacheado
-    /* hide via class */
-  });
-  document.querySelectorAll('[data-mod]').forEach(function(mod) {
-    mod.classList.remove('is-focused-mod');
-  });
-
-  var el = document.getElementById(panelId);
-  if (!el) {
-    console.warn('panel missing', panelId);
-    if (typeof showToast === 'function') showToast('Módulo no encontrado: ' + panelId);
-    return;
-  }
-  el.classList.add('is-active-section', 'panel-active');
-  el.classList.remove('collapsed');
-  /* show via class */
-
-  var mods = el.querySelectorAll('[data-mod]');
-  var focused = null;
-
-  if (focusKey && mods.length) {
-    mods.forEach(function(mod) {
-      var id = (mod.getAttribute('data-mod-id') || '').toLowerCase();
-      var title = ((mod.querySelector('.mod-title') || {}).textContent || '').toLowerCase();
-      var hit = false;
-      if (id === focusKey || id.indexOf(focusKey) >= 0) hit = true;
-      if (!hit && title.indexOf(String(focusKey).toLowerCase()) >= 0) hit = true;
-      if (!hit && focusKey === 'welcome' && title.indexOf('bienven') >= 0) hit = true;
-      if (!hit && focusKey === 'booster' && title.indexOf('boost') >= 0) hit = true;
-      if (!hit && focusKey === 'autorole' && (title.indexOf('auto') >= 0 || title.indexOf('autorole') >= 0)) hit = true;
-      if (!hit && focusKey === 'starboard' && title.indexOf('star') >= 0) hit = true;
-      if (!hit && focusKey === 'nsfw' && title.indexOf('nsfw') >= 0) hit = true;
-      if (!hit && focusKey === 'antiraid' && (title.indexOf('anti-raid') >= 0 || title.indexOf('nuke') >= 0)) hit = true;
-      if (!hit && focusKey === 'automod' && title.indexOf('automod') >= 0) hit = true;
-      if (!hit && focusKey === 'verify' && title.indexOf('verific') >= 0) hit = true;
-      if (hit) focused = mod;
+    document.querySelectorAll('[data-mod]').forEach(function(mod) {
+      mod.classList.remove('is-focused-mod');
+      mod.style.display = 'none';
     });
-  }
 
-  if (!focused && mods.length === 1) focused = mods[0];
-  if (!focused && mods.length > 1 && focusKey) {
-    // fallback: primer mod si el focus no coincidió
-    focused = mods[0];
-  }
+    var el = document.getElementById(panelId);
+    if (!el) {
+      console.warn('panel missing', panelId);
+      if (typeof showToast === 'function') showToast('Módulo no encontrado: ' + panelId);
+      return;
+    }
 
-  if (focused) {
-    focused.classList.add('is-focused-mod');
-    var settings = focused.querySelector('.mod-settings');
-    if (settings) settings.style.display = 'block';
-  } else if (mods.length > 1) {
-    mods.forEach(function(mod) {
-      mod.classList.add('is-focused-mod');
-      var settings = mod.querySelector('.mod-settings');
-      if (settings) settings.style.display = 'block';
-    });
-    if (page) page.classList.add('multi-mod-list');
-  } else if (mods.length === 0) {
-    // sección sin .mod: mostrar body completo
-    var body = el.querySelector('.section-body');
+    // Activar sección
+    el.classList.add('is-active-section', 'panel-active');
+    el.classList.remove('collapsed');
+    el.style.display = 'block';
+    el.style.visibility = 'visible';
+    el.style.height = 'auto';
+    el.style.overflow = 'visible';
+    el.style.opacity = '1';
+
+    var body = el.querySelector(':scope > .section-body') || el.querySelector('.section-body');
     if (body) {
       body.style.display = 'block';
       body.style.visibility = 'visible';
+      body.style.height = 'auto';
     }
-  } else {
-    if (page) page.classList.remove('single-mod');
-  }
 
-  // Garantizar sección visible (por si CSS viejo en caché)
-  el.style.display = 'block';
-  el.style.visibility = 'visible';
-  el.style.height = 'auto';
-  el.style.overflow = 'visible';
-  el.style.opacity = '1';
+    var mods = el.querySelectorAll('[data-mod]');
+    var focused = null;
+    var fk = focusKey ? String(focusKey).toLowerCase() : '';
 
-  document.querySelectorAll('.side-nav .side-item').forEach(function(a) {
-    a.classList.remove('active');
-  });
-  if (linkEl) {
-    linkEl.classList.add('active');
-  } else {
-    var sel = '.side-nav [data-panel="'+panelId+'"]';
-    if (focusKey) sel += '[data-focus="'+focusKey+'"]';
-    var match = document.querySelector(sel) || document.querySelector('.side-nav [data-panel="'+panelId+'"]');
-    if (match) match.classList.add('active');
-  }
+    if (fk && mods.length) {
+      mods.forEach(function(mod) {
+        var id = (mod.getAttribute('data-mod-id') || '').toLowerCase();
+        var title = ((mod.querySelector('.mod-title') || {}).textContent || '').toLowerCase();
+        var hit = (id === fk) || (id.indexOf(fk) >= 0) || (title.indexOf(fk) >= 0);
+        if (!hit && fk === 'welcome' && title.indexOf('bienven') >= 0) hit = true;
+        if (!hit && fk === 'booster' && title.indexOf('boost') >= 0) hit = true;
+        if (!hit && fk === 'autorole' && (title.indexOf('auto') >= 0 || id.indexOf('self') >= 0)) hit = true;
+        if (!hit && fk === 'starboard' && (title.indexOf('star') >= 0 || title.indexOf('destac') >= 0)) hit = true;
+        if (!hit && fk === 'nsfw' && title.indexOf('nsfw') >= 0) hit = true;
+        if (!hit && fk === 'tickets' && title.indexOf('ticket') >= 0) hit = true;
+        if (hit) focused = mod;
+      });
+    }
 
-  var titleBox = document.getElementById('modulePageTitle');
-  var name = 'Configuración';
-  var desc = '';
-  if (linkEl) {
-    name = (linkEl.textContent || '').replace(/NUEVO/g,'').replace(/PREMIUM/g,'').trim();
-  } else if (focused) {
-    name = ((focused.querySelector('.mod-title') || {}).textContent || name).trim();
-    desc = ((focused.querySelector('.mod-desc') || {}).textContent || '').trim();
-  }
-  if (titleBox) {
-    titleBox.querySelector('h2').textContent = name;
-    titleBox.querySelector('p').textContent = desc || 'Ajustes de este módulo · guardado automático';
-  }
-  var crumb = document.querySelector('.topbar .crumb strong');
-  if (crumb) crumb.textContent = name || 'Configuración';
+    if (!focused && mods.length === 1) focused = mods[0];
+    if (!focused && mods.length > 1) {
+      // mostrar todos para que nunca quede vacío
+      mods.forEach(function(mod) {
+        mod.classList.add('is-focused-mod');
+        mod.style.display = 'block';
+        mod.style.visibility = 'visible';
+        var settings = mod.querySelector('.mod-settings');
+        if (settings) settings.style.display = 'block';
+      });
+      if (page) page.classList.add('multi-mod-list');
+    } else if (focused) {
+      focused.classList.add('is-focused-mod');
+      focused.style.display = 'block';
+      focused.style.visibility = 'visible';
+      focused.style.height = 'auto';
+      var settings = focused.querySelector('.mod-settings');
+      if (settings) settings.style.display = 'block';
+    } else {
+      // sin .mod: enseñar el body
+      if (body) body.style.display = 'block';
+    }
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  try { history.replaceState(null, '', '#' + panelId + (focusKey ? ('/' + focusKey) : '')); } catch (e) {}
+    document.querySelectorAll('.side-nav .side-item').forEach(function(a) {
+      a.classList.remove('active');
+    });
+    if (linkEl) linkEl.classList.add('active');
+    else {
+      var sel = '.side-nav [data-panel="' + panelId + '"]';
+      if (fk) sel += '[data-focus="' + focusKey + '"]';
+      var a = document.querySelector(sel) || document.querySelector('.side-nav [data-panel="' + panelId + '"]');
+      if (a) a.classList.add('active');
+    }
+
+    // Título del page-head
+    var titleBox = document.querySelector('#guildPage .page-head .head-title') || document.querySelector('.page-head .titles');
+    // try common structures
+    var h2 = document.querySelector('#guildPage .page-head h2') || document.querySelector('.page-head h1');
+    var pDesc = document.querySelector('#guildPage .page-head .head-title p') || document.querySelector('.page-head p');
+    var name = 'Configuración';
+    var desc = '';
+    if (linkEl) {
+      name = (linkEl.textContent || '').replace(/NUEVO/g,'').replace(/PREMIUM/g,'').replace(/PRO/g,'').trim();
+    } else if (focused) {
+      name = ((focused.querySelector('.mod-title') || {}).textContent || name).trim();
+      desc = ((focused.querySelector('.mod-desc') || {}).textContent || '').trim();
+    }
+    if (h2) h2.textContent = name;
+    if (pDesc) pDesc.textContent = desc || 'Ajustes de este módulo · guardado automático';
+    var crumb = document.querySelector('.topbar .crumb strong');
+    if (crumb) crumb.textContent = name || 'Configuración';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try { history.replaceState(null, '', '#' + panelId + (fk ? ('/' + focusKey) : '')); } catch (e) {}
+  } catch (err) {
+    console.error('showPanel error', err);
+  }
 }
+
+
 function goSec(e, id) {
   if (e) e.preventDefault();
   var link = e && e.currentTarget;
