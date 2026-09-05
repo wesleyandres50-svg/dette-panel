@@ -2229,6 +2229,28 @@ async def guild_save(request: Request, guild_id: str):
             config["welcome"]["delete_seconds"] = 0
         config["welcome"]["dm_message"] = _s("welcome_dm_message")[:500]
 
+
+    if isinstance(config.get("nsfw"), dict):
+        config["nsfw"]["cooldown_seconds"] = max(0, min(int(form.get("nsfw_cooldown") or 5), 600)) if str(form.get("nsfw_cooldown") or "").isdigit() or form.get("nsfw_cooldown") else config["nsfw"].get("cooldown_seconds", 5)
+        try:
+            config["nsfw"]["cooldown_seconds"] = max(0, min(int(form.get("nsfw_cooldown") or 5), 600))
+        except Exception:
+            pass
+        config["nsfw"]["role_id"] = (form.get("nsfw_role_id") or "").strip()[:32]
+        config["nsfw"]["blur_preview"] = form.get("nsfw_blur") == "on"
+        config["nsfw"]["block_outside"] = form.get("nsfw_block_sfw") == "on"
+        config["nsfw"]["log_usage"] = form.get("nsfw_log") == "on"
+    if isinstance(config.get("starboard"), dict):
+        try:
+            config["starboard"]["min_stars"] = max(1, min(int(form.get("starboard_min") or 3), 50))
+        except Exception:
+            pass
+        config["starboard"]["emoji"] = (form.get("starboard_emoji") or "⭐")[:16]
+        config["starboard"]["color"] = (form.get("starboard_color") or "#FFD700")[:16]
+        config["starboard"]["allow_self_star"] = form.get("starboard_self") == "on"
+        config["starboard"]["allow_bots"] = form.get("starboard_bots") == "on"
+        config["starboard"]["jump_link"] = form.get("starboard_jump") == "on"
+
     config["_panel_saved"] = True
     config["_saved_at"] = time.time()
     try:
