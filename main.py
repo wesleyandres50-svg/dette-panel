@@ -74,19 +74,36 @@ if not os.getenv("SECRET_KEY"):
 
 
 _rate_buckets: dict = defaultdict(list)
-_RATE_WINDOW, _RATE_MAX, _RATE_API_MAX = 60.0, 90, 30
+_RATE_WINDOW, _RATE_MAX, _RATE_API_MAX = 60.0, 180, 300
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        client = request.client.host if request.client else "unknown"
-        now = time.time()
-        bucket = _rate_buckets[client]
-        _rate_buckets[client] = [t for t in bucket if now - t < _RATE_WINDOW]
-        limit = _RATE_API_MAX if request.url.path.startswith("/api/") else _RATE_MAX
-        if len(_rate_buckets[client]) >= limit:
-            return _JSONResponse({"error": "Demasiadas peticiones"}, status_code=429)
-        _rate_buckets[client].append(now)
+        # El bot (Bearer PANEL_API_TOKEN) no cuenta para rate-limit
+        auth = (request.headers.get("authorization") or request.headers.get("Authorization") or "")
+        token = ""
+        if auth.lower().startswith("bearer "):
+            token = auth.split(" ", 1)[1].strip()
+        bot_ok = False
+        try:
+            expected = (PANEL_API_TOKEN or os.getenv("PANEL_API_TOKEN") or os.getenv("PANEL_TOKEN") or "").strip()
+            if token and expected:
+                try:
+                    bot_ok = secrets.compare_digest(str(token), str(expected))
+                except Exception:
+                    bot_ok = (token == expected)
+        except Exception:
+            bot_ok = False
+
+        if not bot_ok:
+            client = request.client.host if request.client else "unknown"
+            now = time.time()
+            bucket = _rate_buckets[client]
+            _rate_buckets[client] = [t for t in bucket if now - t < _RATE_WINDOW]
+            limit = _RATE_API_MAX if request.url.path.startswith("/api/") else _RATE_MAX
+            if len(_rate_buckets[client]) >= limit:
+                return _JSONResponse({"error": "Demasiadas peticiones", "retry_after": int(_RATE_WINDOW)}, status_code=429)
+            _rate_buckets[client].append(now)
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
