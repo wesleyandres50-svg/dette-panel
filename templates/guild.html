@@ -1614,37 +1614,40 @@
           </div>
         </div>
 
-        <div class="mod {% if config.starboard.enabled %}is-on{% endif %}" data-mod data-mod-id="starboard">
+                <div class="mod {% if (config.starboard or {}).get('enabled') %}is-on{% endif %}" data-mod data-mod-id="starboard">
           <div class="mod-top">
-            <div class="mod-title">Starboard</div>
-            <label class="switch">
-              <input type="checkbox" name="starboard_enabled" data-toggle {% if config.starboard.enabled %}checked{% endif %} />
-              <span class="slider"></span>
-            </label>
+            <div class="mod-title">Starboard / Destacados</div>
+            <label class="switch"><input type="checkbox" name="starboard_enabled" data-toggle {% if (config.starboard or {}).get('enabled') %}checked{% endif %} /><span class="slider"></span></label>
           </div>
-          <p class="mod-desc">Destaca mensajes con estrellas.</p>
-          <div class="mod-settings">
-            <div class="mod-settings-inner">
-              <div class="fields">
-                <div class="field">
-                  <label>Canal ID</label>
-                  <input type="text" name="starboard_channel" value="{{ config.starboard.channel_id }}" />
-                </div>
-                <div class="field">
-                  <label>Mín. estrellas</label>
-                  <input type="number" name="starboard_min" min="1" max="50" value="{{ config.starboard.min_stars or 3 }}" />
-                <label style="display:block;margin-top:8px">Emoji</label>
-                <input type="text" name="starboard_emoji" value="{{ config.starboard.get('emoji', '⭐') if config.starboard else '⭐' }}" placeholder="⭐" />
-                <label class="check-line" style="margin-top:8px"><input type="checkbox" name="starboard_self_star" {% if config.starboard.get('self_star') %}checked{% endif %} /> Permitir self-star</label>
-                <label class="check-line"><input type="checkbox" name="starboard_allow_images" {% if config.starboard.get('allow_images', true) %}checked{% endif %} /> Permitir imágenes</label>
-
-                </div>
+          <p class="mod-desc">Destaca mensajes con reacciones (⭐). Ideal para memes y momentos del server.</p>
+          <div class="mod-settings" style="display:block"><div class="mod-settings-inner">
+            {% set sb = config.starboard or {} %}
+            <div class="fields">
+              <div class="field"><label>Canal destacados</label>
+                <select name="starboard_channel">
+                  <option value="">—</option>
+                  {% for c in channels or [] %}
+                  <option value="{{ c.id }}" {% if sb.get('channel_id')==(c.id|string) %}selected{% endif %}>{{ c.label if c.label is defined else ("#" ~ c.name) }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field"><label>Mín. estrellas</label>
+                <input type="number" name="starboard_min" min="1" max="50" value="{{ sb.get('min_stars') or sb.get('threshold') or 3 }}" />
+              </div>
+              <div class="field"><label>Emoji</label>
+                <input type="text" name="starboard_emoji" value="{{ sb.get('emoji') or '⭐' }}" />
+              </div>
+              <div class="field"><label>Color embed</label>
+                <input type="text" name="starboard_color" value="{{ sb.get('color') or '#FFD700' }}" />
               </div>
             </div>
-          </div>
+            <label class="check-line"><input type="checkbox" name="starboard_self" {% if sb.get('allow_self_star') %}checked{% endif %} /> Permitir auto-estrella</label>
+            <label class="check-line"><input type="checkbox" name="starboard_bots" {% if sb.get('allow_bots') %}checked{% endif %} /> Contar mensajes de bots</label>
+            <label class="check-line"><input type="checkbox" name="starboard_jump" {% if sb.get('jump_link', true) %}checked{% endif %} /> Botón ir al mensaje</label>
+            <p class="hint">Cuando un mensaje llega al mínimo de ⭐ se publica en el canal de destacados.</p>
+          </div></div>
         </div>
-
-        <div class="mod {% if config.nsfw.enabled %}is-on{% endif %}" data-mod data-mod-id="nsfw">
+<div class="mod {% if config.nsfw.enabled %}is-on{% endif %}" data-mod data-mod-id="nsfw">
           <div class="mod-top">
             <div class="mod-title">NSFW</div>
             <label class="switch">
@@ -1652,10 +1655,27 @@
               <span class="slider"></span>
             </label>
           </div>
-          <p class="mod-desc">Permite comandos NSFW en canales NSFW.</p>
-          <div class="mod-settings">
+          <p class="mod-desc">Comandos NSFW solo en canales marcados como NSFW. Puedes limitar roles y cooldown.</p>
+          <div class="mod-settings" style="display:block">
             <div class="mod-settings-inner">
-              <p class="hint">Solo funciona en canales marcados como NSFW en Discord.</p>
+              {% set nw = config.nsfw or {} %}
+              <div class="fields">
+                <div class="field"><label>Cooldown (s)</label>
+                  <input type="number" name="nsfw_cooldown" min="0" max="600" value="{{ nw.get('cooldown_seconds') or 5 }}" />
+                </div>
+                <div class="field"><label>Rol requerido (opcional)</label>
+                  <select name="nsfw_role_id">
+                    <option value="">— Cualquiera —</option>
+                    {% for r in roles or [] %}
+                    <option value="{{ r.id }}" {% if nw.get('role_id')==(r.id|string) %}selected{% endif %}>@{{ r.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <label class="check-line"><input type="checkbox" name="nsfw_blur" {% if nw.get('blur_preview') %}checked{% endif %} /> Aviso de spoiler en imágenes</label>
+              <label class="check-line"><input type="checkbox" name="nsfw_block_sfw" {% if nw.get('block_outside', true) %}checked{% endif %} /> Bloquear fuera de canales NSFW</label>
+              <label class="check-line"><input type="checkbox" name="nsfw_log" {% if nw.get('log_usage') %}checked{% endif %} /> Log de uso en canal de logs</label>
+              <p class="hint">Comandos típicos: hentai, trap, neko, etc. Solo si el módulo está ON.</p>
             </div>
           </div>
         </div>
@@ -1665,7 +1685,6 @@
   </div>
 
   {# ══════════════ 03 MODERACIÓN ══════════════ #}
-  </div>
 <div class="section sec-mod" id="sec-moderacion" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">03</span> 📋 Moderación</h2>
