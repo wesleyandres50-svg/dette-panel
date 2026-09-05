@@ -989,6 +989,67 @@
 
 <div id="guildPage">
 
+<style id="odette-mobile-fix">
+/* Móvil: layout usable + módulos visibles */
+@media (max-width: 900px) {
+  .guild-layout, #guildPage, .main-wrap, .content-wrap {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+  }
+  #guildSidebar.sidebar, aside.sidebar {
+    position: fixed !important;
+    z-index: 1000 !important;
+    left: 0; top: 0; bottom: 0;
+    width: min(300px, 86vw) !important;
+    transform: translateX(-105%);
+    transition: transform .2s ease;
+  }
+  #guildSidebar.sidebar.open, aside.sidebar.open {
+    transform: translateX(0) !important;
+  }
+  #sidebarOverlay.show {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 999;
+  }
+  /* contenido principal siempre visible en móvil */
+  #guildPage .page-head,
+  #guildPage .section.is-active-section,
+  #guildPage .section.panel-active,
+  #guildPage .mod.is-focused-mod {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    box-sizing: border-box !important;
+  }
+  #guildPage .section.is-active-section .section-body {
+    display: block !important;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .mod-settings {
+    display: block !important;
+  }
+  .fields {
+    grid-template-columns: 1fr !important;
+  }
+  /* topbar botón menú */
+  .menu-toggle, #btnSidebar, .sidebar-toggle {
+    display: inline-flex !important;
+  }
+}
+</style>
+
+
 <style id="odette-force-visible">
 /* FORCE VISIBLE — pisa cualquier CSS viejo/cacheado */
 #guildPage.single-mod .section[data-section].is-active-section,
@@ -4722,5 +4783,46 @@ function syncSelfRolesJson(){ syncSelfPanels(); }
 })();
 
 </script>
+<script>
+
+// Móvil: menú + touch en sidebar
+(function(){
+  function bindMobileNav(){
+    var btn = document.getElementById('btnSidebar') || document.querySelector('.menu-toggle, .sidebar-toggle, [data-open-sidebar]');
+    var sb = document.getElementById('guildSidebar');
+    var ov = document.getElementById('sidebarOverlay');
+    if (btn && sb) {
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        sb.classList.toggle('open');
+        if (ov) ov.classList.toggle('show');
+      });
+    }
+    if (ov && sb) {
+      ov.addEventListener('click', function(){
+        sb.classList.remove('open');
+        ov.classList.remove('show');
+      });
+    }
+    // touchstart en items del menú (más fiable en móvil)
+    document.querySelectorAll('.side-nav [data-panel]').forEach(function(a){
+      a.addEventListener('touchend', function(e){
+        // dejar que click también dispare; solo cerrar drawer
+        setTimeout(function(){
+          if (sb) sb.classList.remove('open');
+          if (ov) ov.classList.remove('show');
+        }, 50);
+      }, {passive: true});
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindMobileNav);
+  } else {
+    bindMobileNav();
+  }
+})();
+
+</script>
+
 {% endblock %}
 
