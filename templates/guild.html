@@ -989,6 +989,33 @@
 
 <div id="guildPage">
 
+<style id="odette-mod-force-2">
+#modulePageTitle { display:block !important; margin: 12px 0 16px; }
+#modulePageTitle h2 { font-size: 1.35rem; margin: 0 0 4px; }
+#modulePageTitle p { color: #888; margin: 0; font-size: 0.9rem; }
+#guildPage .mod.is-focused-mod {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  max-width: 960px !important;
+}
+#guildPage .section.is-active-section,
+#guildPage .section.panel-active {
+  display: block !important;
+  visibility: visible !important;
+  height: auto !important;
+}
+#guildPage .section.is-active-section .section-body,
+#guildPage .section.panel-active .section-body,
+#guildPage .section.is-active-section .mod-grid {
+  display: block !important;
+  visibility: visible !important;
+  height: auto !important;
+}
+</style>
+
+
 <style id="odette-mobile-fix">
 /* Móvil: layout usable + módulos visibles */
 @media (max-width: 900px) {
@@ -4420,80 +4447,96 @@ function showPanel(panelId, focusKey, linkEl) {
       page.classList.remove('multi-mod-list');
     }
 
-    // Ocultar todas las secciones
+    function hideEl(el) {
+      if (!el) return;
+      el.style.setProperty('display', 'none', 'important');
+    }
+    function showEl(el) {
+      if (!el) return;
+      el.style.setProperty('display', 'block', 'important');
+      el.style.setProperty('visibility', 'visible', 'important');
+      el.style.setProperty('height', 'auto', 'important');
+      el.style.setProperty('max-height', 'none', 'important');
+      el.style.setProperty('overflow', 'visible', 'important');
+      el.style.setProperty('opacity', '1', 'important');
+    }
+
     document.querySelectorAll('[data-section]').forEach(function(sec) {
       sec.classList.remove('is-active-section', 'panel-active');
       sec.classList.add('collapsed');
-      sec.style.display = 'none';
+      hideEl(sec);
     });
     document.querySelectorAll('[data-mod]').forEach(function(mod) {
       mod.classList.remove('is-focused-mod');
-      mod.style.display = 'none';
+      hideEl(mod);
     });
 
+    var fk = focusKey ? String(focusKey).toLowerCase().trim() : '';
+    var focused = null;
+
+    // Buscar módulo en TODO el documento (no solo en la sección)
+    if (fk) {
+      focused = document.querySelector('[data-mod-id="' + fk + '"]');
+      if (!focused) {
+        document.querySelectorAll('[data-mod]').forEach(function(mod) {
+          if (focused) return;
+          var id = (mod.getAttribute('data-mod-id') || '').toLowerCase();
+          var title = ((mod.querySelector('.mod-title') || {}).textContent || '').toLowerCase();
+          if (id === fk || id.indexOf(fk) >= 0 || title.indexOf(fk) >= 0) focused = mod;
+          if (!focused && fk === 'starboard' && (title.indexOf('star') >= 0 || title.indexOf('destac') >= 0)) focused = mod;
+          if (!focused && fk === 'welcome' && title.indexOf('bienven') >= 0) focused = mod;
+          if (!focused && fk === 'autorole' && (title.indexOf('auto') >= 0 || id.indexOf('self') >= 0)) focused = mod;
+          if (!focused && fk === 'nsfw' && title.indexOf('nsfw') >= 0) focused = mod;
+          if (!focused && fk === 'booster' && title.indexOf('boost') >= 0) focused = mod;
+        });
+      }
+    }
+
     var el = document.getElementById(panelId);
+    if (focused) {
+      var parentSec = focused.closest('[data-section]');
+      if (parentSec) el = parentSec;
+    }
     if (!el) {
-      console.warn('panel missing', panelId);
-      if (typeof showToast === 'function') showToast('Módulo no encontrado: ' + panelId);
+      console.warn('panel missing', panelId, fk);
+      if (typeof showToast === 'function') showToast('Módulo no encontrado');
       return;
     }
 
-    // Activar sección
     el.classList.add('is-active-section', 'panel-active');
     el.classList.remove('collapsed');
-    el.style.display = 'block';
-    el.style.visibility = 'visible';
-    el.style.height = 'auto';
-    el.style.overflow = 'visible';
-    el.style.opacity = '1';
+    showEl(el);
 
-    var body = el.querySelector(':scope > .section-body') || el.querySelector('.section-body');
-    if (body) {
-      body.style.display = 'block';
-      body.style.visibility = 'visible';
-      body.style.height = 'auto';
-    }
+    // Mostrar padres intermedios (mod-grid, section-body, etc.)
+    var body = el.querySelector('.section-body');
+    if (body) showEl(body);
+    el.querySelectorAll('.mod-grid').forEach(showEl);
 
-    var mods = el.querySelectorAll('[data-mod]');
-    var focused = null;
-    var fk = focusKey ? String(focusKey).toLowerCase() : '';
-
-    if (fk && mods.length) {
-      mods.forEach(function(mod) {
-        var id = (mod.getAttribute('data-mod-id') || '').toLowerCase();
-        var title = ((mod.querySelector('.mod-title') || {}).textContent || '').toLowerCase();
-        var hit = (id === fk) || (id.indexOf(fk) >= 0) || (title.indexOf(fk) >= 0);
-        if (!hit && fk === 'welcome' && title.indexOf('bienven') >= 0) hit = true;
-        if (!hit && fk === 'booster' && title.indexOf('boost') >= 0) hit = true;
-        if (!hit && fk === 'autorole' && (title.indexOf('auto') >= 0 || id.indexOf('self') >= 0)) hit = true;
-        if (!hit && fk === 'starboard' && (title.indexOf('star') >= 0 || title.indexOf('destac') >= 0)) hit = true;
-        if (!hit && fk === 'nsfw' && title.indexOf('nsfw') >= 0) hit = true;
-        if (!hit && fk === 'tickets' && title.indexOf('ticket') >= 0) hit = true;
-        if (hit) focused = mod;
-      });
-    }
-
-    if (!focused && mods.length === 1) focused = mods[0];
-    if (!focused && mods.length > 1) {
-      // mostrar todos para que nunca quede vacío
-      mods.forEach(function(mod) {
-        mod.classList.add('is-focused-mod');
-        mod.style.display = 'block';
-        mod.style.visibility = 'visible';
-        var settings = mod.querySelector('.mod-settings');
-        if (settings) settings.style.display = 'block';
-      });
-      if (page) page.classList.add('multi-mod-list');
-    } else if (focused) {
+    if (focused) {
       focused.classList.add('is-focused-mod');
-      focused.style.display = 'block';
-      focused.style.visibility = 'visible';
-      focused.style.height = 'auto';
+      showEl(focused);
+      var p = focused.parentElement;
+      while (p && p !== el && p !== page) {
+        showEl(p);
+        p = p.parentElement;
+      }
       var settings = focused.querySelector('.mod-settings');
-      if (settings) settings.style.display = 'block';
+      if (settings) showEl(settings);
+      var inner = focused.querySelector('.mod-settings-inner');
+      if (inner) showEl(inner);
     } else {
-      // sin .mod: enseñar el body
-      if (body) body.style.display = 'block';
+      var mods = el.querySelectorAll('[data-mod]');
+      if (mods.length === 1) {
+        mods[0].classList.add('is-focused-mod');
+        showEl(mods[0]);
+        focused = mods[0];
+      } else if (mods.length > 1) {
+        mods.forEach(function(mod) {
+          mod.classList.add('is-focused-mod');
+          showEl(mod);
+        });
+        if (page) page.classList.add('multi-mod-list');
+      }
     }
 
     document.querySelectorAll('.side-nav .side-item').forEach(function(a) {
@@ -4501,29 +4544,33 @@ function showPanel(panelId, focusKey, linkEl) {
     });
     if (linkEl) linkEl.classList.add('active');
     else {
-      var sel = '.side-nav [data-panel="' + panelId + '"]';
-      if (fk) sel += '[data-focus="' + focusKey + '"]';
-      var a = document.querySelector(sel) || document.querySelector('.side-nav [data-panel="' + panelId + '"]');
+      var a = document.querySelector('.side-nav [data-panel="' + panelId + '"]' + (fk ? ('[data-focus="' + focusKey + '"]') : ''))
+        || document.querySelector('.side-nav [data-panel="' + panelId + '"]');
       if (a) a.classList.add('active');
     }
 
-    // Título del page-head
-    var titleBox = document.querySelector('#guildPage .page-head .head-title') || document.querySelector('.page-head .titles');
-    // try common structures
-    var h2 = document.querySelector('#guildPage .page-head h2') || document.querySelector('.page-head h1');
-    var pDesc = document.querySelector('#guildPage .page-head .head-title p') || document.querySelector('.page-head p');
+    // Título real: #modulePageTitle
+    var titleBox = document.getElementById('modulePageTitle');
     var name = 'Configuración';
-    var desc = '';
+    var desc = 'Ajustes de este módulo · guardado automático';
     if (linkEl) {
-      name = (linkEl.textContent || '').replace(/NUEVO/g,'').replace(/PREMIUM/g,'').replace(/PRO/g,'').trim();
-    } else if (focused) {
-      name = ((focused.querySelector('.mod-title') || {}).textContent || name).trim();
-      desc = ((focused.querySelector('.mod-desc') || {}).textContent || '').trim();
+      name = (linkEl.textContent || '').replace(/NUEVO/gi,'').replace(/PREMIUM/gi,'').replace(/PRO/gi,'').trim();
     }
-    if (h2) h2.textContent = name;
-    if (pDesc) pDesc.textContent = desc || 'Ajustes de este módulo · guardado automático';
+    if (focused) {
+      var mt = focused.querySelector('.mod-title');
+      var md = focused.querySelector('.mod-desc');
+      if (mt && mt.textContent) name = mt.textContent.trim();
+      if (md && md.textContent) desc = md.textContent.trim();
+    }
+    if (titleBox) {
+      var h2 = titleBox.querySelector('h2');
+      var p = titleBox.querySelector('p');
+      if (h2) h2.textContent = name;
+      if (p) p.textContent = desc;
+      showEl(titleBox);
+    }
     var crumb = document.querySelector('.topbar .crumb strong');
-    if (crumb) crumb.textContent = name || 'Configuración';
+    if (crumb) crumb.textContent = name;
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
     try { history.replaceState(null, '', '#' + panelId + (fk ? ('/' + focusKey) : '')); } catch (e) {}
@@ -4531,6 +4578,7 @@ function showPanel(panelId, focusKey, linkEl) {
     console.error('showPanel error', err);
   }
 }
+
 
 
 function goSec(e, id) {
