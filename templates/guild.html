@@ -43,16 +43,7 @@
   #guildPage.single-mod {
     position: relative;
   }
-  #guildPage.single-mod .section[data-section] {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    pointer-events: none !important;
-  }
+  /* neutralized bad hide */
   #guildPage.single-mod .section[data-section].is-active-section,
   #guildPage.single-mod .section[data-section].panel-active {
     display: block !important;
@@ -479,6 +470,82 @@
 {% endblock %}
 {% block content %}
 <style>
+
+  /* ===== SINGLE MODULE VIEW (limpio, sin ocultar mal) ===== */
+  #guildPage.single-mod .section[data-section] {
+    display: none !important;
+  }
+  #guildPage.single-mod .section[data-section].is-active-section,
+  #guildPage.single-mod .section[data-section].panel-active {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+    margin: 0 0 16px 0 !important;
+    padding: 0 !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    left: auto !important;
+    width: auto !important;
+  }
+  #guildPage.single-mod .section[data-section].is-active-section > .section-h {
+    display: none !important;
+  }
+  #guildPage.single-mod .section[data-section].is-active-section > .section-body,
+  #guildPage.single-mod .section[data-section].panel-active > .section-body {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  #guildPage.single-mod .mod {
+    display: none !important;
+  }
+  #guildPage.single-mod .mod.is-focused-mod {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+    max-width: 920px !important;
+    margin: 0 0 14px 0 !important;
+    position: relative !important;
+    left: auto !important;
+    pointer-events: auto !important;
+    background: #141414 !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 14px !important;
+  }
+  #guildPage.single-mod.multi-mod-list .mod.is-focused-mod {
+    display: block !important;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .mod-settings {
+    display: block !important;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .mod-top {
+    padding: 18px 20px;
+    border-bottom: 1px solid #2a2a2a;
+    background: #1a1a1a;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .mod-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .mod-desc {
+    padding: 12px 20px 0;
+    color: #888;
+    font-size: 0.85rem;
+  }
+  #guildPage.single-mod .mod.is-focused-mod .mod-settings {
+    border-top: none !important;
+    padding: 8px 20px 20px !important;
+  }
+  #guildPage.single-mod .mod-nav { display: none !important; }
+  #guildPage.single-mod .page-head .head-actions { display: none; }
+
   /* compat estilos legacy del form */
   #guildPage {
     --od-accent: #AFD7E6;
@@ -1685,6 +1752,7 @@
   </div>
 
   {# ══════════════ 03 MODERACIÓN ══════════════ #}
+</div>
 <div class="section sec-mod" id="sec-moderacion" data-section>
     <div class="section-h" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2><span class="cat-tag">03</span> 📋 Moderación</h2>
@@ -4275,26 +4343,39 @@ function showPanel(panelId, focusKey, linkEl) {
   }
 
   if (!focused && mods.length === 1) focused = mods[0];
+  if (!focused && mods.length > 1 && focusKey) {
+    // fallback: primer mod si el focus no coincidió
+    focused = mods[0];
+  }
 
   if (focused) {
     focused.classList.add('is-focused-mod');
-    /* show via class */
     var settings = focused.querySelector('.mod-settings');
     if (settings) settings.style.display = 'block';
   } else if (mods.length > 1) {
-    // varios módulos: mostrar todos en lista vertical (no vacío)
     mods.forEach(function(mod) {
       mod.classList.add('is-focused-mod');
       var settings = mod.querySelector('.mod-settings');
       if (settings) settings.style.display = 'block';
     });
-    if (page) {
-      page.classList.add('multi-mod-list');
+    if (page) page.classList.add('multi-mod-list');
+  } else if (mods.length === 0) {
+    // sección sin .mod: mostrar body completo
+    var body = el.querySelector('.section-body');
+    if (body) {
+      body.style.display = 'block';
+      body.style.visibility = 'visible';
     }
   } else {
-    // sección sin cards de mod: el body entero
     if (page) page.classList.remove('single-mod');
   }
+
+  // Garantizar sección visible (por si CSS viejo en caché)
+  el.style.display = 'block';
+  el.style.visibility = 'visible';
+  el.style.height = 'auto';
+  el.style.overflow = 'visible';
+  el.style.opacity = '1';
 
   document.querySelectorAll('.side-nav .side-item').forEach(function(a) {
     a.classList.remove('active');
